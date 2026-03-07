@@ -1,8 +1,25 @@
-from django import forms
-from django.contrib.auth.models import User
+
 
 from .models import Etudiant, Faculte, Filiere, Niveau
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 
+class ConnexionForm(AuthenticationForm):
+    """Formulaire de connexion : email = username (comme à l'inscription)."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Adresse électronique"
+        self.fields["username"].widget.attrs.update({
+            "class": "form-control",
+            "placeholder": "nom@gmail.com",
+            "autocomplete": "email",
+        })
+        self.fields["password"].widget.attrs.update({
+            "class": "form-control",
+            "placeholder": "••••••••",
+            "autocomplete": "current-password",
+        })
 
 class EtudiantRegistrationForm(forms.Form):
     full_name = forms.CharField(
@@ -20,7 +37,7 @@ class EtudiantRegistrationForm(forms.Form):
         widget=forms.EmailInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "prenom.nom@univ.dj",
+                "placeholder": "prenom.nom@gmail.com",
             }
         ),
     )

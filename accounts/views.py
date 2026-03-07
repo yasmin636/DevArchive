@@ -1,7 +1,9 @@
 from django.contrib import messages
+from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 
-from .forms import EtudiantRegistrationForm
+from .forms import ConnexionForm, EtudiantRegistrationForm
 from .models import Filiere, Niveau
 
 
@@ -30,7 +32,7 @@ def inscription(request):
                 request,
                 "Votre compte a été créé. Vous pouvez maintenant vous connecter.",
             )
-            return redirect("inscription")
+            return redirect("connexion")
     else:
         form = EtudiantRegistrationForm()
 
@@ -53,3 +55,18 @@ def inscription(request):
         },
     )
 
+
+class ConnexionView(LoginView):
+    """Page de connexion (email + mot de passe). Affiche toujours la page en GET."""
+    template_name = "Connexion.html"
+    authentication_form = ConnexionForm
+    redirect_authenticated_user = False
+
+    def dispatch(self, request, *args, **kwargs):
+        # Forcer l'affichage de la page de connexion (jamais de 302 en GET)
+        if request.method == "GET":
+            self.redirect_authenticated_user = False
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse_lazy("inscription")

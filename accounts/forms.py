@@ -6,9 +6,11 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 
 class ConnexionForm(AuthenticationForm):
-    """Formulaire de connexion : email = username (comme à l'inscription)."""
     def __init__(self, *args, **kwargs):
+        # 1) d'abord laisser Django initialiser le formulaire
         super().__init__(*args, **kwargs)
+
+        # 2) ensuite on peut personnaliser les champs
         self.fields["username"].label = "Adresse électronique"
         self.fields["username"].widget.attrs.update({
             "class": "form-control",
@@ -20,7 +22,6 @@ class ConnexionForm(AuthenticationForm):
             "placeholder": "••••••••",
             "autocomplete": "current-password",
         })
-
 class EtudiantRegistrationForm(forms.Form):
     full_name = forms.CharField(
         label="Nom complet",

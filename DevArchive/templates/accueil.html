@@ -1,0 +1,503 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>DevArchive – Université de Djibouti</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        .header {
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            gap: 24px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            font-weight: 700;
+            font-size: 22px;
+            color: #1e40af;
+        }
+        .brand-sub {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+        }
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-link {
+            padding: 8px 14px;
+            color: #475569;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .nav-link:hover {
+            color: #1e40af;
+            background: rgba(30, 64, 175, 0.06);
+        }
+        .header-btns {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .btn-outline {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: transparent;
+        }
+        .btn-outline:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+        .btn-solid {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .btn-solid:hover {
+            background: #1d4ed8;
+        }
+        @media (max-width: 900px) {
+            .nav { display: none; }
+            .header-inner { flex-wrap: wrap; }
+        }
+
+        /* Hero */
+        .hero {
+            padding: 56px 0 72px;
+        }
+        .hero-inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+        .hero-tag {
+            display: inline-block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+        .hero-title {
+            font-size: clamp(28px, 4vw, 38px);
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+            margin: 0 0 16px;
+        }
+        .hero-desc {
+            font-size: 16px;
+            color: #475569;
+            margin: 0 0 24px;
+            max-width: 520px;
+        }
+        .hero-img-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+            aspect-ratio: 4/3;
+            background: #e2e8f0;
+        }
+        .hero-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        @media (max-width: 900px) {
+            .hero-inner { grid-template-columns: 1fr; }
+            .hero-img-wrap { order: -1; max-height: 320px; }
+        }
+
+        /* Features */
+        .features {
+            padding: 48px 0 64px;
+            background: #fff;
+        }
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            text-align: center;
+            margin: 0 0 40px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+        .feature-card {
+            padding: 24px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: rgba(59, 130, 246, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .feature-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 0 0 8px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.5;
+        }
+        @media (max-width: 900px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 560px) {
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Stats */
+        .stats {
+            padding: 48px 0 64px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .stat-card {
+            padding: 28px 24px;
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2563eb;
+            margin: 0 0 8px;
+        }
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin: 0 0 8px;
+        }
+        .stat-desc {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0;
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* CTA */
+        .cta {
+            padding: 56px 0 72px;
+            background: #fff;
+        }
+        .cta-box {
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        .cta-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 12px;
+        }
+        .cta-desc {
+            font-size: 16px;
+            color: #64748b;
+            margin: 0 0 24px;
+        }
+        .cta-btns {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .cta-login {
+            font-size: 14px;
+            color: #64748b;
+        }
+        .cta-login a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .cta-login a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .footer {
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 48px 0 24px;
+        }
+        .footer-inner {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .footer-brand {
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .footer-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 320px;
+            margin: 0;
+        }
+        .footer-col h4 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
+            margin: 0 0 16px;
+        }
+        .footer-col p, .footer-col a {
+            font-size: 14px;
+            color: #cbd5e1;
+            margin: 0 0 8px;
+            display: block;
+            text-decoration: none;
+        }
+        .footer-col a:hover {
+            color: #fff;
+        }
+        .footer-bottom {
+            padding-top: 24px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .footer-bottom p {
+            margin: 0;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .footer-bottom a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .footer-bottom a:hover {
+            color: #fff;
+        }
+        @media (max-width: 768px) {
+            .footer-inner { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <div class="brand">
+                    <div>
+                        <div class="brand-logo">DevArchive</div>
+                        <div class="brand-sub">Université de Djibouti</div>
+                    </div>
+                </div>
+                <nav class="nav">
+                    <a href="{% url 'accueil' %}" class="nav-link">Accueil</a>
+                    <a href="#facultes" class="nav-link">Facultés</a>
+                    <a href="#apropos" class="nav-link">À propos</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                </nav>
+                <div class="header-btns">
+                    <a href="{% url 'inscription' %}" class="btn btn-outline">S'inscrire</a>
+                    <a href="{% url 'connexion' %}" class="btn btn-solid">Connexion</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-inner">
+                    <div>
+                        <span class="hero-tag">Patrimoine académique de Djibouti</span>
+                        <h1 class="hero-title">Une solution moderne pour préserver le patrimoine académique</h1>
+                        <p class="hero-desc">DevArchive simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
+                        <div class="hero-img-wrap" style="display:none;">
+                            <img src="#" alt="">
+                        </div>
+                    </div>
+                    <div class="hero-img-wrap">
+                        <img src="{% static 'img/background_inscription.jpg' %}" alt="Exemple de sujet d'examen archivé">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="facultes">
+            <div class="container">
+                <h2 class="section-title">Les avantages de DevArchive</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">💬</div>
+                        <h3>Consultation publique</h3>
+                        <p>Accès libre aux archives pour tous les étudiants inscrits.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3>Recherche intuitive</h3>
+                        <p>Par année, matière, professeur ou mot-clé spécifique.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚙️</div>
+                        <h3>Filtrage avancé</h3>
+                        <p>Triez par type d'examen (Partiel, Final) ou niveau académique.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Accès sécurisé</h3>
+                        <p>Protection rigoureuse des données et des épreuves sensibles.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">15 000+</div>
+                        <div class="stat-label">Examens archivés</div>
+                        <p class="stat-desc">Un historique complet couvrant plus d'une décennie d'excellence académique.</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">9</div>
+                        <div class="stat-label">Facultés actives</div>
+                        <p class="stat-desc">Toutes les composantes de l'université sont numérisées et accessibles.</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">2 500+</div>
+                        <div class="stat-label">Utilisateurs</div>
+                        <p class="stat-desc">Étudiants et enseignants connectés quotidiennement à la plateforme.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <div class="container">
+                <div class="cta-box">
+                    <h2 class="cta-title">Prêt à explorer les archives ?</h2>
+                    <p class="cta-desc">Inscrivez-vous dès maintenant pour accéder instantanément à la base de données de votre faculté et optimiser vos révisions.</p>
+                    <div class="cta-btns">
+                        <a href="{% url 'inscription' %}" class="btn btn-solid">S'inscrire maintenant</a>
+                        <a href="#filieres" class="btn btn-outline">Consulter par filière</a>
+                    </div>
+                    <p class="cta-login">Déjà inscrit ? <a href="{% url 'connexion' %}">Se connecter à son compte</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-inner">
+                <div>
+                    <div class="footer-brand">DevArchive</div>
+                    <p class="footer-desc">Le système centralisé d'archivage des examens de l'Université de Djibouti. Développé pour soutenir la réussite des étudiants et l'excellence académique.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <p>B.P. 1004, Boulevard Maréchal Lyautey, Djibouti</p>
+                    <p>(+253) 21 35 11 10</p>
+                    <p>contact@univ.edu.dj</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Liens utiles</h4>
+                    <a href="#">Site de l'Université</a>
+                    <a href="#">Portail Étudiant</a>
+                    <a href="#">Guide d'utilisation</a>
+                    <a href="#">Support technique</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2024 Université de Djibouti - Tous droits réservés</p>
+                <div>
+                    <a href="#">Mentions légales</a>
+                    <span style="margin: 0 8px;">|</span>
+                    <a href="#">Confidentialité</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

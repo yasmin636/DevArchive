@@ -103,6 +103,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Connexion : accepter email ou username (insensible à la casse)
+AUTHENTICATION_BACKENDS = [
+    "accounts.backend.EmailOuUsernameBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

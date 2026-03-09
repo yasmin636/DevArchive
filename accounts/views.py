@@ -6,7 +6,14 @@ from django.urls import reverse_lazy
 from .forms import ConnexionForm, EtudiantRegistrationForm
 from .models import Filiere, Niveau
 
+from django.shortcuts import render
 
+def accueil(request):
+    """
+    Page d'accueil publique de DevArchive.
+    """
+    return render(request, "accueil.html")
+    
 def inscription(request):
     """
     Affiche et traite le formulaire d'inscription étudiant.

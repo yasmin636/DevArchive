@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord étudiant — DevArchive (maquette)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --clr-primary: #0d6efd;
+      --clr-primary-dark: #0a58ca;
+    }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #f8f9fa; min-height: 100vh; }
+    /* Header */
+    .top-nav {
+      background: #fff;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .top-nav .brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.15rem; color: #212529; text-decoration: none; }
+    .top-nav .brand:hover { color: var(--clr-primary); }
+    .top-nav .user-area { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .top-nav .user-info { text-align: right; }
+    .top-nav .user-name { font-weight: 600; font-size: 0.95rem; color: #212529; margin: 0; }
+    .top-nav .user-role { font-size: 0.8rem; color: #6c757d; margin: 0; }
+    .top-nav .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--clr-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; }
+    .top-nav .btn-logout { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+    /* Main content */
+    .main-content { padding: 1.5rem 1.5rem 2rem; max-width: 1200px; margin: 0 auto; }
+    /* Welcome banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, var(--clr-primary) 0%, var(--clr-primary-dark) 100%);
+      color: #fff;
+      padding: 1.5rem 1.75rem;
+      border-radius: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .welcome-banner h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem; }
+    .welcome-banner .meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95; }
+    .welcome-banner .meta span.sep { opacity: 0.6; }
+    /* Section */
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .section-title h3 { font-size: 1.1rem; font-weight: 700; color: #212529; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+    .section-title h3 i { color: var(--clr-primary); }
+    .section-title .link-all { font-size: 0.9rem; color: var(--clr-primary); text-decoration: none; font-weight: 500; }
+    .section-title .link-all:hover { text-decoration: underline; }
+    /* Cards Sujets */
+    .subject-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .subject-card {
+      background: #fff;
+      border-radius: 0.6rem;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e9ecef;
+      transition: box-shadow 0.2s;
+    }
+    .subject-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .subject-card .card-icon { width: 40px; height: 40px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 0.75rem; }
+    .subject-card .card-icon.db { background: #e7f3ff; color: var(--clr-primary); }
+    .subject-card .card-icon.network { background: #e0f2fe; color: #0891b2; }
+    .subject-card .card-icon.shield { background: #dcfce7; color: #16a34a; }
+    .subject-card .card-icon.mobile { background: #fef3c7; color: #d97706; }
+    .subject-card .card-title { font-weight: 600; font-size: 0.95rem; color: #212529; margin: 0 0 0.35rem; }
+    .subject-card .card-meta { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.5rem; }
+    .subject-card .card-badge { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 0.35rem; font-size: 0.7rem; font-weight: 600; }
+    .subject-card .card-badge.s1 { background: #dcfce7; color: #16a34a; }
+    .subject-card .card-badge.s2 { background: #e0f2fe; color: #0891b2; }
+    .subject-card .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; }
+    .subject-card .btn-download { color: var(--clr-primary); background: none; border: none; padding: 0.25rem; cursor: pointer; font-size: 1rem; }
+    /* Search section */
+    .search-section { background: #fff; border-radius: 0.6rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e9ecef; margin-bottom: 2rem; }
+    .search-filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .search-filters .form-select { min-width: 160px; }
+    .search-filters .btn-filter { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .exam-table { width: 100%; font-size: 0.9rem; }
+    .exam-table th { text-align: left; padding: 0.75rem; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 600; font-size: 0.8rem; }
+    .exam-table td { padding: 0.75rem; border-bottom: 1px solid #f8f9fa; }
+    .badge-final { background: #fef3c7; color: #b45309; padding: 0.2rem 0.5rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: 600; }
+    .badge-controle { background: #e0f2fe; color: #0891b2; padding: 0.2rem 0.5rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: 600; }
+    .link-consulter { color: var(--clr-primary); text-decoration: none; font-weight: 500; }
+    .link-consulter:hover { text-decoration: underline; }
+    /* History section */
+    .history-section { background: #fff; border-radius: 0.6rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e9ecef; margin-bottom: 2rem; }
+    .history-list { list-style: none; padding: 0; margin: 0; }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #f8f9fa;
+      text-decoration: none;
+      color: #212529;
+      transition: background 0.2s;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-item:hover { background: #f8f9fa; }
+    .history-item .history-icon { width: 36px; height: 36px; border-radius: 0.5rem; background: #e7f3ff; color: var(--clr-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .history-item .history-text { flex: 1; }
+    .history-item .history-title { font-weight: 500; font-size: 0.95rem; margin: 0; }
+    .history-item .history-time { font-size: 0.8rem; color: #6c757d; margin: 0; }
+    .history-item .history-arrow { color: #adb5bd; font-size: 0.9rem; }
+    .history-access { text-align: center; padding: 1rem; margin-top: 0.5rem; }
+    .history-access a { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--clr-primary); text-decoration: none; font-weight: 500; }
+    .history-access a:hover { text-decoration: underline; }
+    /* Footer */
+    .page-footer { text-align: center; padding: 2rem 1rem; font-size: 0.85rem; color: #6c757d; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<nav class="top-nav">
+  <a href="#" class="brand">
+    <span>A DevArchive</span>
+  </a>
+  <div class="user-area">
+    <div class="user-info">
+      <p class="user-name">Jean-Baptiste Kouassi</p>
+      <p class="user-role">Étudiant L3</p>
+    </div>
+    <div class="avatar">JB</div>
+    <a href="connexion.html" class="btn btn-outline-primary btn-sm btn-logout">
+      <i class="bi bi-box-arrow-right"></i> Se déconnecter
+    </a>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main-content">
+  <!-- Welcome banner -->
+  <div class="welcome-banner">
+    <h2>Bonjour Jean-Baptiste.</h2>
+    <div class="meta">
+      <i class="bi bi-building"></i>
+      <span>Faculté d'Ingénierie</span>
+      <span class="sep">•</span>
+      <i class="bi bi-cpu"></i>
+      <span>Génie Informatique</span>
+      <span class="sep">•</span>
+      <span class="badge bg-light text-dark">Niveau L3</span>
+    </div>
+  </div>
+
+  <!-- Sujets les plus visités -->
+  <div class="section-title">
+    <h3><i class="bi bi-graph-up"></i> Sujets les plus visités</h3>
+    <a href="#" class="link-all">Voir tout</a>
+  </div>
+  <div class="subject-cards">
+    <div class="subject-card">
+      <div class="card-icon db"><i class="bi bi-database"></i></div>
+      <div class="card-title">Bases de Données NoSQL</div>
+      <div class="card-meta">Session Janvier 2024 - Examen Final</div>
+      <span class="card-badge s1">S1</span>
+      <div class="card-actions">
+        <span></span>
+        <button class="btn-download" title="Télécharger"><i class="bi bi-download"></i></button>
+      </div>
+    </div>
+    <div class="subject-card">
+      <div class="card-icon network"><i class="bi bi-broadcast"></i></div>
+      <div class="card-title">Réseaux Mobiles & 5G</div>
+      <div class="card-meta">Session Juin 2023 - Examen Final</div>
+      <span class="card-badge s2">S2</span>
+      <div class="card-actions">
+        <span></span>
+        <button class="btn-download" title="Télécharger"><i class="bi bi-download"></i></button>
+      </div>
+    </div>
+    <div class="subject-card">
+      <div class="card-icon shield"><i class="bi bi-shield-lock"></i></div>
+      <div class="card-title">Sécurité Informatique</div>
+      <div class="card-meta">Session Janvier 2024 - Contrôle</div>
+      <span class="card-badge s1">S1</span>
+      <div class="card-actions">
+        <span></span>
+        <button class="btn-download" title="Télécharger"><i class="bi bi-download"></i></button>
+      </div>
+    </div>
+    <div class="subject-card">
+      <div class="card-icon mobile"><i class="bi bi-phone"></i></div>
+      <div class="card-title">Développement Mobile</div>
+      <div class="card-meta">Session Juin 2023 - Examen Final</div>
+      <span class="card-badge s2">S2</span>
+      <div class="card-actions">
+        <span></span>
+        <button class="btn-download" title="Télécharger"><i class="bi bi-download"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recherche d'examens -->
+  <div class="section-title">
+    <h3><i class="bi bi-search"></i> Recherche d'examens</h3>
+  </div>
+  <div class="search-section">
+    <div class="search-filters">
+      <select class="form-select form-select-sm" style="max-width:180px;">
+        <option>Tous les semestres</option>
+        <option>S1</option>
+        <option>S2</option>
+      </select>
+      <select class="form-select form-select-sm" style="max-width:180px;">
+        <option>Toutes les années</option>
+        <option>2024-2025</option>
+        <option>2023-2024</option>
+        <option>2022-2023</option>
+      </select>
+      <select class="form-select form-select-sm" style="max-width:180px;">
+        <option>Tous les types</option>
+        <option>Examen Final</option>
+        <option>Contrôle</option>
+      </select>
+      <button class="btn btn-primary btn-sm btn-filter">
+        <i class="bi bi-funnel"></i> Filtrer
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="exam-table">
+        <thead>
+          <tr>
+            <th>MATIÈRE</th>
+            <th>ANNÉE</th>
+            <th>TYPE</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Intelligence Artificielle</td>
+            <td>2023-2024</td>
+            <td><span class="badge-final">FINAL</span></td>
+            <td><a href="#" class="link-consulter">Consulter</a></td>
+          </tr>
+          <tr>
+            <td>Génie Logiciel Avancé</td>
+            <td>2023-2024</td>
+            <td><span class="badge-controle">CONTRÔLE</span></td>
+            <td><a href="#" class="link-consulter">Consulter</a></td>
+          </tr>
+          <tr>
+            <td>Compilation</td>
+            <td>2022-2023</td>
+            <td><span class="badge-final">FINAL</span></td>
+            <td><a href="#" class="link-consulter">Consulter</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mon Historique -->
+  <div class="section-title">
+    <h3><i class="bi bi-arrow-repeat"></i> Mon Historique</h3>
+    <a href="#" class="link-all">Voir tout l'historique</a>
+  </div>
+  <div class="history-section">
+    <ul class="history-list">
+      <li>
+        <a href="#" class="history-item">
+          <div class="history-icon"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="history-text">
+            <p class="history-title">Systèmes d'exploitation II</p>
+            <p class="history-time">Consulté il y a 2 heures</p>
+          </div>
+          <i class="bi bi-chevron-right history-arrow"></i>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="history-item">
+          <div class="history-icon"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="history-text">
+            <p class="history-title">Algorithmique des Graphes</p>
+            <p class="history-time">Consulté hier</p>
+          </div>
+          <i class="bi bi-chevron-right history-arrow"></i>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="history-item">
+          <div class="history-icon"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="history-text">
+            <p class="history-title">Anglais Technique</p>
+            <p class="history-time">Consulté il y a 3 jours</p>
+          </div>
+          <i class="bi bi-chevron-right history-arrow"></i>
+        </a>
+      </li>
+    </ul>
+    <div class="history-access">
+      <a href="#"><i class="bi bi-arrow-repeat"></i> Accéder à l'historique complet</a>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="page-footer">
+  © 2024 DevArchive - Plateforme d'archives académiques pour le Génie Informatique. Faculté d'Ingénierie • Université d'Excellence.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

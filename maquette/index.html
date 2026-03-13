@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevArchive — Accueil (maquette)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --clr-primary: #0d6efd;
+      --clr-primary-dark: #0a58ca;
+      --clr-text: #111827;
+      --clr-muted: #6b7280;
+      --bg-soft: #f3f4f6;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--clr-text);
+      background-color: #ffffff;
+    }
+    /* Top navbar */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .site-nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--clr-text);
+      font-weight: 700;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.75rem;
+      background: #e5f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--clr-primary);
+      font-size: 1.1rem;
+    }
+    .brand-sub {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--clr-muted);
+      font-weight: 500;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--clr-muted);
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: inherit;
+      font-weight: 500;
+    }
+    .nav-links a:hover {
+      color: var(--clr-primary);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-outline-lightblue {
+      border-radius: 999px;
+      padding: 0.35rem 0.95rem;
+      font-size: 0.85rem;
+      border: 1px solid #d1d5db;
+      color: var(--clr-text);
+      background: #fff;
+    }
+    .btn-outline-lightblue:hover {
+      background: #f3f4f6;
+    }
+    .btn-primary-pill {
+      border-radius: 999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--clr-primary);
+      border: none;
+    }
+    .btn-primary-pill:hover {
+      background: var(--clr-primary-dark);
+    }
+    /* Hero */
+    .hero {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      background: #e5edff;
+      color: #2563eb;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .hero-title {
+      font-size: clamp(2.1rem, 4vw, 2.6rem);
+      line-height: 1.1;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+    .hero-lead {
+      font-size: 0.98rem;
+      color: var(--clr-muted);
+      max-width: 32rem;
+      margin-bottom: 1.5rem;
+    }
+    .hero-features {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem 1.5rem;
+    }
+    .hero-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--clr-muted);
+    }
+    .hero-feature-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #e5f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--clr-primary);
+      flex-shrink: 0;
+    }
+    .hero-feature-title {
+      font-weight: 600;
+      color: var(--clr-text);
+      margin-bottom: 0.1rem;
+    }
+    .hero-visual {
+      border-radius: 1.25rem;
+      background: linear-gradient(145deg, #f9fafb 0%, #e5e7eb 100%);
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 260px;
+    }
+    .hero-card {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 1.25rem;
+      background: #fff;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+    .hero-card-pill {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: var(--clr-muted);
+      align-self: flex-start;
+    }
+    .hero-card-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .hero-card-sub {
+      font-size: 0.85rem;
+      color: var(--clr-muted);
+    }
+    /* Stats section */
+    .stats {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0.5rem 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--clr-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+    .stat-caption {
+      font-size: 0.8rem;
+      color: var(--clr-muted);
+    }
+    /* CTA section */
+    .cta {
+      background: var(--bg-soft);
+      margin-top: 1rem;
+      padding: 2.25rem 1.5rem 2.75rem;
+    }
+    .cta-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .cta h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .cta p {
+      font-size: 0.95rem;
+      color: var(--clr-muted);
+      max-width: 32rem;
+      margin: 0 auto 1.5rem;
+    }
+    .cta-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .cta-sub {
+      font-size: 0.8rem;
+      color: var(--clr-muted);
+    }
+    .cta-sub a {
+      color: var(--clr-primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .cta-sub a:hover {
+      text-decoration: underline;
+    }
+    /* Footer */
+    .site-footer {
+      background: #020617;
+      color: #e5e7eb;
+      padding: 2rem 1.5rem 1.25rem;
+      margin-top: 0;
+    }
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+      gap: 1.75rem;
+      font-size: 0.82rem;
+    }
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .footer-brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: #f9fafb;
+      text-decoration: none;
+    }
+    .footer-brand-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.9rem;
+      background: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #60a5fa;
+    }
+    .footer-col-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 0.5rem;
+    }
+    .footer-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .footer-list li {
+      margin-bottom: 0.25rem;
+    }
+    .footer-list a {
+      color: #e5e7eb;
+      text-decoration: none;
+    }
+    .footer-list a:hover {
+      text-decoration: underline;
+    }
+    .footer-bottom {
+      max-width: 1120px;
+      margin: 1.25rem auto 0;
+      border-top: 1px solid #111827;
+      padding-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      flex-wrap: wrap;
+    }
+    .footer-bottom a {
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .footer-bottom a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      .site-nav-inner {
+        padding-inline: 1rem;
+      }
+      .hero, .stats {
+        padding-inline: 1rem;
+      }
+      .footer-inner {
+        grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      }
+    }
+    @media (max-width: 576px) {
+      .nav-links { display: none; }
+      .stats {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .footer-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="site-nav">
+  <div class="site-nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-logo"><i class="bi bi-archive-fill"></i></span>
+      <span>
+        DevArchive
+        <span class="brand-sub">UNIVERSITÉ DE DJIBOUTI</span>
+      </span>
+    </a>
+    <nav class="nav-links">
+      <a href="#hero">Accueil</a>
+      <a href="#facultes">Facultés</a>
+      <a href="#apropos">À propos</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="inscription.html" class="btn btn-outline-lightblue">S'inscrire</a>
+      <a href="connexion.html" class="btn btn-primary-pill">Connexion</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<main id="hero" class="hero">
+  <section aria-labelledby="hero-title">
+    <div class="hero-badge">
+      <span class="rounded-circle bg-primary" style="width:8px;height:8px;"></span>
+      Patrimoine académique de Djibouti
+    </div>
+    <h1 id="hero-title" class="hero-title">
+      Une solution moderne pour préserver le patrimoine académique.
+    </h1>
+    <p class="hero-lead">
+      DevArchive simplifie l'accès aux ressources pédagogiques tout en garantissant
+      la pérennité et la sécurité des documents officiels de l'Université de Djibouti.
+    </p>
+    <div class="hero-features">
+      <div class="hero-feature">
+        <div class="hero-feature-icon"><i class="bi bi-people"></i></div>
+        <div>
+          <div class="hero-feature-title">Consultation publique</div>
+          <div>Accédez aux archives récentes et aux examens historiques.</div>
+        </div>
+      </div>
+      <div class="hero-feature">
+        <div class="hero-feature-icon"><i class="bi bi-search"></i></div>
+        <div>
+          <div class="hero-feature-title">Recherche intuitive</div>
+          <div>Par matière, année, niveau ou session d'examen.</div>
+        </div>
+      </div>
+      <div class="hero-feature">
+        <div class="hero-feature-icon"><i class="bi bi-funnel"></i></div>
+        <div>
+          <div class="hero-feature-title">Filtrage avancé</div>
+          <div>Par type d'examen, faculté et département académique.</div>
+        </div>
+      </div>
+      <div class="hero-feature">
+        <div class="hero-feature-icon"><i class="bi bi-shield-lock"></i></div>
+        <div>
+          <div class="hero-feature-title">Accès sécurisé</div>
+          <div>Authentification par faculté et gestion fine des autorisations.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="hero-visual" aria-hidden="true">
+    <div class="hero-card">
+      <div class="hero-card-pill">Plateforme académique DevArchive</div>
+      <div class="hero-card-title">Une vitrine numérique pour les examens et projets des étudiants.</div>
+      <div class="hero-card-sub">
+        Centralisez les épreuves, contrôles continus, rapports et mémoires dans un espace
+        unique, pensé pour les enseignants, les services administratifs et les étudiants.
+      </div>
+      <div class="d-flex align-items-center justify-content-between pt-1">
+        <div>
+          <div style="font-size:0.8rem;color:#9ca3af;">Facultés connectées</div>
+          <div style="font-weight:700;">9+</div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;color:#9ca3af;">Examens indexés</div>
+          <div style="font-weight:700;">15&nbsp;000+</div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;color:#9ca3af;">Utilisateurs actifs</div>
+          <div style="font-weight:700;">2&nbsp;500+</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- STATS -->
+<section class="stats" aria-label="Chiffres clés DevArchive">
+  <article class="stat-card">
+    <div class="stat-label">Examens archivés</div>
+    <div class="stat-value">15&nbsp;000+</div>
+    <div class="stat-caption">
+      Un historique complet couvrant plus d'une décennie d'évaluations académiques.
+    </div>
+  </article>
+  <article class="stat-card" id="facultes">
+    <div class="stat-label">Facultés actives</div>
+    <div class="stat-value">9</div>
+    <div class="stat-caption">
+      Toutes les composantes de l'université sont numérisées et accessibles.
+    </div>
+  </article>
+  <article class="stat-card">
+    <div class="stat-label">Utilisateurs</div>
+    <div class="stat-value">2&nbsp;500+</div>
+    <div class="stat-caption">
+      Étudiants, enseignants et administratifs connectés quotidiennement à la plateforme.
+    </div>
+  </article>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="apropos">
+  <div class="cta-inner">
+    <h2>Prêt à explorer les archives&nbsp;?</h2>
+    <p>
+      Inscrivez-vous dès maintenant pour accéder instantanément à la base de données
+      de votre faculté, préparer vos cours ou optimiser vos révisions.
+    </p>
+    <div class="cta-actions">
+      <a href="inscription.html" class="btn btn-primary btn-lg" style="border-radius:999px;padding-inline:1.7rem;">
+        S'inscrire maintenant
+      </a>
+    </div>
+    <p class="cta-sub">
+      Déjà inscrit ? <a href="connexion.html">Se connecter à son compte</a>
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer" id="contact">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="index.html" class="footer-brand-logo">
+        <span class="footer-brand-logo-icon"><i class="bi bi-archive"></i></span>
+        <span>DevArchive</span>
+      </a>
+      <p>
+        Le système centralisé d'archivage des examens de l'Université de Djibouti.
+        Développé pour soutenir la réussite des étudiants et l'excellence académique.
+      </p>
+    </div>
+    <div>
+      <div class="footer-col-title">Contact</div>
+      <ul class="footer-list">
+        <li>B.P. 1904, Boulevard Méridien, Djibouti</li>
+        <li>+253 21 35 10 00</li>
+        <li>contact@univ.dj</li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Liens utiles</div>
+      <ul class="footer-list">
+        <li><a href="#">Site de l'université</a></li>
+        <li><a href="#">Guide étudiant</a></li>
+        <li><a href="#">Support technique</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Documentation</div>
+      <ul class="footer-list">
+        <li><a href="#">Guide enseignant</a></li>
+        <li><a href="#">Politique d'archivage</a></li>
+        <li><a href="#">FAQ plateforme</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2024 Université de Djibouti — Tous droits réservés.</span>
+    <span>
+      <a href="#">Mentions légales</a> · <a href="#">Confidentialité</a>
+    </span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

@@ -46,21 +46,35 @@
     </li>
 
     <li class="sidebar-section">Compte</li>
-    <li><a href="#"><i class="bi bi-person-circle"></i> Mon profil</a></li>
-    <li><a href="#"><i class="bi bi-gear"></i> Paramètres</a></li>
+    <li><a href="{% url 'profil' %}"><i class="bi bi-person-circle"></i> Mon profil</a></li>
+    <li><a href="{% url 'parametres_compte' %}"><i class="bi bi-gear"></i> Paramètres</a></li>
   </ul>
 
   <div class="sidebar-footer">
     <div class="user-info">
-      <div class="avatar">MP</div>
+      <div class="avatar">
+        {# initiales de l'utilisateur connecté #}
+        {% with name=request.user.get_full_name|default:request.user.username %}
+          {% firstof name|slice:":1" "U" %}
+        {% endwith %}
+      </div>
       <div>
-        <div class="user-name">M. Personnel</div>
-        <div class="user-role">Enseignant</div>
+        <div class="user-name">
+          {% if request.user.get_full_name %}
+            {{ request.user.get_full_name }}
+          {% else %}
+            {{ request.user.username }}
+          {% endif %}
+        </div>
+        <div class="user-role">Assistant pédagogique</div>
       </div>
     </div>
-    <a href="{% url 'logout' %}" class="logout-btn">
-      <i class="bi bi-box-arrow-left"></i> Déconnexion
-    </a>
+    <form action="{% url 'logout' %}" method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn border-0 bg-transparent p-0">
+        <i class="bi bi-box-arrow-left"></i> Déconnexion
+      </button>
+    </form>
   </div>
 </aside>
 <div class="overlay" id="overlay"></div>
@@ -76,7 +90,9 @@
       </button>
       <div class="topbar-title">
         Archives des évaluations
-        <small>Contrôles Continus & Examens Finaux</small>
+        <small>
+          {% if assistant_filiere %}Filière : {{ assistant_filiere.libelle }}{% else %}Contrôles Continus & Examens Finaux{% endif %}
+        </small>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -92,13 +108,23 @@
   <!-- CONTENT -->
   <div class="page-content">
 
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} py-2 mb-2">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <!-- STATS -->
     <div class="row g-3 mb-4">
       <div class="col-sm-6 col-lg-3">
         <div class="stat-card">
           <div class="stat-icon slate"><i class="bi bi-archive-fill"></i></div>
           <div>
-            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-value">{{ stat_total }}</div>
             <div class="stat-label">Total archivé</div>
           </div>
         </div>
@@ -107,7 +133,7 @@
         <div class="stat-card">
           <div class="stat-icon purple"><i class="bi bi-journal-text"></i></div>
           <div>
-            <div class="stat-value" id="stat-cc">0</div>
+            <div class="stat-value">{{ stat_cc }}</div>
             <div class="stat-label">Contrôles Continus</div>
           </div>
         </div>
@@ -116,17 +142,8 @@
         <div class="stat-card">
           <div class="stat-icon cyan"><i class="bi bi-file-earmark-text"></i></div>
           <div>
-            <div class="stat-value" id="stat-exam">0</div>
+            <div class="stat-value">{{ stat_exam }}</div>
             <div class="stat-label">Examens Finaux</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-icon green"><i class="bi bi-calendar3"></i></div>
-          <div>
-            <div class="stat-value" id="stat-annee">—</div>
-            <div class="stat-label">Année universitaire</div>
           </div>
         </div>
       </div>
@@ -138,7 +155,7 @@
         <h6>
           <i class="bi bi-archive text-primary"></i>
           Archives
-          <span class="badge bg-primary ms-1" id="count-badge">0</span>
+          <span class="badge bg-primary ms-1" id="count-badge">{{ archives|length }}</span>
         </h6>
         <div class="d-flex gap-2 align-items-center flex-wrap">
           <div class="input-group input-group-sm" style="width:210px;">
@@ -157,7 +174,7 @@
       </div>
 
       <div class="table-responsive">
-        <table class="arch-table">
+        <table class="arch-table" id="archivesTable">
           <thead>
             <tr>
               <th>#</th>
@@ -171,15 +188,50 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="archTableBody"></tbody>
+          <tbody id="archivesTbody">
+          {% for archive in archives %}
+            <tr data-type="{{ archive.type }}" data-annee="{{ archive.annee }}">
+              <td class="text-muted" style="font-size:.75rem;">{{ forloop.counter|stringformat:"02d" }}</td>
+              <td>
+                <div style="font-weight:600;font-size:.85rem;">{{ archive.title }}</div>
+                {% if archive.remarque %}<small class="text-muted">{{ archive.remarque }}</small>{% endif %}
+              </td>
+              <td>
+                {% if archive.type == "CC" %}
+                  <span class="badge-cc">CC</span>
+                {% else %}
+                  <span class="badge-exam">Examen Final</span>
+                {% endif %}
+              </td>
+              <td style="font-size:.82rem;">{{ archive.module }}</td>
+              <td style="font-size:.82rem;">{{ archive.filiere }}</td>
+              <td><span class="badge-annee">{{ archive.annee }}</span></td>
+              <td style="font-size:.82rem;">{{ archive.session }}{% if archive.semestre %} · {{ archive.semestre }}{% endif %}</td>
+              <td style="font-size:.82rem;white-space:nowrap;">{{ archive.date_archive|date:"d/m/Y" }}</td>
+              <td>
+                {% if archive.fichier %}
+                  <a href="{% url 'voir_archive_pdf' archive.id %}" class="action-btn file" title="Voir le fichier PDF">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  </a>
+                {% endif %}
+                <a href="{% url 'modifier_archive' archive.id %}" class="action-btn edit" title="Modifier l'archive">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <a href="{% url 'supprimer_archive' archive.id %}" class="action-btn delete" title="Supprimer l'archive" onclick="return confirm('Supprimer cette archive ?');">
+                  <i class="bi bi-trash3"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="text-center text-muted">Aucune archive pour le moment.</td>
+            </tr>
+          {% endfor %}
+          </tbody>
         </table>
       </div>
 
-      <div id="emptyState" class="empty-state">
-        <i class="bi bi-archive"></i>
-        <p class="fw-600 mb-1">Aucune archive</p>
-        <p>Cliquez sur <strong>Archiver un document</strong> pour commencer.</p>
-      </div>
+      {% comment %} l'état vide est géré directement dans le tbody {% endcomment %}
     </div>
 
   </div>
@@ -194,7 +246,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form id="archForm" novalidate>
+        <form id="archForm" method="post" action="{% url 'creer_archive' %}" enctype="multipart/form-data">
+          {% csrf_token %}
           <input type="hidden" id="archId">
 
           <!-- Type -->
@@ -210,26 +263,27 @@
                 <span style="color:#0891b2;">Examen Final</span>
               </div>
             </div>
-            <input type="hidden" id="archType">
+            <input type="hidden" id="archType" name="type">
             <small class="text-danger" id="typeError"></small>
           </div>
 
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="archTitle">Intitulé <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="archTitle" placeholder="Ex : CC1 — Algorithmique S1" required>
+              <input type="text" class="form-control" id="archTitle" name="title" placeholder="Ex : CC1 — Algorithmique S1" required>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="archModule">Module <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="archModule" placeholder="Ex : Algorithmique" required>
+              <input type="text" class="form-control" id="archModule" name="module" placeholder="Ex : Algorithmique" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="archFiliere">Filière <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="archFiliere" placeholder="Ex : Licence Informatique L2" required>
+              <label class="form-label" for="archFiliere">Filière</label>
+              <input type="text" class="form-control" id="archFiliere" value="{% if assistant_filiere %}{{ assistant_filiere.libelle }}{% endif %}" readonly>
+              <small class="text-muted">Définie automatiquement selon votre affectation.</small>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="archAnnee">Année universitaire <span class="text-danger">*</span></label>
-              <select class="form-select" id="archAnnee" required>
+              <select class="form-select" id="archAnnee" name="annee" required>
                 <option value="">— Sélectionner —</option>
                 <option value="2025-2026">2025 – 2026</option>
                 <option value="2024-2025">2024 – 2025</option>
@@ -240,28 +294,33 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="archSession">Session</label>
-              <select class="form-select" id="archSession">
+              <select class="form-select" id="archSession" name="session">
                 <option value="Normale">Normale</option>
                 <option value="Rattrapage">Rattrapage</option>
               </select>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="archSemestre">Semestre</label>
-              <select class="form-select" id="archSemestre">
+              <select class="form-select" id="archSemestre" name="semestre">
                 <option value="S1">Semestre 1</option>
                 <option value="S2">Semestre 2</option>
               </select>
             </div>
             <div class="col-12">
               <label class="form-label" for="archRemarque">Remarques</label>
-              <textarea class="form-control" id="archRemarque" rows="2" placeholder="Observations, informations complémentaires…"></textarea>
+              <textarea class="form-control" id="archRemarque" name="remarque" rows="2" placeholder="Observations, informations complémentaires…"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="archFile">Exporter le sujet (PDF uniquement)</label>
+              <input type="file" class="form-control" id="archFile" name="fichier" accept="application/pdf,.pdf">
+              <small class="text-muted">Seuls les fichiers au format PDF sont acceptés.</small>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-primary d-flex align-items-center gap-2">
+        <button type="submit" form="archForm" class="btn btn-primary d-flex align-items-center gap-2">
           <i class="bi bi-floppy"></i> Enregistrer
         </button>
       </div>
@@ -323,274 +382,154 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-(function() {
-let archives = JSON.parse(localStorage.getItem('ud_archives') || '[]');
-let deleteTargetId = null;
-let editingId = null;
+  (function() {
+    var archModalEl = document.getElementById('archModal');
+    var archModal = archModalEl ? new bootstrap.Modal(archModalEl) : null;
+    var sidebarEl = document.getElementById('sidebar');
+    var overlayEl = document.getElementById('overlay');
 
-const archModal   = new bootstrap.Modal(document.getElementById('archModal'));
-const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-const viewModal   = new bootstrap.Modal(document.getElementById('viewModal'));
-const toastEl     = document.getElementById('appToast');
-const bsToast     = new bootstrap.Toast(toastEl, { delay: 3000 });
+    function toggleSidebar() {
+      if (!sidebarEl || !overlayEl) return;
+      var isMobile = window.innerWidth <= 768;
+      sidebarEl.classList.toggle('open');
+      if (isMobile) overlayEl.classList.toggle('show');
+      document.body.classList.toggle('sidebar-closed', sidebarEl.classList.contains('open'));
+    }
+    function closeSidebar() {
+      if (sidebarEl) sidebarEl.classList.remove('open');
+      if (overlayEl) overlayEl.classList.remove('show');
+      document.body.classList.remove('sidebar-closed');
+    }
+    function selectType(type) {
+      document.getElementById('archType').value = type;
+      document.getElementById('typeCC').className = 'type-card' + (type === 'CC' ? ' selected-cc' : '');
+      document.getElementById('typeExam').className = 'type-card' + (type === 'Examen Final' ? ' selected-exam' : '');
+      document.getElementById('typeError').textContent = '';
+    }
+    function openAddModal() {
+      document.getElementById('archForm').reset();
+      document.getElementById('archType').value = '';
+      document.getElementById('typeCC').className = 'type-card';
+      document.getElementById('typeExam').className = 'type-card';
+      document.getElementById('typeError').textContent = '';
+      if (archModal) archModal.show();
+    }
 
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-}
+    var sidebarToggleEl = document.getElementById('sidebarToggle');
+    if (sidebarToggleEl) sidebarToggleEl.addEventListener('click', toggleSidebar);
+    if (overlayEl) overlayEl.addEventListener('click', closeSidebar);
+    document.getElementById('typeCC').addEventListener('click', function () { selectType('CC'); });
+    document.getElementById('typeExam').addEventListener('click', function () { selectType('Examen Final'); });
+    var btnOpen = document.getElementById('btnOpenAddModal');
+    if (btnOpen) btnOpen.addEventListener('click', openAddModal);
 
-function showToast(msg, type) {
-  toastEl.className = 'toast align-items-center text-white border-0 bg-' + (type === 'danger' ? 'danger' : 'success');
-  document.getElementById('toastMsg').textContent = msg;
-  bsToast.show();
-}
+    // Validation côté client : type (CC / Examen) obligatoire
+    var archForm = document.getElementById('archForm');
+    if (archForm) {
+      archForm.addEventListener('submit', function (e) {
+        var typeVal = document.getElementById('archType').value;
+        if (!typeVal) {
+          e.preventDefault();
+          e.stopPropagation();
+          document.getElementById('typeError').textContent = 'Veuillez choisir Contrôle Continu ou Examen Final.';
+          // on laisse le navigateur gérer le reste (champs required)
+        }
+      });
+    }
 
-function persist() {
-  localStorage.setItem('ud_archives', JSON.stringify(archives));
-  updateStats();
-  buildAnneeFilter();
-  renderTable();
-}
+    // Filtres et compteurs dans la sidebar
+    var tbody = document.getElementById('archivesTbody');
+    if (tbody) {
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var searchInput = document.getElementById('searchInput');
+      var filterType = document.getElementById('filterType');
+      var filterAnnee = document.getElementById('filterAnnee');
+      var navCC = document.getElementById('navCC');
+      var navExam = document.getElementById('navExam');
+      var navAll = document.getElementById('navAll');
+      var navCcCount = document.getElementById('nav-cc-count');
+      var navExamCount = document.getElementById('nav-exam-count');
+      var navTotalCount = document.getElementById('nav-total-count');
+      var countBadge = document.getElementById('count-badge');
 
-function updateStats() {
-  const cc    = archives.filter(a => a.type === 'CC').length;
-  const exam  = archives.filter(a => a.type === 'Examen Final').length;
-  const years = [...new Set(archives.map(a => a.annee))].sort().reverse();
-  document.getElementById('stat-total').textContent      = archives.length;
-  document.getElementById('stat-cc').textContent         = cc;
-  document.getElementById('stat-exam').textContent       = exam;
-  document.getElementById('stat-annee').textContent      = years[0] || '—';
-  document.getElementById('nav-cc-count').textContent    = cc;
-  document.getElementById('nav-exam-count').textContent  = exam;
-  document.getElementById('nav-total-count').textContent = archives.length;
-}
+      function computeSidebarCounts() {
+        var total = 0, cc = 0, exam = 0;
+        // On compte toujours sur l'ensemble des archives,
+        // indépendamment des filtres actuellement appliqués.
+        rows.forEach(function (tr) {
+          var t = tr.getAttribute('data-type');
+          if (!t) return;
+          total += 1;
+          if (t === 'CC') cc += 1;
+          else if (t === 'Examen Final') exam += 1;
+        });
+        if (navCcCount) navCcCount.textContent = cc;
+        if (navExamCount) navExamCount.textContent = exam;
+        if (navTotalCount) navTotalCount.textContent = total;
+        if (countBadge) countBadge.textContent = total;
+      }
 
-function buildAnneeFilter() {
-  const sel   = document.getElementById('filterAnnee');
-  const cur   = sel.value;
-  const years = [...new Set(archives.map(a => a.annee).filter(Boolean))].sort().reverse();
-  sel.innerHTML = '<option value="">Toutes les années</option>';
-  years.forEach(y => {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y.replace('-', ' – ');
-    if (y === cur) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
+      function applyFilters() {
+        var q = (searchInput ? searchInput.value : '').toLowerCase();
+        var typeVal = filterType ? filterType.value : '';
+        var anneeVal = filterAnnee ? filterAnnee.value : '';
 
-function renderTable() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const fType  = document.getElementById('filterType').value;
-  const fAnnee = document.getElementById('filterAnnee').value;
+        rows.forEach(function (tr) {
+          var text = tr.textContent.toLowerCase();
+          var type = tr.getAttribute('data-type') || '';
+          var annee = tr.getAttribute('data-annee') || '';
 
-  const filtered = archives.filter(a => {
-    const matchS = a.title.toLowerCase().includes(search)   ||
-                   a.module.toLowerCase().includes(search)  ||
-                   a.filiere.toLowerCase().includes(search);
-    return matchS && (!fType || a.type === fType) && (!fAnnee || a.annee === fAnnee);
-  });
+          var matchSearch = !q || text.indexOf(q) !== -1;
+          var matchType = !typeVal || type === typeVal;
+          var matchAnnee = !anneeVal || annee === anneeVal;
 
-  document.getElementById('count-badge').textContent = filtered.length;
-  const tbody = document.getElementById('archTableBody');
-  const empty = document.getElementById('emptyState');
+          tr.style.display = (matchSearch && matchType && matchAnnee) ? '' : 'none';
+        });
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
+        computeSidebarCounts();
+      }
 
-  tbody.innerHTML = filtered.map((a, i) => `
-    <tr>
-      <td class="text-muted" style="font-size:.75rem;">${String(i + 1).padStart(2, '0')}</td>
-      <td>
-        <div style="font-weight:600;font-size:.85rem;">${a.title}</div>
-        ${a.remarque ? `<small class="text-muted">${a.remarque}</small>` : ''}
-      </td>
-      <td>${a.type === 'CC' ? '<span class="badge-cc">CC</span>' : '<span class="badge-exam">Examen Final</span>'}</td>
-      <td style="font-size:.82rem;">${a.module}</td>
-      <td style="font-size:.82rem;">${a.filiere}</td>
-      <td><span class="badge-annee">${a.annee ? a.annee.replace('-', ' – ') : '—'}</span></td>
-      <td style="font-size:.82rem;">${a.session || '—'}${a.semestre ? ' · ' + a.semestre : ''}</td>
-      <td style="font-size:.82rem;white-space:nowrap;">${a.dateArchive}</td>
-      <td>
-        <button class="action-btn view"  data-action="view"   data-id="${a.id}" title="Voir"><i class="bi bi-eye"></i></button>
-        <button class="action-btn edit"  data-action="edit"   data-id="${a.id}" title="Modifier"><i class="bi bi-pencil"></i></button>
-        <button class="action-btn del"   data-action="delete" data-id="${a.id}" title="Supprimer"><i class="bi bi-trash3"></i></button>
-      </td>
-    </tr>
-  `).join('');
-}
+      function fillAnneeFilter() {
+        if (!filterAnnee) return;
+        var values = {};
+        rows.forEach(function (tr) {
+          var annee = tr.getAttribute('data-annee');
+          if (annee) values[annee] = true;
+        });
+        Object.keys(values).sort().forEach(function (val) {
+          var opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          filterAnnee.appendChild(opt);
+        });
+      }
 
-function applyFilter(type) {
-  document.getElementById('filterType').value = type;
-  renderTable();
-}
+      if (searchInput) searchInput.addEventListener('input', applyFilters);
+      if (filterType) filterType.addEventListener('change', applyFilters);
+      if (filterAnnee) filterAnnee.addEventListener('change', applyFilters);
 
-function selectType(type) {
-  document.getElementById('archType').value     = type;
-  document.getElementById('typeCC').className   = 'type-card' + (type === 'CC'           ? ' selected-cc'   : '');
-  document.getElementById('typeExam').className = 'type-card' + (type === 'Examen Final' ? ' selected-exam' : '');
-  document.getElementById('typeError').textContent = '';
-}
+      if (navCC) navCC.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (filterType) filterType.value = 'CC';
+        applyFilters();
+      });
+      if (navExam) navExam.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (filterType) filterType.value = 'Examen Final';
+        applyFilters();
+      });
+      if (navAll) navAll.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (filterType) filterType.value = '';
+        if (filterAnnee) filterAnnee.value = '';
+        if (searchInput) searchInput.value = '';
+        applyFilters();
+      });
 
-function openAddModal() {
-  editingId = null;
-  document.getElementById('archModalTitle').innerHTML = '<i class="bi bi-archive me-2 text-primary"></i>Archiver un document';
-  document.getElementById('archForm').reset();
-  document.getElementById('archId').value           = '';
-  document.getElementById('archType').value         = '';
-  document.getElementById('typeCC').className       = 'type-card';
-  document.getElementById('typeExam').className     = 'type-card';
-  document.getElementById('typeError').textContent  = '';
-  archModal.show();
-}
-
-function saveArchive() {
-  const type     = document.getElementById('archType').value;
-  const title    = document.getElementById('archTitle').value.trim();
-  const module   = document.getElementById('archModule').value.trim();
-  const filiere  = document.getElementById('archFiliere').value.trim();
-  const annee    = document.getElementById('archAnnee').value;
-  const session  = document.getElementById('archSession').value;
-  const semestre = document.getElementById('archSemestre').value;
-  const remarque = document.getElementById('archRemarque').value.trim();
-
-  if (!type) {
-    document.getElementById('typeError').textContent = 'Sélectionnez un type.';
-    return;
-  }
-  if (!title || !module || !filiere || !annee) {
-    showToast('Veuillez remplir tous les champs obligatoires.', 'danger');
-    return;
-  }
-
-  const today = new Date().toLocaleDateString('fr-FR');
-
-  if (editingId) {
-    const idx = archives.findIndex(a => a.id === editingId);
-    archives[idx] = { ...archives[idx], type, title, module, filiere, annee, session, semestre, remarque };
-    showToast('Archive modifiée avec succès.', 'success');
-  } else {
-    archives.unshift({ id: uid(), type, title, module, filiere, annee, session, semestre, remarque, dateArchive: today });
-    showToast('Document archivé avec succès.', 'success');
-  }
-
-  persist();
-  archModal.hide();
-}
-
-function editArchive(id) {
-  const a = archives.find(x => x.id === id);
-  if (!a) return;
-  editingId = id;
-  document.getElementById('archModalTitle').innerHTML  = '<i class="bi bi-pencil me-2 text-warning"></i>Modifier l\'archive';
-  document.getElementById('archId').value       = a.id;
-  document.getElementById('archTitle').value    = a.title;
-  document.getElementById('archModule').value   = a.module;
-  document.getElementById('archFiliere').value  = a.filiere;
-  document.getElementById('archAnnee').value    = a.annee;
-  document.getElementById('archSession').value  = a.session;
-  document.getElementById('archSemestre').value = a.semestre;
-  document.getElementById('archRemarque').value = a.remarque || '';
-  selectType(a.type);
-  archModal.show();
-}
-
-function viewArchive(id) {
-  const a = archives.find(x => x.id === id);
-  if (!a) return;
-  const badge = a.type === 'CC'
-    ? '<span class="badge-cc">Contrôle Continu</span>'
-    : '<span class="badge-exam">Examen Final</span>';
-  document.getElementById('viewModalBody').innerHTML = `
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      <h6 style="font-weight:700;font-size:1rem;margin:0;">${a.title}</h6>
-      ${badge}
-    </div>
-    <table class="table table-sm table-borderless" style="font-size:.85rem;">
-      <tr><td class="text-muted fw-semibold" style="width:140px;">Module</td><td>${a.module}</td></tr>
-      <tr><td class="text-muted fw-semibold">Filière</td><td>${a.filiere}</td></tr>
-      <tr><td class="text-muted fw-semibold">Année univ.</td><td>${a.annee ? a.annee.replace('-', ' – ') : '—'}</td></tr>
-      <tr><td class="text-muted fw-semibold">Session</td><td>${a.session || '—'}</td></tr>
-      <tr><td class="text-muted fw-semibold">Semestre</td><td>${a.semestre || '—'}</td></tr>
-      <tr><td class="text-muted fw-semibold">Archivé le</td><td>${a.dateArchive}</td></tr>
-      ${a.remarque ? `<tr><td class="text-muted fw-semibold">Remarques</td><td>${a.remarque}</td></tr>` : ''}
-    </table>
-  `;
-  viewModal.show();
-}
-
-function confirmDelete(id) {
-  const a = archives.find(x => x.id === id);
-  if (!a) return;
-  deleteTargetId = id;
-  document.getElementById('deleteItemName').textContent = a.title;
-  document.getElementById('deleteItemMeta').textContent =
-    (a.type === 'CC' ? 'Contrôle Continu' : 'Examen Final') +
-    ' · ' + (a.annee || '') + ' · ' + (a.filiere || '');
-  deleteModal.show();
-}
-
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-}
-
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-}
-
-document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-document.getElementById('overlay').addEventListener('click', closeSidebar);
-
-document.getElementById('navCC').addEventListener('click', function (e) {
-  e.preventDefault();
-  applyFilter('CC');
-});
-document.getElementById('navExam').addEventListener('click', function (e) {
-  e.preventDefault();
-  applyFilter('Examen Final');
-});
-document.getElementById('navAll').addEventListener('click', function (e) {
-  e.preventDefault();
-  applyFilter('');
-});
-
-document.getElementById('btnOpenAddModal').addEventListener('click', openAddModal);
-
-document.getElementById('searchInput').addEventListener('input', renderTable);
-document.getElementById('filterType').addEventListener('change', renderTable);
-document.getElementById('filterAnnee').addEventListener('change', renderTable);
-
-document.getElementById('typeCC').addEventListener('click', function () { selectType('CC'); });
-document.getElementById('typeExam').addEventListener('click', function () { selectType('Examen Final'); });
-
-document.getElementById('archTableBody').addEventListener('click', function (e) {
-  const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const id     = btn.dataset.id;
-  if (action === 'view')   viewArchive(id);
-  if (action === 'edit')   editArchive(id);
-  if (action === 'delete') confirmDelete(id);
-});
-
-document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-  archives = archives.filter(a => a.id !== deleteTargetId);
-  persist();
-  deleteModal.hide();
-  showToast('Archive supprimée.', 'danger');
-});
-
-document.querySelector('#archModal .btn-primary').addEventListener('click', saveArchive);
-
-updateStats();
-buildAnneeFilter();
-renderTable();
-})();
+      fillAnneeFilter();
+      applyFilters();
+    }
+  })();
 </script>
 </body>
 </html>

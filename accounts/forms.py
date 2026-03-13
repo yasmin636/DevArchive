@@ -1,8 +1,8 @@
 
 
-from .models import Etudiant, Faculte, Filiere, Niveau
+from .models import AssistantPedagogique, Etudiant, Faculte, Filiere, Niveau, Archive
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.models import User
 
 class ConnexionForm(AuthenticationForm):
@@ -148,4 +148,105 @@ class EtudiantRegistrationForm(forms.Form):
         )
 
         return user
+
+
+class ArchiveForm(forms.ModelForm):
+    """
+    Formulaire pour l'archivage d'un examen avec PDF.
+    """
+
+    class Meta:
+        model = Archive
+        fields = [
+            "type",
+            "title",
+            "module",
+            "annee",
+            "session",
+            "semestre",
+            "remarque",
+            "fichier",
+        ]
+
+    def clean_fichier(self):
+        f = self.cleaned_data.get("fichier")
+        if f and f.content_type != "application/pdf":
+            raise forms.ValidationError("Seuls les fichiers PDF sont autorisés.")
+        return f
+
+
+class PasswordChangeFormStyled(PasswordChangeForm):
+    """Changement de mot de passe avec styles Bootstrap."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.widget.attrs.setdefault("class", "form-control")
+            if "password" in name.lower():
+                field.widget.attrs.setdefault("placeholder", "••••••••")
+                field.widget.attrs.setdefault("autocomplete", "current-password" if name == "old_password" else "new-password")
+
+
+class EmailChangeForm(forms.Form):
+    """Changement d'adresse email (avec confirmation par mot de passe)."""
+
+    password = forms.CharField(
+        label="Mot de passe actuel",
+        widget=forms.PasswordInput(attrs={
+            "class": "form-control",
+            "placeholder": "••••••••",
+            "autocomplete": "current-password",
+        }),
+    )
+    new_email = forms.EmailField(
+        label="Nouvelle adresse email",
+        widget=forms.EmailInput(attrs={
+            "class": "form-control",
+            "placeholder": "nouveau@exemple.dj",
+        }),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        password = self.cleaned_data.get("password")
+        if password and not self.user.check_password(password):
+            raise forms.ValidationError("Mot de passe incorrect.")
+        return password
+
+    def clean_new_email(self):
+        new_email = self.cleaned_data.get("new_email", "").strip().lower()
+        if not new_email:
+            return new_email
+        if User.objects.filter(email=new_email).exclude(pk=self.user.pk).exists():
+            raise forms.ValidationError("Cette adresse email est déjà utilisée par un autre compte.")
+        return new_email
+
+    def save(self):
+        self.user.email = self.cleaned_data["new_email"]
+        self.user.username = self.cleaned_data["new_email"]
+        self.user.save(update_fields=["email", "username"])
+
+
+class AssistantPedagogiqueForm(forms.ModelForm):
+    """
+    Formulaire d'affectation d'un utilisateur à une filière comme assistant pédagogique.
+    Utilisé par l'administrateur système.
+    """
+
+    user = forms.ModelChoiceField(
+        label="Utilisateur",
+        queryset=User.objects.filter(is_active=True).order_by("username"),
+        help_text="Compte utilisateur qui deviendra assistant pédagogique.",
+    )
+    filiere = forms.ModelChoiceField(
+        label="Filière",
+        queryset=Filiere.objects.order_by("libelle"),
+    )
+
+    class Meta:
+        model = AssistantPedagogique
+        fields = ["user", "filiere"]
 

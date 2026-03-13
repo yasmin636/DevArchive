@@ -1,0 +1,230 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramètres du compte — Espace Personnel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{% static 'css/personnel.css' %}">
+  <style>
+    .param-page { padding: 1.5rem; max-width: 700px; }
+    .param-card {
+      border: none;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 1.25rem;
+    }
+    .param-card .card-header {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #475569;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .param-card .card-body { padding: 1.25rem; }
+    .param-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+  </style>
+</head>
+<body>
+
+{% comment %} Reprend la même sidebar que l'espace personnel {% endcomment %}
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon" style="background:none;padding:0;overflow:hidden;"><img src="{% static 'img/univ.jpg' %}" alt="Logo Université" style="width:40px;height:40px;object-fit:cover;border-radius:10px;"></div>
+    <div class="logo-text">
+      Université de Djibouti
+      <small>Espace Personnel</small>
+    </div>
+  </div>
+
+  <ul class="sidebar-nav">
+    <li class="sidebar-section">Principal</li>
+    <li><a href="{% url 'personnel' %}"><i class="bi bi-grid-fill"></i> Tableau de bord</a></li>
+
+    <li class="sidebar-section">Compte</li>
+    <li><a href="{% url 'profil' %}"><i class="bi bi-person-circle"></i> Mon profil</a></li>
+    <li><a href="{% url 'parametres_compte' %}" class="active"><i class="bi bi-gear"></i> Paramètres</a></li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar">
+        {% with name=request.user.get_full_name|default:request.user.username %}
+          {% firstof name|slice:":1" "U" %}
+        {% endwith %}
+      </div>
+      <div>
+        <div class="user-name">
+          {% if request.user.get_full_name %}
+            {{ request.user.get_full_name }}
+          {% else %}
+            {{ request.user.username }}
+          {% endif %}
+        </div>
+        <div class="user-role">Assistant pédagogique</div>
+      </div>
+    </div>
+    <form action="{% url 'logout' %}" method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn border-0 bg-transparent p-0">
+        <i class="bi bi-box-arrow-left"></i> Déconnexion
+      </button>
+    </form>
+  </div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<div id="main">
+  <div class="param-page">
+    <nav aria-label="Fil d'Ariane" class="mb-3">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'personnel' %}">Espace personnel</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Paramètres</li>
+      </ol>
+    </nav>
+
+    <h1 class="h4 mb-4 d-flex align-items-center gap-2">
+      <i class="bi bi-gear"></i> Paramètres du compte
+    </h1>
+
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} py-2 mb-2">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Mot de passe -->
+    <div class="card param-card">
+      <div class="card-header">
+        <span><i class="bi bi-key me-2"></i>Mot de passe</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Modifiez votre mot de passe pour sécuriser votre compte.</p>
+        <form method="post" action="">
+          {% csrf_token %}
+          <input type="hidden" name="change_password" value="1">
+          <div class="mb-2">
+            <label class="form-label" for="id_old_password">{{ password_form.old_password.label }}</label>
+            {{ password_form.old_password }}
+            {% if password_form.old_password.errors %}
+              <div class="invalid-feedback d-block">{{ password_form.old_password.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="id_new_password1">{{ password_form.new_password1.label }}</label>
+            {{ password_form.new_password1 }}
+            {% if password_form.new_password1.errors %}
+              <div class="invalid-feedback d-block">{{ password_form.new_password1.errors.0 }}</div>
+            {% endif %}
+            {% if password_form.new_password1.help_text %}
+              <div class="form-text">{{ password_form.new_password1.help_text }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_new_password2">{{ password_form.new_password2.label }}</label>
+            {{ password_form.new_password2 }}
+            {% if password_form.new_password2.errors %}
+              <div class="invalid-feedback d-block">{{ password_form.new_password2.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Enregistrer le mot de passe</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Adresse email -->
+    <div class="card param-card">
+      <div class="card-header">
+        <span><i class="bi bi-envelope me-2"></i>Adresse email</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">L’adresse email est utilisée pour la connexion. Indiquez votre mot de passe pour la modifier.</p>
+        <div class="mb-3">
+          <label class="form-label">Email actuel</label>
+          <input type="email" class="form-control" value="{{ request.user.email|default:'' }}" readonly disabled>
+        </div>
+        <form method="post" action="">
+          {% csrf_token %}
+          <input type="hidden" name="change_email" value="1">
+          <div class="mb-2">
+            <label class="form-label" for="id_password">{{ email_form.password.label }}</label>
+            {{ email_form.password }}
+            {% if email_form.password.errors %}
+              <div class="invalid-feedback d-block">{{ email_form.password.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_new_email">{{ email_form.new_email.label }}</label>
+            {{ email_form.new_email }}
+            {% if email_form.new_email.errors %}
+              <div class="invalid-feedback d-block">{{ email_form.new_email.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Mettre à jour l’email</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card param-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-bell me-2"></i>Notifications</span>
+        <span class="badge bg-secondary param-badge">À venir</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Choisissez les types de notifications que vous souhaitez recevoir.</p>
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="notif-archives" disabled>
+          <label class="form-check-label" for="notif-archives">Nouveaux documents archivés dans ma filière</label>
+        </div>
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="notif-rappels" disabled>
+          <label class="form-check-label" for="notif-rappels">Rappels et annonces de la plateforme</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="notif-newsletter" disabled>
+          <label class="form-check-label" for="notif-newsletter">Newsletter (résumé périodique)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sécurité & sessions -->
+    <div class="card param-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-shield-lock me-2"></i>Sécurité et sessions</span>
+        <span class="badge bg-secondary param-badge">À venir</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Gérez vos sessions de connexion et les options de sécurité.</p>
+        <div class="mb-3">
+          <label class="form-label">Sessions actives</label>
+          <p class="small text-muted mb-0">Aucune autre session affichée. La déconnexion sur cet appareil est disponible dans le menu.</p>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="2fa" disabled>
+          <label class="form-check-label" for="2fa">Authentification à deux facteurs (2FA)</label>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>Révoquer les autres sessions</button>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <a href="{% url 'personnel' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour à l’espace personnel
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

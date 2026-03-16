@@ -277,12 +277,16 @@ class ConnexionView(LoginView):
         """
         Priorité :
         1. paramètre ?next=
-        2. espace personnel si assistant pédagogique / admin système
-        3. sinon page d'inscription (profil étudiant)
+        2. tableau de bord admin si staff/superuser
+        3. espace personnel si assistant pédagogique
+        4. espace étudiant si étudiant
+        5. sinon page d'inscription
         """
         url = self.get_redirect_url()
         if url:
             return url
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return reverse_lazy("admin_dashboard")
         if user_est_assistant(self.request.user):
             return reverse_lazy("personnel")
         if user_est_etudiant(self.request.user):
@@ -836,3 +840,296 @@ def supprimer_archive(request, pk: int):
     archive.delete()
     messages.success(request, "L'archive a été supprimée.")
     return redirect("personnel")
+
+
+# --- Tableau de bord admin (mêmes données que admin.py) ---
+
+def _format_activity_ago(dt):
+    """Retourne « il y a X min », « il y a X h », « il y a X j »."""
+    if not dt:
+        return ""
+    from django.utils import timezone
+    now = timezone.now()
+    if timezone.is_naive(dt):
+        from django.utils.timezone import make_aware
+        dt = make_aware(dt) if timezone.get_current_timezone() else dt
+    delta = now - dt
+    total_seconds = int(delta.total_seconds())
+    if total_seconds < 60:
+        return "à l'instant"
+    if total_seconds < 3600:
+        m = total_seconds // 60
+        return f"il y a {m} min"
+    if total_seconds < 86400:
+        h = total_seconds // 3600
+        return f"il y a {h} h"
+    d = total_seconds // 86400
+    return f"il y a {d} j"
+
+
+@login_required
+def admin_dashboard(request):
+    """Tableau de bord Sigaud : réservé staff/superuser, données comme admin.py."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count
+    from django.contrib.admin.models import LogEntry
+
+    User = get_user_model()
+    total_users = User.objects.count()
+    total_assistants = AssistantPedagogique.objects.count()
+    total_archives = Archive.objects.count()
+    recent_users = User.objects.order_by("-date_joined")[:5]
+
+    # Activité récente : dernières actions admin (LogEntry)
+    log_entries = (
+        LogEntry.objects.select_related("user", "content_type")
+        .order_by("-action_time")[:10]
+    )
+    action_labels = {
+        1: "Ajout",
+        2: "Modification",
+        3: "Suppression",
+    }
+    model_labels = {
+        "user": "utilisateur",
+        "archive": "document / examen",
+        "assistantpedagogique": "assistant pédagogique",
+        "faculte": "faculté",
+        "filiere": "filière",
+        "niveau": "niveau",
+        "etudiant": "étudiant",
+        "group": "groupe",
+    }
+    recent_activity = []
+    for log in log_entries:
+        model_name = (log.content_type.model if log.content_type else "").lower()
+        model_label = model_labels.get(model_name, model_name or "élément")
+        action = action_labels.get(log.action_flag, f"Action {log.action_flag}")
+        if log.action_flag == 1:
+            if model_name == "assistantpedagogique":
+                label = "Nouvel assistant pédagogique créé"
+            elif model_name == "archive":
+                label = "Nouvel examen / document ajouté"
+            else:
+                label = f"Nouveau {model_label} ajouté"
+        elif log.action_flag == 2:
+            label = f"{model_label.capitalize()} modifié"
+        elif log.action_flag == 3:
+            if model_name == "archive":
+                label = "Document / examen supprimé"
+            else:
+                label = f"{model_label.capitalize()} supprimé"
+        else:
+            label = f"{action} – {model_label}"
+        user_name = log.user.get_full_name().strip() or log.user.username if log.user else "—"
+        recent_activity.append({
+            "label": label,
+            "object_repr": log.object_repr[:80] if log.object_repr else "",
+            "user_name": user_name,
+            "time_ago": _format_activity_ago(log.action_time),
+        })
+
+    return render(
+        request,
+        "admin.html",
+        {
+            "total_users": total_users,
+            "total_assistants": total_assistants,
+            "total_archives": total_archives,
+            "recent_users": recent_users,
+            "recent_activity": recent_activity,
+        },
+    )
+
+
+@login_required
+def admin_utilisateurs(request):
+    """Liste des utilisateurs avec recherche et filtres (style Django admin)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    User = get_user_model()
+    qs = User.objects.all().order_by("username")
+
+    # Recherche (username, email, first_name, last_name)
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(username__icontains=q)
+            | Q(email__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+        )
+
+    # Filtre par statut staff
+    staff_status = request.GET.get("staff_status", "all")
+    if staff_status == "yes":
+        qs = qs.filter(is_staff=True)
+    elif staff_status == "no":
+        qs = qs.filter(is_staff=False)
+
+    # Filtre par statut superuser
+    superuser_status = request.GET.get("superuser_status", "all")
+    if superuser_status == "yes":
+        qs = qs.filter(is_superuser=True)
+    elif superuser_status == "no":
+        qs = qs.filter(is_superuser=False)
+
+    # Filtre par actif
+    is_active_filter = request.GET.get("is_active", "all")
+    if is_active_filter == "yes":
+        qs = qs.filter(is_active=True)
+    elif is_active_filter == "no":
+        qs = qs.filter(is_active=False)
+
+    # Filtre par groupe
+    group_name = request.GET.get("group", "")
+    if group_name:
+        qs = qs.filter(groups__name=group_name).distinct()
+
+    users = qs
+    groups = Group.objects.all().order_by("name")
+
+    return render(
+        request,
+        "admin_utilisateurs.html",
+        {
+            "users": users,
+            "groups": groups,
+            "total_count": users.count(),
+            "query": q,
+            "staff_status": staff_status,
+            "superuser_status": superuser_status,
+            "is_active_filter": is_active_filter,
+            "selected_group": group_name,
+        },
+    )
+
+
+@login_required
+def admin_add_user(request):
+    """Page « Add user » style Django admin (en-tête bleu-vert, sidebar, formulaire + profil assistant)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from .forms import AdminAddUserForm
+
+    form = AdminAddUserForm()
+    if request.method == "POST":
+        form = AdminAddUserForm(request.POST)
+        if form.is_valid():
+            new_user = form.save()
+            messages.success(request, f"L'utilisateur « {new_user.username } » a été créé.")
+            action = request.POST.get("_action", "save")
+            if action == "add_another":
+                return redirect("admin_add_user")
+            if action == "continue":
+                from django.urls import reverse
+                try:
+                    return redirect("admin:auth_user_change", new_user.pk)
+                except Exception:
+                    return redirect("admin_utilisateurs")
+            return redirect("admin_utilisateurs")
+    return render(request, "admin_add_user.html", {"form": form})
+
+
+@login_required
+def admin_documents(request):
+    """Liste des archives/documents (données comme admin)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    documents = Archive.objects.all().order_by("-date_archive")
+    return render(request, "admin_documents.html", {"documents": documents})
+
+
+@login_required
+def admin_statistiques(request):
+    """Statistiques sur les archives (agrégats)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.db.models import Count
+
+    total_archives = Archive.objects.count()
+    stats_par_annee = (
+        Archive.objects.values("annee")
+        .annotate(nb=Count("id"))
+        .order_by("-annee")[:10]
+    )
+    stats_par_type = (
+        Archive.objects.values("type").annotate(nb=Count("id")).order_by("-nb")
+    )
+    stats_par_filiere = (
+        Archive.objects.values("filiere")
+        .annotate(nb=Count("id"))
+        .order_by("-nb")[:10]
+    )
+    return render(
+        request,
+        "admin_statistiques.html",
+        {
+            "total_archives": total_archives,
+            "stats_par_annee": stats_par_annee,
+            "stats_par_type": stats_par_type,
+            "stats_par_filiere": stats_par_filiere,
+        },
+    )
+
+
+@login_required
+def admin_facultes(request):
+    """Liste des facultés (comme admin.py Facultés)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.db.models import Count
+
+    facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
+    return render(request, "admin_facultes.html", {"facultes": facultes})
+
+
+@login_required
+def admin_parametres(request):
+    """Page paramètres : lien vers l'admin Django."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    return render(request, "admin_parametres.html", {})
+
+
+@login_required
+def admin_audit_logs(request):
+    """Audit logs (LogEntry comme l'admin Django)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.contrib.admin.models import LogEntry
+
+    logs = (
+        LogEntry.objects.select_related("user", "content_type")
+        .order_by("-action_time")[:200]
+    )
+    return render(request, "admin_audit_logs.html", {"logs": logs})
+
+
+@login_required
+def admin_notifications(request):
+    """Centre de notifications (dernières actions admin)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+    from django.contrib.admin.models import LogEntry
+
+    notifications = (
+        LogEntry.objects.select_related("user", "content_type")
+        .order_by("-action_time")[:20]
+    )
+    return render(request, "admin_notifications.html", {"notifications": notifications})

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tableau de bord – Admin Sigaud</title>
+  <style>
+    :root {
+      --primary: #3B82F6;
+      --primary-dark: #1D4ED8;
+      --sidebar-bg: #1E2836;
+      --sidebar-bg-active: #2d3a4d;
+      --sidebar-muted: #8b9cad;
+      --sidebar-text: #ffffff;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+      --danger: #EF4444;
+      --success: #22C55E;
+      --warning: #F59E0B;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #F3F4F6;
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+    /* Sidebar – thème sombre Université de Djibouti */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 20px 18px;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .sidebar-brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sidebar-brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .sidebar-brand-text {
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+    .sidebar-brand-sub {
+      font-size: 12px;
+      color: var(--sidebar-muted);
+      font-weight: 500;
+      margin-left: 56px;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--sidebar-muted);
+      padding: 0 18px 10px;
+      margin-top: 8px;
+    }
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      margin: 0 10px;
+      border-radius: 10px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background .15s, color .15s, transform .1s;
+    }
+    .sidebar-nav a:hover {
+      background: var(--sidebar-bg-active);
+      color: #fff;
+      transform: translateX(2px);
+    }
+    .sidebar-nav a.active {
+      background: var(--sidebar-bg-active);
+      color: #fff;
+      border-radius: 10px 0 0 10px;
+      margin-right: 0;
+      padding-right: 22px;
+    }
+    .sidebar-nav .icon {
+      font-size: 18px;
+      opacity: .9;
+    }
+    .sidebar-user {
+      padding: 18px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--sidebar-bg);
+    }
+    .sidebar-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--sidebar-bg-active);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .sidebar-user-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+      margin: 0;
+    }
+    .sidebar-user-role {
+      font-size: 12px;
+      color: var(--sidebar-muted);
+      margin: 2px 0 0;
+    }
+    .sidebar-user a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 12px;
+      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-user a:hover {
+      text-decoration: underline;
+    }
+    /* Main */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .main-header {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .title-block h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .title-block .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #F9FAFB;
+      min-width: 260px;
+    }
+    .search-wrap input {
+      border: none;
+      outline: none;
+      font-size: 14px;
+      background: transparent;
+      flex: 1;
+    }
+    .search-wrap input::placeholder {
+      color: var(--muted);
+    }
+    .search-wrap .ico {
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .btn-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+    }
+    .btn-icon:hover {
+      background: #F9FAFB;
+    }
+    .main-content {
+      flex: 1;
+      padding: 28px;
+      overflow: auto;
+    }
+    /* Cards overview */
+    .overview {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .overview-card {
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .overview-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -60px -60px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(59,130,246,.16), transparent 60%);
+      opacity: .7;
+    }
+    .overview-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .overview-value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+    .overview-trend {
+      margin-top: 6px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--success);
+    }
+    .overview-trend.danger {
+      color: var(--danger);
+    }
+    /* Panels */
+    .panel-row {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .panel {
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 22px 22px 18px;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .panel-sub {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #EFF6FF;
+      color: #1D4ED8;
+    }
+    .badge-danger {
+      background: #FEE2E2;
+      color: #B91C1C;
+    }
+    .badge-success {
+      background: #DCFCE7;
+      color: #166534;
+    }
+    .badge-warning {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .activity-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .activity-list li:last-child {
+      border-bottom: none;
+    }
+    .activity-list .activity-title {
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .activity-list .activity-meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .activity-list .activity-meta .link {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .activity-list .activity-meta .link:hover {
+      text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      background: #F9FAFB;
+    }
+    tbody tr:hover td {
+      background: #F9FAFB;
+    }
+    .link {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .link:hover { text-decoration: underline; }
+    .main-footer {
+      margin-top: auto;
+      padding: 18px 28px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      background: #ffffff;
+    }
+    .main-footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .main-footer a:hover { text-decoration: underline; }
+    @media (max-width: 1100px) {
+      .overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .panel-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+      .main-header {
+        align-items: flex-start;
+      }
+      .tools {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .search-wrap {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% load static %}
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <div class="sidebar-brand-icon">
+          <img src="{% static 'logo_site.png' %}" alt="Université de Djibouti" />
+        </div>
+        <span class="sidebar-brand-text">Université de Djibouti</span>
+      </div>
+      <span class="sidebar-brand-sub">Tableau de bord admin</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}" class="active"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}"><span class="icon">👥</span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}"><span class="icon">⚙</span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {% with a=user.first_name|slice:":1" b=user.last_name|slice:":1" %}
+          {% if a or b %}{{ a }}{{ b }}{% else %}{{ user.username|default:"?"|slice:":2" }}{% endif %}
+        {% endwith %}
+      </div>
+      <div>
+        <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
+        <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
+        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="main-header">
+      <div class="title-block">
+        <h1>Tableau de bord</h1>
+        <p class="sub">Vue d’ensemble des utilisateurs, documents et activité de Sigaud.</p>
+      </div>
+      <div class="tools">
+        <form class="search-wrap" method="get" action="{% url 'admin_dashboard' %}" role="search">
+          <span class="ico">🔍</span>
+          <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Rechercher un utilisateur, un document…" />
+        </form>
+        <a href="{% url 'admin_notifications' %}" class="btn-icon" title="Notifications">🔔</a>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <section class="overview">
+        <article class="overview-card">
+          <div class="overview-label">Utilisateurs</div>
+          <div class="overview-value">{{ total_users }}</div>
+          <div class="overview-trend">
+            <span style="color:var(--muted);">Total des comptes</span>
+          </div>
+        </article>
+        <article class="overview-card">
+          <div class="overview-label">Documents archivés</div>
+          <div class="overview-value">{{ total_archives }}</div>
+          <div class="overview-trend">
+            <span style="color:var(--muted);">Total des archives</span>
+          </div>
+        </article>
+        <article class="overview-card">
+          <div class="overview-label">Espace de stockage utilisé</div>
+          <div class="overview-value">68%</div>
+          <div class="overview-trend warning">
+            ▲ +2% <span style="color:var(--muted);">sur la semaine</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel-row">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Utilisateurs récents</h2>
+              <p class="panel-sub">Derniers comptes créés sur la plateforme.</p>
+            </div>
+            <span class="pill badge-success">Actifs</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Rôle</th>
+                  <th>Filière</th>
+                  <th>Dernière connexion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in recent_users %}
+                <tr>
+                  <td>{{ u.get_full_name|default:u.username }}</td>
+                  <td>
+                    {% if u.is_superuser %}Super admin{% elif u.is_staff %}Staff{% else %}Utilisateur{% endif %}
+                  </td>
+                  <td>—</td>
+                  <td>{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">Aucun utilisateur.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Activité récente</h2>
+              <p class="panel-sub">Dernières actions effectuées dans l’archive.</p>
+            </div>
+            <span class="pill badge-warning">Résumé</span>
+          </div>
+          <ul class="activity-list">
+            {% for item in recent_activity %}
+            <li>
+              <span class="activity-title">{{ item.label }}</span>
+              <div class="activity-meta">
+                {% if item.object_repr %}{{ item.object_repr }}{% endif %}
+                {% if item.object_repr and item.user_name %} · {% endif %}
+                {% if item.user_name %}par <span class="link">{{ item.user_name }}</span>{% endif %}
+                {% if item.time_ago %} · {{ item.time_ago }}{% endif %}
+              </div>
+            </li>
+            {% empty %}
+            <li>
+              <span class="activity-title">Aucune activité récente</span>
+              <div class="activity-meta">Les actions effectuées dans l’admin apparaîtront ici.</div>
+            </li>
+            {% endfor %}
+          </ul>
+        </article>
+      </section>
+    </div>
+
+    <footer class="main-footer">
+      © 2023 Sigaud – Tableau de bord administrateur.
+    </footer>
+  </main>
+</body>
+</html>
+

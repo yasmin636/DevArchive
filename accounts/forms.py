@@ -2,7 +2,8 @@
 
 from .models import AssistantPedagogique, Etudiant, Faculte, Filiere, Niveau, Archive
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 
 class ConnexionForm(AuthenticationForm):
@@ -363,4 +364,84 @@ class ProfilEtudiantForm(forms.Form):
             elif self.cleaned_data.get("photo"):
                 self.etudiant.photo = self.cleaned_data["photo"]
             self.etudiant.save()
+
+
+class AdminAddUserForm(forms.Form):
+    """Formulaire « Add user » pour le tableau de bord admin (style Django admin)."""
+    username = forms.CharField(
+        max_length=150,
+        label="Nom d'utilisateur",
+        help_text="Requis. 150 caractères ou moins. Lettres, chiffres et @/./+/-/_ uniquement.",
+        widget=forms.TextInput(attrs={"class": "admin-input", "autocomplete": "username"}),
+    )
+    password_authentication = forms.ChoiceField(
+        choices=[("enabled", "Activé"), ("disabled", "Désactivé")],
+        label="Authentification par mot de passe",
+        initial="enabled",
+        widget=forms.RadioSelect(attrs={"class": "admin-radio"}),
+    )
+    password1 = forms.CharField(
+        label="Mot de passe",
+        strip=False,
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "admin-input", "autocomplete": "new-password"}),
+        help_text=(
+            "Votre mot de passe ne doit pas être trop proche des autres informations personnelles.<br>"
+            "Votre mot de passe doit contenir au moins 8 caractères.<br>"
+            "Votre mot de passe ne peut pas être un mot de passe couramment utilisé.<br>"
+            "Votre mot de passe ne peut pas être entièrement numérique."
+        ),
+    )
+    password2 = forms.CharField(
+        label="Confirmation du mot de passe",
+        strip=False,
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "admin-input", "autocomplete": "new-password"}),
+        help_text="Saisissez le même mot de passe que ci-dessus, pour vérification.",
+    )
+    filiere = forms.ModelChoiceField(
+        queryset=Filiere.objects.all().order_by("libelle"),
+        label="Filière",
+        required=False,
+        widget=forms.Select(attrs={"class": "admin-select"}),
+        help_text="Optionnel : associer un profil assistant pédagogique à cet utilisateur.",
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username", "").strip()
+        User = get_user_model()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("Un utilisateur avec ce nom d'utilisateur existe déjà.")
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("password_authentication") == "enabled":
+            p1 = cleaned_data.get("password1")
+            p2 = cleaned_data.get("password2")
+            if not p1:
+                self.add_error("password1", "Ce champ est obligatoire lorsque l'authentification par mot de passe est activée.")
+            if p1 and p2 and p1 != p2:
+                self.add_error("password2", "Les deux mots de passe ne correspondent pas.")
+            if p1 and len(p1) < 8:
+                self.add_error("password1", "Le mot de passe doit contenir au moins 8 caractères.")
+        return cleaned_data
+
+    def save(self):
+        User = get_user_model()
+        username = self.cleaned_data["username"].strip()
+        password = self.cleaned_data.get("password1") or ""
+        if self.cleaned_data.get("password_authentication") == "disabled":
+            user = User.objects.create_user(username=username, password=None)
+            user.set_unusable_password()
+            user.save()
+        else:
+            user = User.objects.create_user(username=username, password=password or None)
+        filiere = self.cleaned_data.get("filiere")
+        if filiere:
+            from django.contrib.auth.models import Group
+            AssistantPedagogique.objects.create(user=user, filiere=filiere)
+            group, _ = Group.objects.get_or_create(name="Assistant pédagogique")
+            user.groups.add(group)
+        return user
 

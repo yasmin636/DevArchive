@@ -16,12 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('accounts.urls')),
+    # /admin/ → redirection vers le tableau de bord admin Sigaud
+    path("admin/", RedirectView.as_view(pattern_name="admin_dashboard", permanent=False)),
+    # Admin Django (système) sous /admin-dashboard/system/
+    path("admin-dashboard/system/", admin.site.urls),
+    path("", include("accounts.urls")),
 ]
 
 if settings.DEBUG:

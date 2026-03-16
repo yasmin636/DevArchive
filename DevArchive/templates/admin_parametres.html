@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paramètres – Admin Sigaud</title>
+  <style>
+    :root { --primary:#3B82F6; --sidebar-bg:#1E2836; --sidebar-bg-active:#2d3a4d; --sidebar-muted:#8b9cad; --sidebar-text:#fff; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --radius:12px; }
+    *{box-sizing:border-box;} body{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#F3F4F6;color:var(--text);}
+    .sidebar{width:260px;background:var(--sidebar-bg);border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;}
+    .sidebar-brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:20px 18px;background:var(--sidebar-bg);border-bottom:1px solid rgba(255,255,255,.06);}
+    .sidebar-brand-row{display:flex;align-items:center;gap:12px;}
+    .sidebar-brand-icon{width:44px;height:44px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;}
+    .sidebar-brand-icon img{width:100%;height:100%;object-fit:contain;}
+    .sidebar-brand-text{font-weight:800;font-size:16px;color:#fff;}
+    .sidebar-brand-sub{font-size:12px;color:var(--sidebar-muted);font-weight:500;margin-left:56px;}
+    .sidebar-nav{flex:1;padding:16px 0;}
+    .sidebar-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sidebar-muted);padding:0 18px 10px;margin-top:8px;}
+    .sidebar-nav a{display:flex;align-items:center;gap:12px;padding:12px 18px;margin:0 10px;border-radius:10px;color:var(--sidebar-text);text-decoration:none;font-size:14px;font-weight:600;}
+    .sidebar-nav a:hover{background:var(--sidebar-bg-active);color:#fff;}
+    .sidebar-nav a.active{background:var(--sidebar-bg-active);color:#fff;border-radius:10px 0 0 10px;margin-right:0;padding-right:22px;}
+    .sidebar-user{padding:18px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;background:var(--sidebar-bg);}
+    .sidebar-avatar{width:44px;height:44px;border-radius:50%;background:var(--sidebar-bg-active);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;}
+    .sidebar-user-name{margin:0;font-weight:700;font-size:14px;color:#fff;}
+    .sidebar-user-role{margin:2px 0 0;font-size:12px;color:var(--sidebar-muted);}
+    .sidebar-user a{color:#fff;text-decoration:none;font-weight:600;font-size:12px;margin-top:6px;}
+    .sidebar-user a:hover{text-decoration:underline;}
+    .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .main-header{padding:24px 28px;border-bottom:1px solid var(--border);background:#fff;}
+    .main-header h1{margin:0;font-size:24px;font-weight:800;}
+    .main-header .sub{margin:6px 0 0;font-size:14px;color:var(--muted);}
+    .main-content{flex:1;padding:24px 28px;}
+    .panel{max-width:640px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:20px 22px;}
+    .panel-title{margin:0 0 6px;font-size:16px;font-weight:800;}
+    .panel p{margin:0 0 12px;font-size:14px;color:var(--muted);}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-weight:700;font-size:14px;text-decoration:none;}
+    .btn:hover{background:#2563eb;color:#fff;}
+    .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
+  </style>
+</head>
+<body>
+  {% load static %}
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <div class="sidebar-brand-icon"><img src="{% static 'logo_site.png' %}" alt="Université de Djibouti" /></div>
+        <span class="sidebar-brand-text">Université de Djibouti</span>
+      </div>
+      <span class="sidebar-brand-sub">Tableau de bord admin</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}"><span class="icon">👥</span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}" class="active"><span class="icon">⚙</span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {% with a=user.first_name|slice:":1" b=user.last_name|slice:":1" %}
+          {% if a or b %}{{ a }}{{ b }}{% else %}{{ user.username|default:"?"|slice:":2" }}{% endif %}
+        {% endwith %}
+      </div>
+      <div>
+        <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
+        <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
+        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="main-header">
+      <h1>Paramètres</h1>
+      <p class="sub">Réglages avancés via l’administration Django.</p>
+    </header>
+    <div class="main-content">
+      <section class="panel">
+        <h2 class="panel-title">Administration système</h2>
+        <p>Pour gérer les groupes, permissions et tous les modèles en détail, ouvrez l’interface Django administration.</p>
+        <a href="{% url 'admin:index' %}" class="btn">🔧 Ouvrir l'administration Django</a>
+      </section>
+    </div>
+    <footer class="main-footer">© 2023 Sigaud – Paramètres.</footer>
+  </main>
+</body>
+</html>
+

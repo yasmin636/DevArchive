@@ -19,6 +19,8 @@ urlpatterns = [
         name="confirmer_email",
     ),
     path("connexion/", views.ConnexionView.as_view(), name="connexion"),
+    # Ancienne URL /etudiant/ → redirection vers le nouvel espace étudiant
+    path("etudiant/", RedirectView.as_view(pattern_name="espace_etudiant", permanent=False)),
     # Ancienne URL /profil/ → redirection vers /personnel/profil/
     path("profil/", RedirectView.as_view(pattern_name="profil", permanent=True)),
     path("personnel/", views.PersonnelView.as_view(), name="personnel"),
@@ -106,6 +108,16 @@ urlpatterns = [
         views.supprimer_archive,
         name="supprimer_archive",
     ),
+    # Tableau de bord admin Sigaud (staff/superuser)
+    path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    path("admin-dashboard/utilisateurs/", views.admin_utilisateurs, name="admin_utilisateurs"),
+    path("admin-dashboard/utilisateurs/ajouter/", views.admin_add_user, name="admin_add_user"),
+    path("admin-dashboard/documents/", views.admin_documents, name="admin_documents"),
+    path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
+    path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),
+    path("admin-dashboard/parametres/", views.admin_parametres, name="admin_parametres"),
+    path("admin-dashboard/audit-logs/", views.admin_audit_logs, name="admin_audit_logs"),
+    path("admin-dashboard/notifications/", views.admin_notifications, name="admin_notifications"),
     # utilisé dans le template personnel.html : {% url 'logout' %}
     path("deconnexion/", LogoutView.as_view(next_page="connexion"), name="logout"),
     # Mot de passe oublié / réinitialisation

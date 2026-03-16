@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord Admin — DevArchive (maquette)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --clr-primary: #0d6efd;
+      --sidebar-bg: #e8f4fd;
+      --sidebar-active: #0d6efd;
+    }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #f3f4f6; min-height: 100vh; display: flex; }
+    /* Sidebar */
+    .admin-sidebar {
+      width: 240px;
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .admin-sidebar .brand {
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #1e293b;
+      text-decoration: none;
+    }
+    .admin-sidebar .brand:hover { color: var(--clr-primary); }
+    .admin-sidebar .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 0.5rem;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--clr-primary);
+    }
+    .admin-sidebar nav { flex: 1; padding: 0.5rem 0; overflow-y: auto; }
+    .admin-sidebar .nav-section { padding: 0.5rem 1rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 600; }
+    .admin-sidebar .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 1rem;
+      color: #475569;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+    .admin-sidebar .nav-link:hover { background: rgba(13, 110, 253, 0.1); color: var(--clr-primary); }
+    .admin-sidebar .nav-link.active { background: var(--sidebar-active); color: #fff; }
+    .admin-sidebar .nav-link i { font-size: 1.1rem; }
+    .admin-sidebar .user-card {
+      padding: 1rem;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .admin-sidebar .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--clr-primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .admin-sidebar .user-name { font-weight: 600; font-size: 0.9rem; color: #1e293b; margin: 0; }
+    .admin-sidebar .user-role { font-size: 0.75rem; color: #64748b; margin: 0; }
+    /* Main */
+    .admin-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .admin-header {
+      background: #fff;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .admin-header h1 { font-size: 1.35rem; font-weight: 700; margin: 0 0 0.2rem; }
+    .admin-header .subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
+    .admin-header .tools { display: flex; align-items: center; gap: 0.75rem; }
+    .admin-header .search-wrap {
+      display: flex;
+      align-items: center;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      min-width: 200px;
+    }
+    .admin-header .search-wrap i { color: #9ca3af; margin-right: 0.4rem; }
+    .admin-header .search-wrap input { border: none; background: none; font-size: 0.9rem; outline: none; }
+    .admin-header .btn-icon { width: 38px; height: 38px; border-radius: 0.5rem; border: 1px solid #e5e7eb; background: #fff; display: flex; align-items: center; justify-content: center; color: #6b7280; }
+    .admin-header .btn-icon:hover { background: #f9fafb; color: var(--clr-primary); }
+    .admin-content { padding: 1.5rem; flex: 1; }
+    /* Stat cards */
+    .stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: #fff;
+      border-radius: 0.6rem;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e5e7eb;
+    }
+    .stat-card .stat-icon { width: 44px; height: 44px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 0.75rem; }
+    .stat-card .stat-icon.users { background: #dbeafe; color: var(--clr-primary); }
+    .stat-card .stat-icon.docs { background: #e0e7ff; color: #4f46e5; }
+    .stat-card .stat-icon.storage { background: #d1fae5; color: #059669; }
+    .stat-card .stat-label { font-size: 0.8rem; color: #6b7280; margin-bottom: 0.2rem; }
+    .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; color: #111827; }
+    .stat-card .stat-trend { font-size: 0.8rem; color: #10b981; }
+    .stat-card .stat-meta { font-size: 0.8rem; color: #6b7280; }
+    /* Layout grid */
+    .admin-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+    @media (max-width: 1100px) { .admin-grid { grid-template-columns: 1fr; } }
+    /* User management */
+    .admin-card {
+      background: #fff;
+      border-radius: 0.6rem;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e5e7eb;
+    }
+    .admin-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .admin-card-header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .admin-card .btn-add { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+    .user-table { width: 100%; font-size: 0.875rem; }
+    .user-table th { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-weight: 600; font-size: 0.75rem; }
+    .user-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
+    .user-cell { display: flex; align-items: center; gap: 0.6rem; }
+    .user-avatar-sm { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff; flex-shrink: 0; }
+    .user-avatar-sm.blue { background: #3b82f6; }
+    .user-avatar-sm.orange { background: #f97316; }
+    .user-avatar-sm.gray { background: #9ca3af; }
+    .badge-role { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 999px; font-weight: 500; }
+    .badge-role.etudiant { background: #dbeafe; color: #1d4ed8; }
+    .badge-role.enseignant { background: #ede9fe; color: #5b21b6; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.35rem; }
+    .status-dot.actif { background: #10b981; }
+    .status-dot.inactif { background: #9ca3af; }
+    .admin-card .link-all { font-size: 0.85rem; color: var(--clr-primary); text-decoration: none; margin-top: 0.5rem; display: inline-block; }
+    .admin-card .link-all:hover { text-decoration: underline; }
+    /* Moderation */
+    .moderation-item { padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; }
+    .moderation-item:last-child { border-bottom: none; }
+    .moderation-item .file-name { font-weight: 500; font-size: 0.9rem; margin: 0 0 0.2rem; }
+    .moderation-item .file-meta { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem; }
+    .moderation-item .btns { display: flex; gap: 0.4rem; }
+    .moderation-item .btns .btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    .admin-card .badge-count { background: #f59e0b; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 999px; margin-left: 0.35rem; }
+    /* Facultés */
+    .fac-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f9fafb; }
+    .fac-item:last-child { border-bottom: none; }
+    .fac-item .fac-name { font-weight: 500; font-size: 0.9rem; }
+    .fac-item .fac-meta { font-size: 0.75rem; color: #6b7280; }
+    /* Footer */
+    .admin-footer {
+      padding: 0.75rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 0.8rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .admin-footer a { color: #6b7280; text-decoration: none; }
+    .admin-footer a:hover { color: var(--clr-primary); }
+    @media (max-width: 768px) {
+      .admin-sidebar { width: 0; overflow: hidden; }
+      .stat-cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="admin-sidebar">
+  <a href="administrateur.html" class="brand">
+    <span class="brand-icon"><i class="bi bi-archive-fill"></i></span>
+    DevArchive
+  </a>
+  <nav>
+    <div class="nav-section">Principal</div>
+    <a href="#" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Tableau de bord</a>
+    <a href="#" class="nav-link"><i class="bi bi-people"></i> Utilisateurs</a>
+    <a href="#" class="nav-link"><i class="bi bi-files"></i> Documents</a>
+    <a href="#" class="nav-link"><i class="bi bi-bar-chart"></i> Statistiques</a>
+    <a href="#" class="nav-link"><i class="bi bi-building"></i> Facultés & Dépts</a>
+    <div class="nav-section">Système</div>
+    <a href="#" class="nav-link"><i class="bi bi-gear"></i> Paramètres</a>
+    <a href="#" class="nav-link"><i class="bi bi-shield-check"></i> Audit logs</a>
+  </nav>
+  <div class="user-card">
+    <div class="user-avatar">JA</div>
+    <div>
+      <p class="user-name">Jean Admin</p>
+      <p class="user-role">Super Admin</p>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="admin-main">
+  <header class="admin-header">
+    <div>
+      <h1>Tableau de Bord</h1>
+      <p class="subtitle">Bienvenue, voici un aperçu de l'activité du système aujourd'hui.</p>
+    </div>
+    <div class="tools">
+      <div class="search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Rechercher..." />
+      </div>
+      <button type="button" class="btn-icon" title="Notifications"><i class="bi bi-bell"></i></button>
+    </div>
+  </header>
+
+  <div class="admin-content">
+    <!-- Stat cards -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-icon users"><i class="bi bi-people-fill"></i></div>
+        <div class="stat-label">Utilisateurs totaux</div>
+        <div class="stat-value">12 450</div>
+        <div class="stat-trend">+12%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon docs"><i class="bi bi-files"></i></div>
+        <div class="stat-label">Documents archivés</div>
+        <div class="stat-value">45 210</div>
+        <div class="stat-trend">+5.4%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon storage"><i class="bi bi-database"></i></div>
+        <div class="stat-label">Espace de stockage utilisé</div>
+        <div class="stat-value">128.4 GB</div>
+        <div class="stat-meta">Sur 1 TB</div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <!-- User management -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Gestion des utilisateurs</h3>
+          <button type="button" class="btn btn-primary btn-sm btn-add"><i class="bi bi-person-plus"></i> Ajouter</button>
+        </div>
+        <div class="table-responsive">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>NOM</th>
+                <th>RÔLE</th>
+                <th>STATUT</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar-sm blue">MA</div>
+                    <div>
+                      <div>Marc Antoine</div>
+                      <small class="text-muted">marc.a@universite.fr</small>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge-role etudiant">Étudiant</span></td>
+                <td><span class="status-dot actif"></span>Actif</td>
+                <td><button type="button" class="btn btn-sm btn-link p-0"><i class="bi bi-three-dots-vertical"></i></button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar-sm orange">SD</div>
+                    <div>
+                      <div>Sophie Durand</div>
+                      <small class="text-muted">s.durand@universite.fr</small>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge-role enseignant">Enseignant</span></td>
+                <td><span class="status-dot actif"></span>Actif</td>
+                <td><button type="button" class="btn btn-sm btn-link p-0"><i class="bi bi-three-dots-vertical"></i></button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar-sm gray">JL</div>
+                    <div>
+                      <div>Jean Lefebvre</div>
+                      <small class="text-muted">jlefebvre@universite.fr</small>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge-role etudiant">Étudiant</span></td>
+                <td><span class="status-dot inactif"></span>Inactif</td>
+                <td><button type="button" class="btn btn-sm btn-link p-0"><i class="bi bi-three-dots-vertical"></i></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <a href="#" class="link-all">Voir tous les utilisateurs</a>
+      </div>
+
+      <!-- Right column -->
+      <div>
+        <!-- Moderation -->
+        <div class="admin-card" style="margin-bottom: 1rem;">
+          <div class="admin-card-header">
+            <h3><i class="bi bi-pencil me-1"></i> Modération <span class="badge-count">3</span></h3>
+          </div>
+          <div class="moderation-item">
+            <div class="file-name">Architecture_Système_V2.pdf</div>
+            <div class="file-meta">Posté par Luc M. • Il y a 2h</div>
+            <div class="btns">
+              <button type="button" class="btn btn-success btn-sm">Approuver</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm">Rejeter</button>
+            </div>
+          </div>
+          <div class="moderation-item">
+            <div class="file-name">Projet_Final_IA_2023.zip</div>
+            <div class="file-meta">Posté par Amine K. • Il y a 5h</div>
+            <div class="btns">
+              <button type="button" class="btn btn-success btn-sm">Approuver</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm">Rejeter</button>
+            </div>
+          </div>
+          <a href="#" class="link-all">Ouvrir la file d'attente</a>
+        </div>
+
+        <!-- Facultés -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>Facultés & Dépts</h3>
+          </div>
+          <div class="fac-item">
+            <div>
+              <div class="fac-name">Sciences</div>
+              <div class="fac-meta">4 Départements</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+          <div class="fac-item">
+            <div>
+              <div class="fac-name">Arts & Lettres</div>
+              <div class="fac-meta">2 Départements</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+          <div class="fac-item">
+            <div>
+              <div class="fac-name">Droit & Économie</div>
+              <div class="fac-meta">3 Départements</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm w-100 mt-2">Gérer les structures</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="admin-footer">
+    <span>© 2023 DevArchive Admin. Tous droits réservés.</span>
+    <span>
+      <a href="#">Support</a> · <a href="#">Documentation</a> · <a href="#">Politique de confidentialité</a>
+    </span>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

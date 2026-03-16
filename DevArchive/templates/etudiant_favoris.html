@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes favoris — SIGAUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{% static 'css/etudiant.css' %}">
+  <link rel="stylesheet" href="{% static 'css/etudiant_favoris.css' %}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<nav class="top-nav">
+  <a href="{% url 'espace_etudiant' %}" class="brand">
+    <div class="brand-logo-wrap">
+      <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD" class="brand-logo">
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">SIGAUD</span>
+      <span class="brand-sub">Système Intégré de Gestion des Archives de l'Université de Djibouti</span>
+    </div>
+  </a>
+  <div class="user-area">
+    <a href="{% url 'espace_etudiant' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour au tableau de bord</a>
+  </div>
+</nav>
+
+<main class="main-content flex-grow-1 favoris-page">
+  <a href="{% url 'espace_etudiant' %}" class="back-link"><i class="bi bi-arrow-left"></i> Retour au tableau de bord</a>
+
+  <header class="page-header">
+    <h1 class="page-title"><i class="bi bi-heart-fill title-icon"></i> Mes favoris</h1>
+    <p class="page-desc">Les sujets et examens que vous avez mis en favori. Consultez ou téléchargez le PDF lorsqu’il est disponible pour votre filière.</p>
+  </header>
+
+  {% if messages %}
+  <div class="mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="favoris-list">
+    {% for item in favoris %}
+    <article class="favori-card">
+      <div class="card-inner">
+        <div class="favori-icon-wrap">
+          <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div class="favori-content">
+          <h2 class="favori-title">{{ item.titre }}</h2>
+          {% if item.archive %}
+          <p class="favori-meta">{{ item.archive.session }} {{ item.archive.annee }} — {{ item.archive.get_type_display }}{% if item.archive.semestre %} · {{ item.archive.semestre }}{% endif %}</p>
+          {% else %}
+          <p class="favori-meta">Aucune archive disponible pour votre filière.</p>
+          {% endif %}
+        </div>
+        <div class="favori-actions">
+          {% if item.archive and item.archive.fichier %}
+          <a href="{% url 'voir_archive_pdf_etudiant' item.archive.pk %}" class="btn-consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+          <a href="{% url 'telecharger_archive_etudiant' item.archive.pk %}" class="btn-download"><i class="bi bi-download"></i> Télécharger</a>
+          {% endif %}
+          {% if item.archive %}
+          <form method="post" action="{% url 'toggle_favori_etudiant' item.archive.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn-retirer" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</button>
+          </form>
+          {% else %}
+          <a href="{% url 'retirer_favori_etudiant' item.favori.examen_id %}?next={{ request.get_full_path|urlencode }}" class="btn-retirer" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% empty %}
+    <div class="favoris-empty">
+      <div class="empty-icon"><i class="bi bi-heart"></i></div>
+      <p class="empty-title">Aucun favori pour le moment</p>
+      <p class="empty-desc">Ajoutez des sujets en favori depuis le tableau de bord en cliquant sur l’icône cœur sur chaque carte.</p>
+      <a href="{% url 'espace_etudiant' %}" class="btn-dashboard"><i class="bi bi-collection"></i> Voir le tableau de bord</a>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+
+<footer class="page-footer mt-auto">
+  © {% now "Y" %} SIGAUD - Plateforme d'archives académiques. Université de Djibouti.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -306,6 +306,18 @@
                 <option value="S2">Semestre 2</option>
               </select>
             </div>
+            <div class="col-md-4">
+              <label class="form-label" for="archNiveau">Niveau de l'examen <span class="text-danger">*</span></label>
+              <select class="form-select" id="archNiveau" name="niveau" required>
+                <option value="">— Sélectionner —</option>
+                <option value="L1">L1</option>
+                <option value="L2">L2</option>
+                <option value="L3">L3</option>
+                <option value="M1">M1</option>
+                <option value="M2">M2</option>
+              </select>
+              <small class="text-muted">Permet de limiter le sujet au niveau des étudiants concernés.</small>
+            </div>
             <div class="col-12">
               <label class="form-label" for="archRemarque">Remarques</label>
               <textarea class="form-control" id="archRemarque" name="remarque" rows="2" placeholder="Observations, informations complémentaires…"></textarea>

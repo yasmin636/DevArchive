@@ -1,0 +1,487 @@
+/* Pages Mes collections — style professionnel */
+
+:root {
+  --coll-primary: #0c4da2;
+  --coll-primary-hover: #093a7a;
+  --coll-primary-light: #e8f0fa;
+  --coll-danger: #b91c1c;
+  --coll-danger-light: #fef2f2;
+  --coll-text: #1a1d21;
+  --coll-text-muted: #5c636a;
+  --coll-border: #dee2e6;
+  --coll-bg: #f4f6f9;
+  --coll-card: #ffffff;
+  --coll-radius: 0.5rem;
+  --coll-radius-lg: 0.75rem;
+  --coll-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --coll-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.collection-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.collection-page .page-header {
+  margin-bottom: 2rem;
+}
+
+.collection-page .page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--coll-text);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-page .page-title .title-icon {
+  color: var(--coll-primary);
+  font-size: 1.35rem;
+}
+
+.collection-page .page-desc {
+  font-size: 0.9375rem;
+  color: var(--coll-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.collection-page .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--coll-primary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.collection-page .back-link:hover {
+  color: var(--coll-primary-hover);
+  text-decoration: underline;
+}
+
+/* Bloc création */
+.collection-page .create-block {
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius-lg);
+  box-shadow: var(--coll-shadow);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.collection-page .create-block .create-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-page .create-block .create-title i {
+  color: var(--coll-primary);
+}
+
+.collection-page .create-block .form-control {
+  border-radius: var(--coll-radius);
+  border-color: var(--coll-border);
+}
+
+.collection-page .create-block .form-control:focus {
+  border-color: var(--coll-primary);
+  box-shadow: 0 0 0 3px rgba(12, 77, 162, 0.15);
+}
+
+.collection-page .create-block .btn-primary {
+  background: var(--coll-primary);
+  border: none;
+  border-radius: var(--coll-radius);
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+}
+
+.collection-page .create-block .btn-primary:hover {
+  background: var(--coll-primary-hover);
+}
+
+/* Section titre */
+.collection-page .section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--coll-border);
+}
+
+/* Cartes collection (liste) */
+.collection-page .collection-card {
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius-lg);
+  box-shadow: var(--coll-shadow);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.collection-page .collection-card:hover {
+  box-shadow: var(--coll-shadow-hover);
+  border-color: rgba(12, 77, 162, 0.12);
+}
+
+.collection-page .collection-card .card-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.collection-page .collection-card .collection-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--coll-radius);
+  background: var(--coll-primary-light);
+  color: var(--coll-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+}
+
+.collection-page .collection-card .collection-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-page .collection-card .collection-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 0.25rem;
+  line-height: 1.35;
+}
+
+.collection-page .collection-card .collection-meta {
+  font-size: 0.8125rem;
+  color: var(--coll-text-muted);
+  margin: 0;
+}
+
+.collection-page .collection-card .collection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.collection-page .collection-card .btn-open {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--coll-radius);
+  background: var(--coll-primary);
+  color: #fff;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s;
+}
+
+.collection-page .collection-card .btn-open:hover {
+  background: var(--coll-primary-hover);
+  color: #fff;
+}
+
+.collection-page .collection-card .btn-delete {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--coll-radius);
+  background: transparent;
+  color: var(--coll-danger);
+  border: 1px solid rgba(185, 28, 28, 0.4);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.collection-page .collection-card .btn-delete:hover {
+  background: var(--coll-danger-light);
+  border-color: var(--coll-danger);
+}
+
+/* État vide liste */
+.collection-page .collection-empty {
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius-lg);
+  box-shadow: var(--coll-shadow);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.collection-page .collection-empty .empty-icon-wrap {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  background: var(--coll-bg);
+  color: var(--coll-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+.collection-page .collection-empty .empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 0.5rem;
+}
+
+.collection-page .collection-empty .empty-desc {
+  font-size: 0.9375rem;
+  color: var(--coll-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Cartes sujet (détail collection) */
+.collection-page .subject-card {
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius-lg);
+  box-shadow: var(--coll-shadow);
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.collection-page .subject-card:hover {
+  box-shadow: var(--coll-shadow-hover);
+  border-color: rgba(12, 77, 162, 0.08);
+}
+
+.collection-page .subject-card .subject-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 0.35rem;
+  line-height: 1.35;
+}
+
+.collection-page .subject-card .subject-meta {
+  font-size: 0.8125rem;
+  color: var(--coll-text-muted);
+  margin: 0 0 1rem;
+}
+
+.collection-page .subject-card .subject-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.collection-page .subject-card .btn-consulter {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--coll-radius);
+  color: var(--coll-primary);
+  border: 1px solid var(--coll-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.collection-page .subject-card .btn-consulter:hover {
+  background: rgba(12, 77, 162, 0.06);
+  color: var(--coll-primary-hover);
+}
+
+.collection-page .subject-card .btn-download {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--coll-radius);
+  background: var(--coll-primary);
+  color: #fff;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s;
+}
+
+.collection-page .subject-card .btn-download:hover {
+  background: var(--coll-primary-hover);
+  color: #fff;
+}
+
+.collection-page .subject-card .btn-remove {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--coll-radius);
+  background: transparent;
+  color: var(--coll-danger);
+  border: 1px solid rgba(185, 28, 28, 0.4);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.collection-page .subject-card .btn-remove:hover {
+  background: var(--coll-danger-light);
+  border-color: var(--coll-danger);
+  color: var(--coll-danger);
+}
+
+/* État vide sujets */
+.collection-page .subjects-empty {
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius-lg);
+  box-shadow: var(--coll-shadow);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.collection-page .subjects-empty .empty-icon-wrap {
+  color: var(--coll-text-muted);
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.collection-page .subjects-empty .empty-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 0.35rem;
+}
+
+.collection-page .subjects-empty .empty-desc {
+  font-size: 0.875rem;
+  color: var(--coll-text-muted);
+  margin: 0;
+}
+
+/* Bloc ajouter des sujets */
+.collection-page .add-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--coll-border);
+}
+
+.collection-page .add-section .section-desc {
+  font-size: 0.875rem;
+  color: var(--coll-text-muted);
+  margin: -0.5rem 0 1rem;
+  line-height: 1.5;
+}
+
+.collection-page .add-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--coll-card);
+  border: 1px solid var(--coll-border);
+  border-radius: var(--coll-radius);
+  margin-bottom: 0.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.collection-page .add-item:hover {
+  border-color: rgba(12, 77, 162, 0.2);
+  box-shadow: var(--coll-shadow);
+}
+
+.collection-page .add-item .add-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-page .add-item .add-item-title {
+  font-weight: 600;
+  color: var(--coll-text);
+  margin: 0 0 0.2rem;
+}
+
+.collection-page .add-item .add-item-meta {
+  font-size: 0.8125rem;
+  color: var(--coll-text-muted);
+  margin: 0;
+}
+
+.collection-page .add-item .btn-add {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--coll-radius);
+  background: var(--coll-primary);
+  color: #fff;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.collection-page .add-item .btn-add:hover {
+  background: var(--coll-primary-hover);
+  color: #fff;
+}
+
+/* Alertes */
+.collection-page .alert {
+  border-radius: var(--coll-radius);
+  border: 1px solid transparent;
+}
+
+/* Message aucun sujet à ajouter */
+.collection-page .no-more-subjects {
+  font-size: 0.875rem;
+  color: var(--coll-text-muted);
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--coll-bg);
+  border-radius: var(--coll-radius);
+}
+
+@media (max-width: 576px) {
+  .collection-page .collection-card .card-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .collection-page .collection-card .collection-actions {
+    width: 100%;
+  }
+
+  .collection-page .create-block .row > [class*="col-"] {
+    max-width: 100%;
+  }
+}

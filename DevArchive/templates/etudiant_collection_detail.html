@@ -1,0 +1,203 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ collection.nom }} — Mes collections — SIGAUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{% static 'css/etudiant.css' %}">
+  <link rel="stylesheet" href="{% static 'css/etudiant_collection.css' %}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<nav class="top-nav">
+  <a href="{% url 'espace_etudiant' %}" class="brand">
+    <div class="brand-logo-wrap">
+      <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD" class="brand-logo">
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">SIGAUD</span>
+      <span class="brand-sub">Système Intégré de Gestion des Archives de l'Université de Djibouti</span>
+    </div>
+  </a>
+  <div class="user-area">
+    <a href="{% url 'etudiant_collection' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-collection me-1"></i> Mes collections</a>
+  </div>
+</nav>
+
+<main class="main-content flex-grow-1 collection-page">
+  <a href="{% url 'etudiant_collection' %}" class="back-link"><i class="bi bi-arrow-left"></i> Retour aux collections</a>
+
+  <header class="page-header">
+    <h1 class="page-title"><i class="bi bi-folder2-fill title-icon"></i> {{ collection.nom }}</h1>
+    <p class="page-desc">Sujets dans cette collection. Consultez, téléchargez ou retirez-les.</p>
+  </header>
+
+  {% if messages %}
+  <div class="mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <h2 class="section-title">Sujets dans la collection</h2>
+  {% for archive, ca in archives_in_collection %}
+  <article class="subject-card">
+    <h3 class="subject-title">{{ archive.title }}</h3>
+    <p class="subject-meta">{{ archive.session }} {{ archive.annee }} — {{ archive.get_type_display }}{% if archive.semestre %} · {{ archive.semestre }}{% endif %}</p>
+    <div class="subject-actions">
+      {% if archive.fichier %}
+      <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="btn-consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+      <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="btn-download"><i class="bi bi-download"></i> Télécharger</a>
+      {% endif %}
+      <a href="{% url 'etudiant_collection_retirer_archive' collection.pk archive.pk %}" class="btn-remove" onclick="return confirm('Retirer ce sujet de la collection ?');"><i class="bi bi-dash-circle"></i> Retirer</a>
+    </div>
+  </article>
+  {% empty %}
+  <div class="subjects-empty">
+    <div class="empty-icon-wrap"><i class="bi bi-inbox"></i></div>
+    <p class="empty-title">Aucun sujet dans cette collection</p>
+    <p class="empty-desc">Ajoutez des sujets avec la liste ci-dessous.</p>
+  </div>
+  {% endfor %}
+
+  <section class="add-section" id="ajouter-section" aria-labelledby="ajouter-title">
+    <h2 class="section-title" id="ajouter-title">Ajouter des sujets</h2>
+    <p class="section-desc">Choisissez une matière puis sélectionnez les sujets à ajouter à cette collection.</p>
+
+    <div class="matieres-section collection-add-matières" aria-labelledby="matieres-collection-title">
+      <h3 class="matieres-title" id="matieres-collection-title"><i class="bi bi-journal-bookmark-fill matieres-icon"></i> Matières</h3>
+      <p class="matieres-desc">Sélectionnez votre matière pour voir les sujets disponibles à ajouter.</p>
+      <div class="matiere-chooser">
+        <form method="get" action="{% url 'etudiant_collection_detail' collection.pk %}" class="matiere-form" id="formMatiereCollection">
+          <span class="matiere-label-pill"><i class="bi bi-book"></i> Choisir la matière</span>
+          <select name="matiere" id="selectMatiereCollection" class="form-select matiere-select">
+            <option value="">Toutes les matières</option>
+            {% for mat in matieres_list %}
+            <option value="{{ mat }}" {% if matiere_choisie == mat %}selected{% endif %}>{{ mat }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary btn-matiere">
+            <i class="bi bi-funnel"></i> Afficher
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="search-section collection-add-search">
+      <div class="section-title">
+        <h3 id="recherche-collection-title"><i class="bi bi-search"></i> Recherche d'examens</h3>
+      </div>
+      <div class="search-filters">
+        <select class="form-select form-select-sm" id="filterSemestreCollection" style="max-width:180px;">
+          <option value="">Tous les semestres</option>
+          <option value="S1">S1</option>
+          <option value="S2">S2</option>
+        </select>
+        <select class="form-select form-select-sm" id="filterAnneeCollection" style="max-width:180px;">
+          <option value="">Toutes les années</option>
+        </select>
+        <select class="form-select form-select-sm" id="filterTypeCollection" style="max-width:180px;">
+          <option value="">Tous les types</option>
+          <option value="CC">Contrôle Continu</option>
+          <option value="Examen Final">Examen Final</option>
+        </select>
+        <button type="button" class="btn btn-primary btn-sm btn-filter" id="btnFilterCollection">
+          <i class="bi bi-funnel"></i> Filtrer
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="exam-table" id="examTableCollection">
+          <thead>
+            <tr>
+              <th>MATIÈRE / INTITULÉ</th>
+              <th>ANNÉE</th>
+              <th>TYPE</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for archive in archives_disponibles %}
+            <tr data-semestre="{{ archive.semestre|default:'' }}" data-annee="{{ archive.annee }}" data-type="{{ archive.type }}">
+              <td>{{ archive.title }}</td>
+              <td>{{ archive.annee }}</td>
+              <td>
+                {% if archive.type == "Examen Final" %}<span class="badge-final">FINAL</span>{% else %}<span class="badge-controle">CONTRÔLE</span>{% endif %}
+              </td>
+              <td>
+                <a href="{% url 'etudiant_collection_ajouter_archive' collection.pk archive.pk %}" class="link-consulter link-ajouter"><i class="bi bi-plus-lg me-1"></i>Ajouter</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center py-3">{% if matieres_list %}Aucun sujet à ajouter pour cette sélection.{% else %}Tous les sujets de votre filière sont déjà dans cette collection.{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="page-footer mt-auto">
+  © {% now "Y" %} SIGAUD - Plateforme d'archives académiques. Université de Djibouti.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+  var formMatiere = document.getElementById('formMatiereCollection');
+  var selectMatiere = document.getElementById('selectMatiereCollection');
+  if (formMatiere && selectMatiere) {
+    selectMatiere.addEventListener('change', function() { formMatiere.submit(); });
+  }
+
+  var table = document.getElementById('examTableCollection');
+  var tbody = table && table.querySelector('tbody');
+  var rows = tbody ? tbody.querySelectorAll('tr[data-annee]') : [];
+  var filterSemestre = document.getElementById('filterSemestreCollection');
+  var filterAnnee = document.getElementById('filterAnneeCollection');
+  var filterType = document.getElementById('filterTypeCollection');
+  var btnFilter = document.getElementById('btnFilterCollection');
+
+  function getAnneeOptions() {
+    var set = new Set();
+    rows.forEach(function(r) { set.add(r.getAttribute('data-annee')); });
+    return Array.from(set).sort().reverse();
+  }
+
+  function applyFilters() {
+    var sem = (filterSemestre && filterSemestre.value) || '';
+    var an = (filterAnnee && filterAnnee.value) || '';
+    var typ = (filterType && filterType.value) || '';
+    rows.forEach(function(tr) {
+      var show = true;
+      if (sem && tr.getAttribute('data-semestre') !== sem) show = false;
+      if (an && tr.getAttribute('data-annee') !== an) show = false;
+      if (typ && tr.getAttribute('data-type') !== typ) show = false;
+      tr.style.display = show ? '' : 'none';
+    });
+  }
+
+  if (filterAnnee && rows.length) {
+    var annees = getAnneeOptions();
+    annees.forEach(function(a) {
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a;
+      filterAnnee.appendChild(opt);
+    });
+  }
+  if (btnFilter) btnFilter.addEventListener('click', applyFilters);
+})();
+</script>
+</body>
+</html>

@@ -123,6 +123,12 @@ class Etudiant(models.Model):
         on_delete=models.CASCADE,
         related_name="etudiant",
     )
+    photo = models.ImageField(
+        "Photo de profil",
+        upload_to="etudiants_photos/",
+        blank=True,
+        null=True,
+    )
     filiere = models.ForeignKey(
         Filiere,
         on_delete=models.PROTECT,
@@ -299,6 +305,17 @@ class Archive(models.Model):
     title = models.CharField("Intitulé", max_length=200)
     module = models.CharField("Module", max_length=150)
     filiere = models.CharField("Filière", max_length=150)
+<<<<<<< HEAD
+=======
+    niveau = models.ForeignKey(
+        Niveau,
+        on_delete=models.PROTECT,
+        related_name="archives",
+        null=True,
+        blank=True,
+        verbose_name="Niveau",
+    )
+>>>>>>> page-utilisateur-fonctionnel
     annee = models.CharField("Année universitaire", max_length=20)
     session = models.CharField(max_length=20, default="Normale", blank=True)
     semestre = models.CharField(max_length=10, default="S1", blank=True)
@@ -318,6 +335,11 @@ class Archive(models.Model):
     )
 
     date_archive = models.DateField("Archivé le", auto_now_add=True)
+<<<<<<< HEAD
+=======
+    nb_vues = models.PositiveIntegerField("Nombre de vues", default=0)
+    nb_telechargements = models.PositiveIntegerField("Nombre de téléchargements", default=0)
+>>>>>>> page-utilisateur-fonctionnel
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -354,6 +376,30 @@ class Commentaire(models.Model):
         ordering = ["-date_creation"]
 
 
+<<<<<<< HEAD
+=======
+class CommentaireArchive(models.Model):
+    """Commentaire direct lié à une archive (sans examen)."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="commentaires_archive",
+    )
+    archive = models.ForeignKey(
+        Archive,
+        on_delete=models.CASCADE,
+        related_name="commentaires_archive",
+    )
+    contenu = models.TextField()
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Commentaire (archive)"
+        verbose_name_plural = "Commentaires (archives)"
+        ordering = ["-date_creation"]
+
+
+>>>>>>> page-utilisateur-fonctionnel
 class Favori(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -373,6 +419,29 @@ class Favori(models.Model):
         unique_together = ("user", "examen")
 
 
+<<<<<<< HEAD
+=======
+class FavoriArchive(models.Model):
+    """Favori direct sur une archive (quand l'archive n'est pas liée à un examen)."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favoris_archive",
+    )
+    archive = models.ForeignKey(
+        Archive,
+        on_delete=models.CASCADE,
+        related_name="favoris_archive",
+    )
+    date_ajout = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Favori (archive)"
+        verbose_name_plural = "Favoris (archives)"
+        unique_together = ("user", "archive")
+
+
+>>>>>>> page-utilisateur-fonctionnel
 class Historique(models.Model):
     """
     Trace les consultations d'examens par les utilisateurs.
@@ -396,4 +465,88 @@ class Historique(models.Model):
     class Meta:
         verbose_name = "Historique de consultation"
         verbose_name_plural = "Historiques de consultation"
+<<<<<<< HEAD
         ordering = ["-date_vue"]
+=======
+        ordering = ["-date_vue"]
+
+
+class HistoriqueArchive(models.Model):
+    """Historique de consultation d'une archive (sans lien examen)."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="historiques_archive",
+    )
+    archive = models.ForeignKey(
+        Archive,
+        on_delete=models.CASCADE,
+        related_name="historiques_archive",
+    )
+    date_vue = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Historique de consultation (archive)"
+        verbose_name_plural = "Historiques de consultation (archives)"
+        ordering = ["-date_vue"]
+        unique_together = ("user", "archive")
+
+
+class Collection(models.Model):
+    """Collection personnelle d'archives créée par un étudiant."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="collections",
+    )
+    nom = models.CharField("Nom de la collection", max_length=150)
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Collection"
+        verbose_name_plural = "Collections"
+        ordering = ["-date_creation"]
+
+    def __str__(self):
+        return self.nom
+
+
+class CollectionArchive(models.Model):
+    """Lien entre une collection et une archive."""
+    collection = models.ForeignKey(
+        Collection,
+        on_delete=models.CASCADE,
+        related_name="archives_collection",
+    )
+    archive = models.ForeignKey(
+        Archive,
+        on_delete=models.CASCADE,
+        related_name="collections_archives",
+    )
+    date_ajout = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Archive dans une collection"
+        verbose_name_plural = "Archives dans les collections"
+        unique_together = ("collection", "archive")
+
+
+class TelechargementEtudiant(models.Model):
+    """Enregistre chaque téléchargement d'une archive par un étudiant (historique)."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="telechargements_etudiant",
+    )
+    archive = models.ForeignKey(
+        Archive,
+        on_delete=models.CASCADE,
+        related_name="telechargements_etudiant",
+    )
+    date_telechargement = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Téléchargement étudiant"
+        verbose_name_plural = "Téléchargements étudiants"
+        ordering = ["-date_telechargement"]
+>>>>>>> page-utilisateur-fonctionnel

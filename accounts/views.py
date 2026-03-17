@@ -3,6 +3,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
+<<<<<<< HEAD
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+=======
 from django.contrib.auth.tokens import default_token_generator
 from django.db import models
 from django.db.utils import ProgrammingError
@@ -13,6 +18,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.core.mail import send_mail
+>>>>>>> page-utilisateur-fonctionnel
 from django.views.generic import TemplateView
 
 from .forms import (
@@ -21,6 +27,10 @@ from .forms import (
     EmailChangeForm,
     EtudiantRegistrationForm,
     PasswordChangeFormStyled,
+<<<<<<< HEAD
+)
+from .models import Archive, AssistantPedagogique, Filiere, Niveau
+=======
     ProfilEtudiantForm,
 )
 from .models import (
@@ -40,6 +50,7 @@ from .models import (
     Niveau,
     TelechargementEtudiant,
 )
+>>>>>>> page-utilisateur-fonctionnel
 
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
@@ -58,6 +69,8 @@ def user_est_assistant(user):
     return user.groups.filter(name__in=[GROUPE_ASSISTANT, GROUPE_ADMIN_SYSTEME]).exists()
 
 
+<<<<<<< HEAD
+=======
 def user_est_etudiant(user):
     """True si l'utilisateur a un profil Étudiant (et pas assistant/admin)."""
     if not user.is_authenticated:
@@ -67,6 +80,7 @@ def user_est_etudiant(user):
     return hasattr(user, "etudiant") and user.etudiant is not None
 
 
+>>>>>>> page-utilisateur-fonctionnel
 class PersonnelRequiredMixin(UserPassesTestMixin):
     """
     Mixin qui restreint l'accès à l'espace personnel aux assistants pédagogiques
@@ -76,6 +90,8 @@ class PersonnelRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         return user_est_assistant(self.request.user)
+<<<<<<< HEAD
+=======
 
 
 class EtudiantRequiredMixin(UserPassesTestMixin):
@@ -84,6 +100,7 @@ class EtudiantRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         return user_est_etudiant(self.request.user)
+>>>>>>> page-utilisateur-fonctionnel
 
 
 def accueil(request):
@@ -170,6 +187,8 @@ def inscription(request):
     )
 
 
+<<<<<<< HEAD
+=======
 def confirmer_email(request, uidb64, token):
     """
     Active le compte après clic sur le lien reçu par email.
@@ -198,6 +217,7 @@ def confirmer_email(request, uidb64, token):
     )
     return redirect("inscription")
 
+>>>>>>> page-utilisateur-fonctionnel
 @login_required
 def profil(request):
     """
@@ -289,8 +309,11 @@ class ConnexionView(LoginView):
             return reverse_lazy("admin_dashboard")
         if user_est_assistant(self.request.user):
             return reverse_lazy("personnel")
+<<<<<<< HEAD
+=======
         if user_est_etudiant(self.request.user):
             return reverse_lazy("espace_etudiant")
+>>>>>>> page-utilisateur-fonctionnel
         return reverse_lazy("inscription")
 
 
@@ -320,6 +343,8 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         return ctx
 
 
+<<<<<<< HEAD
+=======
 def _archives_queryset_for_etudiant(request):
     """Archives visibles par l'étudiant (sa filière et, si renseigné, son niveau)."""
     etudiant = getattr(request.user, "etudiant", None)
@@ -608,6 +633,7 @@ def etudiant_telechargements(request):
     )
 
 
+>>>>>>> page-utilisateur-fonctionnel
 @login_required
 def creer_archive(request):
     if request.method != "POST":
@@ -644,6 +670,8 @@ def voir_archive_pdf(request, pk: int):
     return FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
 
 
+<<<<<<< HEAD
+=======
 @login_required
 def voir_archive_pdf_etudiant(request, pk: int):
     """Permet à un étudiant de consulter le PDF dans le navigateur. nb_vues n'est incrémenté qu'une seule fois par utilisateur (première consultation)."""
@@ -810,6 +838,7 @@ def retirer_favori_etudiant(request, examen_id: int):
     return redirect(next_url)
 
 
+>>>>>>> page-utilisateur-fonctionnel
 def _archives_queryset_for_user(request):
     assistant = getattr(request.user, "assistant_pedagogique", None)
     qs = Archive.objects.all()

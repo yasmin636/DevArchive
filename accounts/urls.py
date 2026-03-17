@@ -111,7 +111,6 @@ urlpatterns = [
     # Tableau de bord admin Sigaud (staff/superuser)
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("admin-dashboard/utilisateurs/", views.admin_utilisateurs, name="admin_utilisateurs"),
-    path("admin-dashboard/utilisateurs/ajouter/", views.admin_add_user, name="admin_add_user"),
     path("admin-dashboard/documents/", views.admin_documents, name="admin_documents"),
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),

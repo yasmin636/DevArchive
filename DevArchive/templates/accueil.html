@@ -3,49 +3,63 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>DevArchive – Université de Djibouti</title>
+    <title>SIGAUD – Université de Djibouti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/theme_modes.css' %}">
     <link rel="stylesheet" href="{% static 'css/accueil.css' %}">
+    <style>
+      .hero-bg-network,
+      .hero-bg-network--b {
+        background-image: url("{% static 'img/hero-network.svg' %}");
+      }
+    </style>
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <div class="header-inner">
-                <div class="brand">
-                    <div class="header-logo-small">
-                        <img src="{% static 'img/logo_site.png' %}" alt="DevArchive - Université de Djibouti">
+    <div class="accueil-sky">
+        <div class="hero-bg" aria-hidden="true">
+            <div class="hero-bg-gradient"></div>
+            <div class="hero-bg-vignette"></div>
+            <div class="hero-bg-network"></div>
+            <div class="hero-bg-network hero-bg-network--b"></div>
+        </div>
+        <header class="header header--sur-ciel">
+            <div class="container">
+                <div class="header-inner">
+                    <div class="brand">
+                        <div class="header-logo-small">
+                            <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD - Université de Djibouti">
+                        </div>
+                        <div>
+                            <div class="brand-sub">Université de Djibouti</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="brand-sub">Université de Djibouti</div>
-                    </div>
-                </div>
-                <nav class="nav">
-                    <a href="{% url 'accueil' %}" class="nav-link">Accueil</a>
-                    <a href="#apropos" class="nav-link">À propos</a>
-                    <a href="#contact" class="nav-link">Contact</a>
-                </nav>
-                <div class="header-btns">
-                    <a href="{% url 'inscription' %}" class="btn btn-outline">S'inscrire</a>
-                    <a href="{% url 'connexion' %}" class="btn btn-solid">Connexion</a>
-                    <div class="header-logo-small">
-                        <img src="{% static 'img/univ.jpg' %}" alt="Université de Djibouti">
+                    <nav class="nav">
+                        <a href="{% url 'accueil' %}" class="nav-link">Accueil</a>
+                        <a href="#apropos" class="nav-link">À propos</a>
+                        <a href="#contact" class="nav-link">Contact</a>
+                    </nav>
+                    <div class="header-btns">
+                        <a href="{% url 'inscription' %}" class="btn btn-outline">S'inscrire</a>
+                        <a href="{% url 'connexion' %}" class="btn btn-solid">Connexion</a>
+                        <div class="header-logo-small">
+                            <img src="{% static 'img/univ.jpg' %}" alt="Université de Djibouti">
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <main>
-        <section class="hero">
-            <div class="container">
+        <div class="accueil-sky-content">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="container hero-content">
                 <div class="hero-inner">
                     <div>
-                        <span class="hero-tag">Patrimoine académique de Djibouti</span>
-                        <h1 class="hero-title">Une solution moderne pour préserver le patrimoine académique</h1>
-                        <p class="hero-desc">DevArchive simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
-                        <div class="hero-img-wrap" style="display:none;">
-                            <img src="#" alt="">
-                        </div>
+                        <span class="hero-tag"><span class="hero-tag-icon" aria-hidden="true">🏛</span> Patrimoine académique de Djibouti</span>
+                        <h1 class="hero-title" id="hero-title">Une solution moderne pour <span class="hero-title-accent">préserver le patrimoine académique</span></h1>
+                        <p class="hero-desc">SIGAUD simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
                     </div>
                     <div class="hero-img-wrap">
                         <img src="{% static 'img/image_accueil.jpg' %}" alt="Université de Djibouti">
@@ -53,10 +67,13 @@
                 </div>
             </div>
         </section>
+        </div>
+    </div>
 
+    <main>
         <section class="features" id="facultes">
             <div class="container">
-                <h2 class="section-title">Les avantages de DevArchive</h2>
+                <h2 class="section-title">Les avantages de SIGAUD</h2>
                 <div class="features-grid">
                     <div class="feature-card">
                         <div class="feature-icon">💬</div>
@@ -104,7 +121,7 @@
             </div>
         </section>
 
-        <section class="cta">
+        <section class="cta" id="apropos">
             <div class="container">
                 <div class="cta-box">
                     <h2 class="cta-title">Prêt à explorer les archives ?</h2>
@@ -122,7 +139,7 @@
         <div class="container">
             <div class="footer-inner">
                 <div>
-                    <div class="footer-brand">DevArchive</div>
+                    <div class="footer-brand">SIGAUD</div>
                     <p class="footer-desc">Le système centralisé d'archivage des examens de l'Université de Djibouti. Développé pour soutenir la réussite des étudiants et l'excellence académique.</p>
                 </div>
                 <div class="footer-col">
@@ -149,5 +166,6 @@
             </div>
         </div>
     </footer>
+<script src="{% static 'js/theme_modes.js' %}"></script>
 </body>
 </html>

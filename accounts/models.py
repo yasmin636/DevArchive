@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.contrib.auth.signals import user_logged_in, user_logged_out
 
 
 class Faculte(models.Model):
@@ -175,6 +176,29 @@ class AssistantPedagogique(models.Model):
         return f"{self.user.get_full_name() or self.user.username} — {self.filiere.code}"
 
 
+class UserPresence(models.Model):
+    """
+    Statut de présence de l'utilisateur :
+    - is_online=True à la connexion
+    - is_online=False à la déconnexion
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="presence",
+    )
+    is_online = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Présence utilisateur"
+        verbose_name_plural = "Présences utilisateurs"
+
+    def __str__(self) -> str:
+        return f"{self.user.username} - {'En ligne' if self.is_online else 'Hors ligne'}"
+
+
 GROUPE_ASSISTANT = "Assistant pédagogique"
 
 
@@ -185,6 +209,25 @@ def add_assistant_to_group(sender, instance, created, **kwargs):
         from django.contrib.auth.models import Group
         group, _ = Group.objects.get_or_create(name=GROUPE_ASSISTANT)
         instance.user.groups.add(group)
+
+
+@receiver(user_logged_in)
+def mark_user_online(sender, request, user, **kwargs):
+    """Marque l'utilisateur en ligne après authentification."""
+    UserPresence.objects.update_or_create(
+        user=user,
+        defaults={"is_online": True},
+    )
+
+
+@receiver(user_logged_out)
+def mark_user_offline(sender, request, user, **kwargs):
+    """Marque l'utilisateur hors ligne à la déconnexion."""
+    if user and user.is_authenticated:
+        UserPresence.objects.update_or_create(
+            user=user,
+            defaults={"is_online": False},
+        )
 
 
 class Matiere(models.Model):
@@ -305,8 +348,6 @@ class Archive(models.Model):
     title = models.CharField("Intitulé", max_length=200)
     module = models.CharField("Module", max_length=150)
     filiere = models.CharField("Filière", max_length=150)
-<<<<<<< HEAD
-=======
     niveau = models.ForeignKey(
         Niveau,
         on_delete=models.PROTECT,
@@ -315,7 +356,6 @@ class Archive(models.Model):
         blank=True,
         verbose_name="Niveau",
     )
->>>>>>> page-utilisateur-fonctionnel
     annee = models.CharField("Année universitaire", max_length=20)
     session = models.CharField(max_length=20, default="Normale", blank=True)
     semestre = models.CharField(max_length=10, default="S1", blank=True)
@@ -335,11 +375,8 @@ class Archive(models.Model):
     )
 
     date_archive = models.DateField("Archivé le", auto_now_add=True)
-<<<<<<< HEAD
-=======
     nb_vues = models.PositiveIntegerField("Nombre de vues", default=0)
     nb_telechargements = models.PositiveIntegerField("Nombre de téléchargements", default=0)
->>>>>>> page-utilisateur-fonctionnel
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -376,8 +413,6 @@ class Commentaire(models.Model):
         ordering = ["-date_creation"]
 
 
-<<<<<<< HEAD
-=======
 class CommentaireArchive(models.Model):
     """Commentaire direct lié à une archive (sans examen)."""
     user = models.ForeignKey(
@@ -399,7 +434,6 @@ class CommentaireArchive(models.Model):
         ordering = ["-date_creation"]
 
 
->>>>>>> page-utilisateur-fonctionnel
 class Favori(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -419,8 +453,6 @@ class Favori(models.Model):
         unique_together = ("user", "examen")
 
 
-<<<<<<< HEAD
-=======
 class FavoriArchive(models.Model):
     """Favori direct sur une archive (quand l'archive n'est pas liée à un examen)."""
     user = models.ForeignKey(
@@ -441,7 +473,6 @@ class FavoriArchive(models.Model):
         unique_together = ("user", "archive")
 
 
->>>>>>> page-utilisateur-fonctionnel
 class Historique(models.Model):
     """
     Trace les consultations d'examens par les utilisateurs.
@@ -465,9 +496,6 @@ class Historique(models.Model):
     class Meta:
         verbose_name = "Historique de consultation"
         verbose_name_plural = "Historiques de consultation"
-<<<<<<< HEAD
-        ordering = ["-date_vue"]
-=======
         ordering = ["-date_vue"]
 
 
@@ -549,4 +577,3 @@ class TelechargementEtudiant(models.Model):
         verbose_name = "Téléchargement étudiant"
         verbose_name_plural = "Téléchargements étudiants"
         ordering = ["-date_telechargement"]
->>>>>>> page-utilisateur-fonctionnel

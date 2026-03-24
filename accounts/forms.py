@@ -23,6 +23,24 @@ class ConnexionForm(AuthenticationForm):
             "placeholder": "••••••••",
             "autocomplete": "current-password",
         })
+
+    def clean_username(self):
+        """
+        La connexion se fait avec l'email stocké comme username.
+        On normalise pour éviter les échecs liés à la casse/espaces.
+        """
+        username = (self.cleaned_data.get("username") or "").strip().lower()
+        return username
+
+    def confirm_login_allowed(self, user):
+        """
+        Message explicite si le compte est désactivé.
+        """
+        if not user.is_active:
+            raise forms.ValidationError(
+                "Votre compte est désactivé. Veuillez contacter l'administrateur.",
+                code="inactive",
+            )
 class EtudiantRegistrationForm(forms.Form):
     full_name = forms.CharField(
         label="Nom complet",
@@ -162,10 +180,7 @@ class ArchiveForm(forms.ModelForm):
             "type",
             "title",
             "module",
-<<<<<<< HEAD
-=======
             "niveau",
->>>>>>> page-utilisateur-fonctionnel
             "annee",
             "session",
             "semestre",
@@ -255,8 +270,6 @@ class AssistantPedagogiqueForm(forms.ModelForm):
         model = AssistantPedagogique
         fields = ["user", "filiere"]
 
-<<<<<<< HEAD
-=======
 
 class ProfilEtudiantForm(forms.Form):
     """Formulaire de gestion du profil étudiant : identité, faculté, filière, niveau, photo."""
@@ -370,7 +383,6 @@ class ProfilEtudiantForm(forms.Form):
                 self.etudiant.photo = self.cleaned_data["photo"]
             self.etudiant.save()
 
-<<<<<<< HEAD
 
 class AdminAddUserForm(forms.Form):
     """Formulaire « Add user » pour le tableau de bord admin (style Django admin)."""
@@ -450,7 +462,3 @@ class AdminAddUserForm(forms.Form):
             group, _ = Group.objects.get_or_create(name="Assistant pédagogique")
             user.groups.add(group)
         return user
-
-=======
->>>>>>> page-utilisateur-fonctionnel
->>>>>>> 5d26dfbf1a41354cd3ff05b52e017e01e8727378

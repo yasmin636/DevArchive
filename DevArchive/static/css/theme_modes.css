@@ -1,0 +1,232 @@
+/* Global light/dark mode */
+:root {
+  --app-bg: #ffffff;
+  --app-text: #0f172a;
+  --app-card: #ffffff;
+  --app-border: #dbe4ff;
+  --app-muted: #4b5563;
+  --app-primary: #3b82f6;
+  --app-primary-2: #4f46e5;
+}
+
+html[data-theme="light"] {
+  --app-bg: #ffffff;
+  --app-text: #0f172a;
+  --app-card: #ffffff;
+  --app-border: #dbe4ff;
+  --app-muted: #4b5563;
+  --app-primary: #3b82f6;
+  --app-primary-2: #4f46e5;
+}
+
+html[data-theme="dark"] {
+  --app-bg:
+    radial-gradient(circle at 78% 14%, rgba(167, 139, 250, 0.24) 0 220px, transparent 221px),
+    radial-gradient(circle at 16% 85%, rgba(99, 102, 241, 0.22) 0 220px, transparent 221px),
+    #1c1240;
+  --app-text: #ede9fe;
+  --app-card: rgba(45, 28, 88, 0.86);
+  --app-border: #6d58a8;
+  --app-muted: #c4b5fd;
+  --app-primary: #8b5cf6;
+  --app-primary-2: #a78bfa;
+  --app-surface-2: rgba(60, 40, 110, 0.88);
+}
+
+html[data-theme="dark"] body {
+  color: var(--app-text) !important;
+}
+
+body {
+  background: var(--app-bg) !important;
+  color: var(--app-text);
+}
+
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .overview-card,
+html[data-theme="dark"] .kpi-card,
+html[data-theme="dark"] .table-wrap,
+html[data-theme="dark"] .dash-card,
+html[data-theme="dark"] .main-header,
+html[data-theme="dark"] .main-footer,
+html[data-theme="dark"] .top-nav,
+html[data-theme="dark"] .header,
+html[data-theme="dark"] .header-card,
+html[data-theme="dark"] .login-card,
+html[data-theme="dark"] .register-card,
+html[data-theme="dark"] .section-card,
+html[data-theme="dark"] .param-card,
+html[data-theme="dark"] .profil-card {
+  background: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] #sidebar,
+html[data-theme="dark"] .sidebar-etudiant,
+html[data-theme="dark"] .admin-sidebar {
+  background: linear-gradient(180deg, #24124f 0%, #1d0f40 100%) !important;
+  border-color: var(--app-border) !important;
+}
+
+html[data-theme="dark"] .table,
+html[data-theme="dark"] table,
+html[data-theme="dark"] .table th,
+html[data-theme="dark"] .table td,
+html[data-theme="dark"] th,
+html[data-theme="dark"] td {
+  border-color: rgba(196, 181, 253, 0.25) !important;
+  color: var(--app-text) !important;
+}
+
+html[data-theme="dark"] .table thead th,
+html[data-theme="dark"] thead th {
+  background: var(--app-surface-2) !important;
+  color: #e9ddff !important;
+}
+
+html[data-theme="dark"] .text-muted,
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] .muted-text,
+html[data-theme="dark"] small,
+html[data-theme="dark"] .sub {
+  color: var(--app-muted) !important;
+}
+
+html[data-theme="dark"] .text-dark,
+html[data-theme="dark"] .text-black,
+html[data-theme="dark"] .text-body,
+html[data-theme="dark"] .user-name,
+html[data-theme="dark"] .card-title,
+html[data-theme="dark"] .panel-title,
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6,
+html[data-theme="dark"] p,
+html[data-theme="dark"] span,
+html[data-theme="dark"] label,
+html[data-theme="dark"] .dropdown-item {
+  color: var(--app-text) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .offcanvas,
+html[data-theme="dark"] .input-group-text,
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select {
+  background: var(--app-surface-2) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+  color: #cfc3ee !important;
+}
+
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(167, 139, 250, 0.28) !important;
+}
+
+html[data-theme="dark"] .btn-primary {
+  background: var(--app-primary) !important;
+  border-color: var(--app-primary) !important;
+}
+
+html[data-theme="dark"] .btn-outline-primary {
+  color: #ddd6fe !important;
+  border-color: #a78bfa !important;
+}
+
+html[data-theme="dark"] .btn-outline-primary:hover {
+  background: #8b5cf6 !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .btn-light,
+html[data-theme="dark"] .btn-outline-secondary,
+html[data-theme="dark"] .btn-secondary {
+  background: var(--app-surface-2) !important;
+  color: #f1e9ff !important;
+  border-color: var(--app-border) !important;
+}
+
+html[data-theme="dark"] .alert,
+html[data-theme="dark"] .badge,
+html[data-theme="dark"] .pill {
+  color: #f7f3ff !important;
+}
+
+html[data-theme="dark"] a,
+html[data-theme="dark"] .link,
+html[data-theme="dark"] .link-primary {
+  color: #cabdff !important;
+}
+
+html[data-theme="dark"] a:hover,
+html[data-theme="dark"] .link:hover,
+html[data-theme="dark"] .link-primary:hover {
+  color: #ede9fe !important;
+}
+
+/* Sync custom CSS variable-based pages */
+html[data-theme="dark"] {
+  --primary: #8b5cf6;
+  --primary-dark: #7c3aed;
+  --sidebar-bg: #24124f;
+  --sidebar-bg-active: #5b2fb2;
+  --sidebar-muted: #d8cbff;
+  --sidebar-text: #f5f3ff;
+  --card: rgba(45, 28, 88, 0.86);
+  --border: #6d58a8;
+  --text: #ede9fe;
+  --muted: #c4b5fd;
+}
+
+.theme-toggle-wrap {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-card);
+}
+
+.theme-toggle-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-muted);
+}
+
+.theme-toggle-btn {
+  border: 1px solid var(--app-border);
+  background: linear-gradient(135deg, var(--app-primary), var(--app-primary-2));
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.18);
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  filter: brightness(1.06);
+}
+
+html[data-theme="dark"] .theme-toggle-wrap {
+  background: var(--app-surface-2);
+}
+
+html[data-theme="dark"] .theme-toggle-label {
+  color: #d8cbff;
+}

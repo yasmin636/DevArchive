@@ -6,18 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Espace Personnel — Archives</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{% static 'css/bootstrap_sigaud_theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/theme_modes.css' %}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="{% static 'css/personnel.css' %}">
+  <link rel="stylesheet" href="{% static 'css/personnel.css' %}?v=20260324-2">
 </head>
 <body>
 
 <!-- SIDEBAR -->
 <aside id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon" style="background:none;padding:0;overflow:hidden;"><img src="{% static 'img/univ.jpg' %}" alt="Logo Université" style="width:40px;height:40px;object-fit:cover;border-radius:10px;"></div>
+    <div class="logo-icon sigaud-badge">SIGAUD</div>
     <div class="logo-text">
-      Université de Djibouti
-      <small>Espace Personnel</small>
+      SIGAUD
+      <small>Tableau de bord personnel</small>
     </div>
   </div>
 
@@ -95,9 +97,12 @@
         </small>
       </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 topbar-actions">
       <button class="btn btn-sm btn-outline-secondary" title="Notifications">
         <i class="bi bi-bell"></i>
+      </button>
+      <button id="btnAddCorrection" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">
+        <i class="bi bi-journal-check"></i> Ajouter correction
       </button>
       <button id="btnOpenAddModal" class="btn btn-primary btn-sm d-flex align-items-center gap-2">
         <i class="bi bi-archive"></i> Archiver un document
@@ -157,7 +162,7 @@
           Archives
           <span class="badge bg-primary ms-1" id="count-badge">{{ archives|length }}</span>
         </h6>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="d-flex gap-2 align-items-center table-tools">
           <div class="input-group input-group-sm" style="width:210px;">
             <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
             <input type="text" class="form-control border-start-0" placeholder="Rechercher…" id="searchInput">
@@ -209,6 +214,7 @@
               <td style="font-size:.82rem;">{{ archive.session }}{% if archive.semestre %} · {{ archive.semestre }}{% endif %}</td>
               <td style="font-size:.82rem;white-space:nowrap;">{{ archive.date_archive|date:"d/m/Y" }}</td>
               <td>
+                <div class="row-actions">
                 {% if archive.fichier %}
                   <a href="{% url 'voir_archive_pdf' archive.id %}" class="action-btn file" title="Voir le fichier PDF">
                     <i class="bi bi-file-earmark-pdf"></i>
@@ -220,6 +226,7 @@
                 <a href="{% url 'supprimer_archive' archive.id %}" class="action-btn delete" title="Supprimer l'archive" onclick="return confirm('Supprimer cette archive ?');">
                   <i class="bi bi-trash3"></i>
                 </a>
+                </div>
               </td>
             </tr>
           {% empty %}
@@ -424,7 +431,15 @@
       document.getElementById('typeCC').className = 'type-card';
       document.getElementById('typeExam').className = 'type-card';
       document.getElementById('typeError').textContent = '';
+      var titleEl = document.getElementById('archModalTitle');
+      if (titleEl) titleEl.innerHTML = '<i class="bi bi-archive me-2 text-primary"></i>Archiver un document';
       if (archModal) archModal.show();
+    }
+    function openCorrectionModal() {
+      openAddModal();
+      var titleEl = document.getElementById('archModalTitle');
+      if (titleEl) titleEl.innerHTML = '<i class="bi bi-journal-check me-2 text-primary"></i>Ajouter correction';
+      selectType('CC');
     }
 
     var sidebarToggleEl = document.getElementById('sidebarToggle');
@@ -434,6 +449,8 @@
     document.getElementById('typeExam').addEventListener('click', function () { selectType('Examen Final'); });
     var btnOpen = document.getElementById('btnOpenAddModal');
     if (btnOpen) btnOpen.addEventListener('click', openAddModal);
+    var btnCorrection = document.getElementById('btnAddCorrection');
+    if (btnCorrection) btnCorrection.addEventListener('click', openCorrectionModal);
 
     // Validation côté client : type (CC / Examen) obligatoire
     var archForm = document.getElementById('archForm');
@@ -543,5 +560,6 @@
     }
   })();
 </script>
+<script src="{% static 'js/theme_modes.js' %}"></script>
 </body>
 </html>

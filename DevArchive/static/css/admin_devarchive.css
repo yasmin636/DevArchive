@@ -1,0 +1,422 @@
+/**
+ * Thème admin Django — aligné sur SIGAUD (bleu ciel + marine)
+ */
+:root {
+  --dv-admin-navy: #0f172a;
+  --dv-admin-navy-mid: #3347c9;
+  --dv-admin-purple: #7c4dff;
+  --dv-admin-purple-soft: #b39cff;
+  --dv-admin-sky: #dbefff;
+  --dv-admin-sky-deep: #87ceeb;
+  --dv-admin-white: #f8fafc;
+  --dv-btn-mod: #1e40af;
+  --dv-btn-sus: #b45309;
+  --dv-btn-add: #047857;
+  --dv-glass: rgba(255, 255, 255, 0.72);
+  --dv-glass-strong: rgba(255, 255, 255, 0.9);
+}
+
+/* Fond général (toutes les pages admin) */
+body {
+  background:
+    radial-gradient(circle at 78% 14%, rgba(124, 77, 255, 0.28) 0 230px, transparent 231px),
+    radial-gradient(circle at 16% 85%, rgba(56, 189, 248, 0.18) 0 220px, transparent 221px),
+    radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.16) 0 380px, transparent 381px),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 8px,
+      rgba(219, 234, 254, 0.06) 8px,
+      rgba(219, 234, 254, 0.06) 16px
+    ),
+    #070b2f !important;
+}
+
+body.login,
+body.app-auth,
+body.dashboard {
+  background:
+    radial-gradient(circle at 78% 14%, rgba(124, 77, 255, 0.28) 0 230px, transparent 231px),
+    radial-gradient(circle at 16% 85%, rgba(56, 189, 248, 0.18) 0 220px, transparent 221px),
+    radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.16) 0 380px, transparent 381px),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 8px,
+      rgba(219, 234, 254, 0.06) 8px,
+      rgba(219, 234, 254, 0.06) 16px
+    ),
+    #070b2f !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 28%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 42%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 76%, rgba(255, 255, 255, 0.4) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 38% 68%, rgba(255, 255, 255, 0.32) 0 1px, transparent 2px),
+    radial-gradient(circle at 10% 55%, rgba(255, 255, 255, 0.3) 0 1px, transparent 2px);
+  background-size: 260px 260px, 300px 300px, 340px 340px, 280px 280px, 320px 320px;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#container {
+  position: relative;
+  z-index: 1;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* En-tête admin */
+#header {
+  background: linear-gradient(105deg, #151a49 0%, #2c3ca7 55%, #5032c7 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 24px rgba(5, 8, 28, 0.45);
+  backdrop-filter: saturate(120%);
+}
+
+#header a:link,
+#header a:visited {
+  color: #e2e8f0 !important;
+}
+
+#branding h1,
+#branding h1 a:link,
+#branding h1 a:visited {
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+#user-tools a {
+  border-radius: 6px;
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+}
+
+#user-tools a:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Contenu */
+#content {
+  background: rgba(245, 250, 255, 0.78);
+  border-radius: 16px;
+  box-shadow: 0 20px 44px rgba(5, 8, 28, 0.35);
+  border: 1px solid rgba(180, 212, 255, 0.75);
+  margin-top: 20px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+}
+
+#content-main {
+  background: linear-gradient(180deg, #fcfeff 0%, #eef6ff 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 20px 18px !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55), 0 10px 30px rgba(29, 78, 216, 0.1);
+}
+
+/* Fil d'ariane */
+div.breadcrumbs {
+  background: linear-gradient(90deg, rgba(221, 237, 255, 0.92) 0%, rgba(208, 228, 255, 0.92) 100%) !important;
+  border-bottom: 1px solid #9abff7;
+  color: #223470;
+  border-radius: 12px 12px 0 0;
+}
+
+div.breadcrumbs a {
+  color: #1d4ed8 !important;
+  font-weight: 600;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: linear-gradient(90deg, #3148c2 0%, #4f46e5 58%, #7c4dff 100%) !important;
+  color: #fff !important;
+  border-radius: 10px 10px 0 0;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Boutons principaux */
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  border-radius: 8px !important;
+}
+
+.default,
+input[type="submit"].default,
+.submit-row input.default {
+  background: linear-gradient(105deg, #3b82f6 0%, #4f46e5 50%, #7c4dff 100%) !important;
+  border: none !important;
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.34);
+}
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover,
+.submit-row input:hover,
+a.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+  filter: saturate(110%);
+}
+
+.submit-row {
+  background: #eaf3ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.submit-row input {
+  border-radius: 8px !important;
+  border: 1px solid #93c5fd !important;
+}
+
+/* Colonne actions utilisateurs */
+.dv-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
+  max-width: 320px;
+}
+
+.dv-inline-form {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.dv-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+a.dv-btn-mod {
+  background: #eff6ff;
+  color: var(--dv-btn-mod) !important;
+  border-color: #93c5fd;
+}
+
+a.dv-btn-mod:hover {
+  background: #dbeafe;
+}
+
+button.dv-btn-sus {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+button.dv-btn-sus:hover {
+  background: #fef3c7;
+}
+
+button.dv-btn-add {
+  background: #ecfdf5;
+  color: var(--dv-btn-add);
+  border-color: #6ee7b7;
+}
+
+button.dv-btn-add:hover {
+  background: #d1fae5;
+}
+
+.dv-btn-dis {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Tableau changelist */
+#result_list thead th {
+  background: #e8f4fc !important;
+  color: var(--dv-admin-navy) !important;
+  border-bottom: 2px solid #93c5fd;
+}
+
+#result_list {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#result_list tbody tr:nth-child(even) {
+  background: rgba(219, 234, 254, 0.26);
+}
+
+#result_list tbody tr:hover {
+  background: rgba(147, 197, 253, 0.25) !important;
+}
+
+#changelist-filter {
+  background: var(--dv-glass-strong);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+#changelist-filter h2 {
+  background: #1e3a8a !important;
+  color: #fff !important;
+}
+
+/* Login admin */
+body.login #container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  margin-top: 2rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+}
+
+body.login #header {
+  border-radius: 12px 12px 0 0;
+}
+
+/* Formulaires add/change user */
+.form-row {
+  border-bottom: 1px solid #dbeafe !important;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.aligned label {
+  color: #1e3a8a !important;
+  font-weight: 700;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+  border: 1px solid #93c5fd !important;
+  border-radius: 10px !important;
+  background: #f8fbff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+  outline: none !important;
+}
+
+.help,
+.helptext,
+p.help,
+.form-row .help {
+  color: #335a8d !important;
+}
+
+.errornote,
+ul.errorlist {
+  border-radius: 10px;
+  border: 1px solid #fecaca !important;
+  background: #fff1f2 !important;
+}
+
+/* Sidebar de navigation admin */
+#nav-sidebar {
+  background: linear-gradient(180deg, rgba(17, 28, 83, 0.78) 0%, rgba(17, 28, 83, 0.62) 100%) !important;
+  border-right: 1px solid rgba(147, 197, 253, 0.32) !important;
+  border-radius: 12px;
+  padding: 8px;
+  backdrop-filter: blur(8px);
+}
+
+#nav-sidebar .current-model,
+#nav-sidebar .current-app .section {
+  background: linear-gradient(90deg, #3b82f6 0%, #4f46e5 100%) !important;
+  color: #fff !important;
+}
+
+#nav-sidebar a {
+  border-radius: 8px;
+  transition: all 0.18s ease;
+  color: #e5edff !important;
+}
+
+#nav-sidebar a:hover {
+  background: rgba(96, 165, 250, 0.26) !important;
+  color: #fff !important;
+}
+
+/* Dashboard index modules */
+.dashboard #content {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.dashboard .module {
+  background: var(--dv-glass-strong);
+  border: 1px solid #bfdbfe !important;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  margin-bottom: 16px;
+}
+
+.dashboard .module table {
+  background: transparent;
+}
+
+.dashboard #content-related {
+  background: var(--dv-glass-strong);
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.dashboard #content-related .module {
+  box-shadow: none;
+  border: none !important;
+  background: transparent;
+}
+
+.dashboard #content-main h1 {
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}

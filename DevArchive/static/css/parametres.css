@@ -1,19 +1,27 @@
-.param-page { padding: 1.5rem; max-width: 700px; }
+.param-page { padding: 1.5rem; max-width: 760px; }
 .param-card {
-  border: none;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid #c4d6ff;
+  border-radius: 0.9rem;
+  box-shadow: 0 10px 24px rgba(6,10,36,.14);
   margin-bottom: 1.25rem;
+  background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(240,247,255,.94) 100%);
 }
 .param-card .card-header {
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  font-weight: 600;
+  background: linear-gradient(180deg, rgba(245,250,255,.95) 0%, rgba(232,242,255,.95) 100%);
+  border-bottom: 1px solid #d6e4ff;
+  font-weight: 700;
   font-size: 0.9rem;
-  color: #475569;
+  color: #38558a;
   padding: 0.75rem 1.25rem;
-  border-radius: 0.75rem 0.75rem 0 0;
+  border-radius: 0.9rem 0.9rem 0 0;
 }
 .param-card .card-body { padding: 1.25rem; }
-.param-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+.param-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; background:#eaf2ff; color:#1d4ed8; }
+
+.breadcrumb a {
+  color: #2e56a6;
+  text-decoration: none;
+  font-weight: 600;
+}
+.breadcrumb a:hover { text-decoration: underline; }
 

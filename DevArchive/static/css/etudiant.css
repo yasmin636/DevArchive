@@ -526,6 +526,16 @@ body {
   color: #fff;
 }
 
+.subject-card .btn-correction {
+  color: #fff;
+  background: #7c3aed;
+}
+
+.subject-card .btn-correction:hover {
+  background: #6d28d9;
+  color: #fff;
+}
+
 .subject-card .card-stats {
   display: flex;
   align-items: center;

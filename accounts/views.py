@@ -2,23 +2,19 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.views import LoginView, LogoutView
-<<<<<<< HEAD
-from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
-=======
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import redirect_to_login
 from django.contrib.auth.tokens import default_token_generator
 from django.db import models
 from django.db.utils import ProgrammingError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils.text import slugify
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.core.mail import send_mail
->>>>>>> page-utilisateur-fonctionnel
 from django.views.generic import TemplateView
 
 from .forms import (
@@ -27,10 +23,6 @@ from .forms import (
     EmailChangeForm,
     EtudiantRegistrationForm,
     PasswordChangeFormStyled,
-<<<<<<< HEAD
-)
-from .models import Archive, AssistantPedagogique, Filiere, Niveau
-=======
     ProfilEtudiantForm,
 )
 from .models import (
@@ -49,8 +41,8 @@ from .models import (
     HistoriqueArchive,
     Niveau,
     TelechargementEtudiant,
+    UserPresence,
 )
->>>>>>> page-utilisateur-fonctionnel
 
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
@@ -69,8 +61,6 @@ def user_est_assistant(user):
     return user.groups.filter(name__in=[GROUPE_ASSISTANT, GROUPE_ADMIN_SYSTEME]).exists()
 
 
-<<<<<<< HEAD
-=======
 def user_est_etudiant(user):
     """True si l'utilisateur a un profil Étudiant (et pas assistant/admin)."""
     if not user.is_authenticated:
@@ -80,7 +70,6 @@ def user_est_etudiant(user):
     return hasattr(user, "etudiant") and user.etudiant is not None
 
 
->>>>>>> page-utilisateur-fonctionnel
 class PersonnelRequiredMixin(UserPassesTestMixin):
     """
     Mixin qui restreint l'accès à l'espace personnel aux assistants pédagogiques
@@ -88,19 +77,70 @@ class PersonnelRequiredMixin(UserPassesTestMixin):
     """
     login_url = "connexion"
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(
+                request.get_full_path(),
+                reverse_lazy(self.login_url),
+            )
+        if not user_est_assistant(request.user):
+            messages.warning(request, "Accès réservé à l'espace personnel assistant.")
+            if user_est_etudiant(request.user):
+                return redirect("espace_etudiant")
+            return redirect("accueil")
+        return super().dispatch(request, *args, **kwargs)
+
     def test_func(self):
         return user_est_assistant(self.request.user)
-<<<<<<< HEAD
-=======
+
+    def handle_no_permission(self):
+        # Non connecté -> comportement standard (redirection connexion)
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.warning(
+            self.request,
+            "Accès réservé à l'espace personnel assistant."
+        )
+        if user_est_etudiant(self.request.user):
+            return redirect("espace_etudiant")
+        return redirect("accueil")
 
 
 class EtudiantRequiredMixin(UserPassesTestMixin):
     """Mixin qui restreint l'accès à l'espace étudiant aux utilisateurs avec profil Étudiant."""
     login_url = "connexion"
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(
+                request.get_full_path(),
+                reverse_lazy(self.login_url),
+            )
+        if not user_est_etudiant(request.user):
+            messages.warning(request, "Accès réservé aux étudiants.")
+            if user_est_assistant(request.user):
+                return redirect("personnel")
+            if request.user.is_staff or request.user.is_superuser:
+                return redirect("admin_dashboard")
+            return redirect("accueil")
+        return super().dispatch(request, *args, **kwargs)
+
     def test_func(self):
         return user_est_etudiant(self.request.user)
->>>>>>> page-utilisateur-fonctionnel
+
+    def handle_no_permission(self):
+        # Non connecté -> comportement standard (redirection connexion)
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.warning(
+            self.request,
+            "Accès réservé aux étudiants."
+        )
+        if user_est_assistant(self.request.user):
+            return redirect("personnel")
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return redirect("admin_dashboard")
+        return redirect("accueil")
 
 
 def accueil(request):
@@ -131,37 +171,10 @@ def inscription(request):
             selected_niveau_id = None
         if form.is_valid():
             user = form.save()
-            # Le compte reste inactif tant que l'email n'est pas confirmé
-            user.is_active = False
-            user.save(update_fields=["is_active"])
-
-            # Envoi de l'email de confirmation
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            confirm_url = request.build_absolute_uri(
-                reverse("confirmer_email", args=[uid, token])
-            )
-            sujet = "Confirmez votre adresse email - DevArchive"
-            message = (
-                "Bonjour,\n\n"
-                "Vous venez de créer un compte sur DevArchive avec cette adresse email.\n"
-                "Pour confirmer que cette adresse existe bien et vous appartient, cliquez sur le lien ci-dessous :\n\n"
-                f"{confirm_url}\n\n"
-                "Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.\n\n"
-                "Cordialement,\n"
-                "L'équipe DevArchive"
-            )
-            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
-            try:
-                send_mail(sujet, message, from_email, [user.email], fail_silently=True)
-            except Exception:
-                # On ne bloque pas l'inscription en cas de problème SMTP, mais le compte restera inactif
-                pass
 
             messages.success(
                 request,
-                "Votre compte a été créé. Un email de confirmation vient d'être envoyé. "
-                "Cliquez sur le lien dans ce mail pour activer votre compte.",
+                "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
             )
             return redirect("connexion")
     else:
@@ -187,8 +200,6 @@ def inscription(request):
     )
 
 
-<<<<<<< HEAD
-=======
 def confirmer_email(request, uidb64, token):
     """
     Active le compte après clic sur le lien reçu par email.
@@ -217,7 +228,7 @@ def confirmer_email(request, uidb64, token):
     )
     return redirect("inscription")
 
->>>>>>> page-utilisateur-fonctionnel
+
 @login_required
 def profil(request):
     """
@@ -309,11 +320,8 @@ class ConnexionView(LoginView):
             return reverse_lazy("admin_dashboard")
         if user_est_assistant(self.request.user):
             return reverse_lazy("personnel")
-<<<<<<< HEAD
-=======
         if user_est_etudiant(self.request.user):
             return reverse_lazy("espace_etudiant")
->>>>>>> page-utilisateur-fonctionnel
         return reverse_lazy("inscription")
 
 
@@ -343,8 +351,6 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         return ctx
 
 
-<<<<<<< HEAD
-=======
 def _archives_queryset_for_etudiant(request):
     """Archives visibles par l'étudiant (sa filière et, si renseigné, son niveau)."""
     etudiant = getattr(request.user, "etudiant", None)
@@ -633,7 +639,6 @@ def etudiant_telechargements(request):
     )
 
 
->>>>>>> page-utilisateur-fonctionnel
 @login_required
 def creer_archive(request):
     if request.method != "POST":
@@ -670,8 +675,6 @@ def voir_archive_pdf(request, pk: int):
     return FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
 
 
-<<<<<<< HEAD
-=======
 @login_required
 def voir_archive_pdf_etudiant(request, pk: int):
     """Permet à un étudiant de consulter le PDF dans le navigateur. nb_vues n'est incrémenté qu'une seule fois par utilisateur (première consultation)."""
@@ -838,7 +841,6 @@ def retirer_favori_etudiant(request, examen_id: int):
     return redirect(next_url)
 
 
->>>>>>> page-utilisateur-fonctionnel
 def _archives_queryset_for_user(request):
     assistant = getattr(request.user, "assistant_pedagogique", None)
     qs = Archive.objects.all()
@@ -911,6 +913,9 @@ def admin_dashboard(request):
     total_assistants = AssistantPedagogique.objects.count()
     total_archives = Archive.objects.count()
     recent_users = User.objects.order_by("-date_joined")[:5]
+    online_user_ids = set(
+        UserPresence.objects.filter(is_online=True).values_list("user_id", flat=True)
+    )
 
     # Activité récente : dernières actions admin (LogEntry)
     log_entries = (
@@ -969,6 +974,7 @@ def admin_dashboard(request):
             "total_assistants": total_assistants,
             "total_archives": total_archives,
             "recent_users": recent_users,
+            "online_user_ids": online_user_ids,
             "recent_activity": recent_activity,
         },
     )
@@ -1040,6 +1046,56 @@ def admin_utilisateurs(request):
             "selected_group": group_name,
         },
     )
+
+
+@login_required
+def admin_suspend_user(request, user_id):
+    """Suspend un utilisateur (is_active=False) depuis la liste admin."""
+    if request.method != "POST":
+        return redirect("admin_utilisateurs")
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=user_id)
+    if target_user.pk == request.user.pk:
+        messages.error(request, "Vous ne pouvez pas suspendre votre propre compte.")
+    elif not target_user.is_active:
+        messages.info(request, f"Le compte « {target_user.username} » est déjà suspendu.")
+    else:
+        target_user.is_active = False
+        target_user.save(update_fields=["is_active"])
+        messages.success(request, f"Le compte « {target_user.username} » a été suspendu.")
+
+    next_url = request.POST.get("next") or reverse("admin_utilisateurs")
+    return redirect(next_url)
+
+
+@login_required
+def admin_activate_user(request, user_id):
+    """Active un utilisateur (is_active=True) depuis la liste admin."""
+    if request.method != "POST":
+        return redirect("admin_utilisateurs")
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.warning(request, "Accès réservé aux administrateurs.")
+        return redirect("accueil")
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=user_id)
+    if target_user.is_active:
+        messages.info(request, f"Le compte « {target_user.username} » est déjà actif.")
+    else:
+        target_user.is_active = True
+        target_user.save(update_fields=["is_active"])
+        messages.success(request, f"Le compte « {target_user.username} » a été activé.")
+
+    next_url = request.POST.get("next") or reverse("admin_utilisateurs")
+    return redirect(next_url)
 
 
 @login_required
@@ -1120,6 +1176,61 @@ def admin_facultes(request):
         messages.warning(request, "Accès réservé aux administrateurs.")
         return redirect("accueil")
     from django.db.models import Count
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+
+        if action == "create_faculte":
+            faculte_libelle = (request.POST.get("faculte_libelle") or "").strip()
+            if not faculte_libelle:
+                messages.error(request, "Veuillez renseigner le nom de la faculté.")
+                return redirect("admin_facultes")
+
+            base_code = slugify(faculte_libelle).upper().replace("-", "_")[:20]
+            if not base_code:
+                base_code = "FACULTE"
+
+            code = base_code
+            index = 2
+            while Faculte.objects.filter(code=code).exists():
+                suffix = f"_{index}"
+                code = f"{base_code[: max(1, 20 - len(suffix))]}{suffix}"
+                index += 1
+
+            Faculte.objects.create(code=code, libelle=faculte_libelle)
+            messages.success(request, f"Faculté « {faculte_libelle} » créée avec succès.")
+            return redirect("admin_facultes")
+
+        if action == "create_filiere":
+            libelle = (request.POST.get("filiere_libelle") or "").strip()
+            faculte_id = request.POST.get("faculte_id")
+
+            if not libelle or not faculte_id:
+                messages.error(request, "Veuillez renseigner le nom de la filière et la faculté.")
+                return redirect("admin_facultes")
+
+            faculte = Faculte.objects.filter(pk=faculte_id).first()
+            if not faculte:
+                messages.error(request, "La faculté sélectionnée est invalide.")
+                return redirect("admin_facultes")
+
+            base_code = slugify(libelle).upper().replace("-", "_")[:20]
+            if not base_code:
+                base_code = f"FILIERE_{faculte.code.upper()}"[:20]
+
+            code = base_code
+            index = 2
+            while Filiere.objects.filter(code=code).exists():
+                suffix = f"_{index}"
+                code = f"{base_code[: max(1, 20 - len(suffix))]}{suffix}"
+                index += 1
+
+            Filiere.objects.create(code=code, libelle=libelle, faculte=faculte)
+            messages.success(request, f"Filière « {libelle} » ajoutée à « {faculte.libelle} ».")
+            return redirect("admin_facultes")
+
+        messages.error(request, "Action non reconnue.")
+        return redirect("admin_facultes")
 
     facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
     return render(request, "admin_facultes.html", {"facultes": facultes})

@@ -12,6 +12,7 @@ from . import views
 
 urlpatterns = [
     path("", views.accueil, name="accueil"),  # page d'accueil : /
+    path("accueil/", views.accueil),  # alias : /accueil/ → même page (évite 404)
     path("inscription/", views.inscription, name="inscription"),
     path(
         "inscription/confirmation/<uidb64>/<token>/",
@@ -111,6 +112,16 @@ urlpatterns = [
     # Tableau de bord admin Sigaud (staff/superuser)
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("admin-dashboard/utilisateurs/", views.admin_utilisateurs, name="admin_utilisateurs"),
+    path(
+        "admin-dashboard/utilisateurs/<int:user_id>/suspendre/",
+        views.admin_suspend_user,
+        name="admin_suspend_user",
+    ),
+    path(
+        "admin-dashboard/utilisateurs/<int:user_id>/activer/",
+        views.admin_activate_user,
+        name="admin_activate_user",
+    ),
     path("admin-dashboard/documents/", views.admin_documents, name="admin_documents"),
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),

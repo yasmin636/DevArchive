@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/bootstrap_sigaud_theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/theme_modes.css' %}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{% static 'css/etudiant.css' %}">
 </head>
@@ -114,6 +116,7 @@
         {% if archive.fichier %}
         <div class="card-action-btns">
           <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="btn-card btn-consulter" title="Consulter le PDF" target="_blank"><i class="bi bi-eye"></i> Consulter</a>
+          <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="btn-card btn-correction" title="Consulter la correction" target="_blank"><i class="bi bi-journal-check"></i> Consulter correction</a>
           <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="btn-card btn-download" title="Télécharger le PDF"><i class="bi bi-download"></i> Télécharger</a>
           <a href="{% url 'etudiant_commenter_archive' archive.pk %}" class="btn-card btn-outline-secondary" title="Voir / ajouter des commentaires"><i class="bi bi-chat-dots"></i> Commenter</a>
         </div>
@@ -204,6 +207,8 @@
             <td>
               {% if archive.fichier %}
               <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="link-consulter" target="_blank">Consulter</a>
+              <span class="mx-1">·</span>
+              <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="link-consulter" target="_blank">Consulter correction</a>
               <span class="mx-1">·</span>
               <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="link-consulter">Télécharger</a>
               {% else %}—{% endif %}
@@ -304,5 +309,6 @@
   if (btnFilter) btnFilter.addEventListener('click', applyFilters);
 })();
 </script>
+<script src="{% static 'js/theme_modes.js' %}"></script>
 </body>
 </html>

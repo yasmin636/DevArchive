@@ -2,7 +2,14 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import AssistantPedagogique, Faculte, Filiere, Niveau, Etudiant
+from .models import (
+    AssistantPedagogique,
+    ConsultationCorrigeGratuite,
+    Faculte,
+    Filiere,
+    Niveau,
+    Etudiant,
+)
 
 User = get_user_model()
 
@@ -43,6 +50,14 @@ class NiveauAdmin(admin.ModelAdmin):
 class EtudiantAdmin(admin.ModelAdmin):
     list_display = ('user', 'filiere', 'niveau')
     list_filter = ('filiere', 'niveau')
+
+
+@admin.register(ConsultationCorrigeGratuite)
+class ConsultationCorrigeGratuiteAdmin(admin.ModelAdmin):
+    list_display = ("user", "archive", "date_premier_acces")
+    list_filter = ("date_premier_acces",)
+    search_fields = ("user__username", "archive__title")
+    raw_id_fields = ("user", "archive")
 
 
 @admin.register(AssistantPedagogique)

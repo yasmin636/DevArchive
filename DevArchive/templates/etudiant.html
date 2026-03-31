@@ -96,45 +96,117 @@
 
   <main class="main-content">
   <section class="mb-4" aria-labelledby="sujets-title">
-    <div class="section-title">
+    <div class="section-title section-title--pill">
       <h3 id="sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets les plus visités</h3>
       <a href="#recherche" class="link-all">Voir tout</a>
     </div>
-  <div class="subject-cards">
-    {% for archive in sujets_plus_visites %}
-    <div class="subject-card">
-      <div class="card-icon {% cycle 'db' 'network' 'shield' 'mobile' %}">
-        <i class="bi bi-file-earmark-text"></i>
-      </div>
-      <div class="card-title">{{ archive.title }}</div>
-      <div class="card-meta">{{ archive.session }} {{ archive.annee }} - {{ archive.get_type_display }}</div>
-      <span class="card-badge {% if archive.semestre == 'S1' %}s1{% else %}s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
-      <div class="card-actions">
-        <span></span>
-        {% if archive.fichier %}
-        <div class="card-action-btns">
-          <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="btn-card btn-consulter" title="Consulter le PDF" target="_blank"><i class="bi bi-eye"></i> Consulter</a>
-          <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="btn-card btn-download" title="Télécharger le PDF"><i class="bi bi-download"></i> Télécharger</a>
-          <a href="{% url 'etudiant_commenter_archive' archive.pk %}" class="btn-card btn-outline-secondary" title="Voir / ajouter des commentaires"><i class="bi bi-chat-dots"></i> Commenter</a>
+    <p class="corrige-quota-banner mb-3">
+      <i class="bi bi-info-circle"></i>
+      Corrigés gratuits : <strong>{{ corrige_gratuits_restants }}</strong> / {{ corrige_gratuits_max }} corrigés <em>différents</em> encore disponibles.
+      Rouvrir un corrigé déjà consulté reste gratuit.
+    </p>
+  <div class="subject-cards subject-cards--v2">
+    {% for item in sujets_cartes %}
+    {% with archive=item.archive %}
+    <article class="subject-card-v2" data-archive-id="{{ archive.pk }}">
+      <div class="subject-card-v2__hero">
+        <div class="subject-card-v2__icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="subject-card-v2__intro">
+          <h4 class="subject-card-v2__title">{{ archive.title }}</h4>
+          <p class="subject-card-v2__subtitle">{{ archive.session }} {{ archive.annee }} - {{ archive.get_type_display }}</p>
+          <div class="subject-card-v2__tags-row">
+            <span class="subject-card-v2__badge-sem {% if archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
+            {% if archive.fichier %}
+            <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-tag subject-tag--web" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Version web</a>
+            {% endif %}
+          </div>
+          <div class="subject-card-v2__meta-line">
+            <span title="Filière"><i class="bi bi-mortarboard"></i> {{ archive.filiere|truncatechars:24 }}</span>
+            <span title="Année"><i class="bi bi-calendar3"></i> {{ archive.annee }}</span>
+            <span title="Module"><i class="bi bi-journal-text"></i> {{ archive.module|truncatechars:20 }}</span>
+          </div>
         </div>
-        {% else %}
-        <span class="text-muted small">—</span>
-        {% endif %}
+        <div class="subject-card-v2__brand" aria-hidden="true">
+          <img src="{% static 'img/logo_site.png' %}" alt="" class="subject-card-v2__logo">
+        </div>
       </div>
-      <div class="card-stats">
-        <span class="card-stat" title="Nombre de vues"><i class="bi bi-eye"></i> {{ archive.nb_vues }}</span>
-        <span class="card-stat">
-          <form method="post" action="{% url 'toggle_favori_etudiant' archive.pk %}" class="d-inline card-favori-form">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="card-favori card-favori-btn {% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}active{% endif %}" title="{% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}Retirer des favoris{% else %}Ajouter aux favoris{% endif %}">
-              <i class="bi bi-heart{% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}-fill{% endif %}"></i>
-            </button>
-          </form>
+
+      {% if archive.fichier %}
+      <div
+        class="subject-card-v2__rating"
+        data-rating-card
+        data-note-url="{% url 'noter_archive_etudiant' archive.pk %}"
+        data-user-note="{{ item.user_note|default:'' }}"
+      >
+        <p class="subject-card-v2__rating-hint">Notez ce sujet en cliquant sur l'étoile</p>
+        <div class="subject-card-v2__stars" role="group" aria-label="Note de 1 à 5">
+          {% for n in "12345" %}
+          <button type="button" class="subject-star-btn" data-note="{{ forloop.counter }}" title="Noter {{ forloop.counter }}/5" aria-label="{{ forloop.counter }} sur 5">
+            <i class="bi bi-star{% if item.user_note and forloop.counter <= item.user_note %}-fill{% endif %}"></i>
+          </button>
+          {% endfor %}
+        </div>
+        <span class="subject-card-v2__rating-text" data-rating-label>
+          {% if item.note_moyenne is not None %}
+            {{ item.note_moyenne }} ({{ item.nb_notes }} vote{% if item.nb_notes > 1 %}s{% endif %})
+          {% else %}
+            — (0 vote)
+          {% endif %}
         </span>
-        <span class="card-stat" title="Nombre de téléchargements"><i class="bi bi-download"></i> {{ archive.nb_telechargements }}</span>
       </div>
-    </div>
+
+      <div class="subject-card-v2__actions">
+        <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+        {% if archive.fichier_corrige %}
+          {% if archive.pk in corrige_archives_debloques or corrige_gratuits_restants > 0 %}
+        <a href="{% url 'voir_corrige_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige" target="_blank" rel="noopener"><i class="bi bi-clipboard-check"></i> Consulter correction</a>
+          {% else %}
+        <span class="subject-btn subject-btn--corrige subject-btn--disabled" title="Vous avez atteint la limite de {{ corrige_gratuits_max }} corrigés gratuits (différents). Les corrigés déjà ouverts restent accessibles depuis l’historique ou en rouvrant le même lien."><i class="bi bi-lock"></i> Correction (quota gratuit atteint)</span>
+          {% endif %}
+        {% else %}
+        <span class="subject-btn subject-btn--corrige subject-btn--disabled" title="Aucun corrigé déposé pour ce sujet"><i class="bi bi-clipboard-x"></i> Correction indisponible</span>
+        {% endif %}
+        <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="subject-btn subject-btn--download"><i class="bi bi-download"></i> Télécharger</a>
+        <a href="{% url 'etudiant_commenter_archive' archive.pk %}" class="subject-link-comment"><i class="bi bi-chat-dots"></i> Commenter</a>
+      </div>
+      {% else %}
+      <p class="subject-card-v2__no-file text-muted small">Document non disponible pour le moment.</p>
+      {% endif %}
+
+      <div class="subject-card-v2__footer">
+        <div class="subject-card-v2__footer-top">
+          <div class="subject-card-v2__footer-left">
+            <span class="subject-card-v2__stat" title="Vues"><i class="bi bi-eye"></i> {{ archive.nb_vues }}</span>
+            <span class="subject-card-v2__stat subject-card-v2__stat--fav" title="Favoris">
+              <form method="post" action="{% url 'toggle_favori_etudiant' archive.pk %}" class="d-inline card-favori-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="card-favori card-favori-btn {% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}active{% endif %}" title="{% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}Retirer des favoris{% else %}Ajouter aux favoris{% endif %}">
+                  <i class="bi bi-heart{% if archive.examen_id in favori_examen_ids or archive.pk in favori_archive_ids %}-fill{% endif %}"></i>
+                </button>
+              </form>
+              <span class="subject-card-v2__fav-num">{{ item.favori_count }}</span>
+            </span>
+            <span class="subject-card-v2__stat" title="Téléchargements"><i class="bi bi-download"></i> {{ archive.nb_telechargements }}</span>
+          </div>
+          <div class="subject-card-v2__footer-tags">
+            {% if archive.fichier_corrige %}
+            <span class="subject-tag subject-tag--corrige"><i class="bi bi-check2-circle"></i> Corrigé disponible</span>
+            {% else %}
+            <span class="subject-tag subject-tag--muted">Corrigé non disponible</span>
+            {% endif %}
+          </div>
+        </div>
+        <p class="subject-card-v2__corrige-note">
+          {% if archive.fichier_corrige %}
+            Le corrigé peut être consulté ou téléchargé. Chaque <strong>nouveau</strong> corrigé compte dans votre quota gratuit ({{ corrige_gratuits_max }} corrigés <em>différents</em>) ; rouvrir le même corrigé reste gratuit.
+          {% else %}
+            Aucun fichier corrigé n’a été déposé pour ce sujet par l’équipe pédagogique.
+          {% endif %}
+        </p>
+      </div>
+    </article>
+    {% endwith %}
     {% empty %}
     <p class="text-muted mb-0">Aucun sujet archivé pour votre filière pour le moment.</p>
     {% endfor %}
@@ -302,6 +374,50 @@
     });
   }
   if (btnFilter) btnFilter.addEventListener('click', applyFilters);
+})();
+</script>
+<script>
+(function() {
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : '';
+  }
+  document.querySelectorAll('[data-rating-card]').forEach(function(card) {
+    var url = card.getAttribute('data-note-url');
+    if (!url) return;
+    var stars = card.querySelectorAll('.subject-star-btn');
+    var label = card.querySelector('[data-rating-label]');
+    stars.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var note = parseInt(btn.getAttribute('data-note'), 10);
+        if (note < 1 || note > 5) return;
+        var fd = new FormData();
+        fd.append('note', String(note));
+        var tok = getCookie('csrftoken');
+        if (tok) fd.append('csrfmiddlewaretoken', tok);
+        fetch(url, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': tok || '' }
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data || !data.ok) return;
+            stars.forEach(function(b, i) {
+              var ic = b.querySelector('i');
+              if (!ic) return;
+              ic.className = (i < note) ? 'bi bi-star-fill' : 'bi bi-star';
+            });
+            if (label && data.moyenne != null) {
+              var votes = data.nb_votes || 0;
+              label.textContent = data.moyenne + ' (' + votes + ' vote' + (votes > 1 ? 's' : '') + ')';
+            }
+          })
+          .catch(function() {});
+      });
+    });
+  });
 })();
 </script>
 </body>

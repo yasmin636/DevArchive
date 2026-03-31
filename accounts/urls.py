@@ -31,9 +31,24 @@ urlpatterns = [
         name="voir_archive_pdf_etudiant",
     ),
     path(
+        "espace-etudiant/archive/<int:pk>/corrige/pdf/",
+        views.voir_corrige_pdf_etudiant,
+        name="voir_corrige_pdf_etudiant",
+    ),
+    path(
+        "espace-etudiant/archive/<int:pk>/corrige/telecharger/",
+        views.telecharger_corrige_etudiant,
+        name="telecharger_corrige_etudiant",
+    ),
+    path(
         "espace-etudiant/archive/<int:pk>/telecharger/",
         views.telecharger_archive_etudiant,
         name="telecharger_archive_etudiant",
+    ),
+    path(
+        "espace-etudiant/archive/<int:pk>/noter/",
+        views.noter_archive_etudiant,
+        name="noter_archive_etudiant",
     ),
     path(
         "espace-etudiant/collection/",

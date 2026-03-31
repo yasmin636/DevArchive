@@ -162,21 +162,25 @@ class ArchiveForm(forms.ModelForm):
             "type",
             "title",
             "module",
-<<<<<<< HEAD
-=======
             "niveau",
->>>>>>> page-utilisateur-fonctionnel
             "annee",
             "session",
             "semestre",
             "remarque",
             "fichier",
+            "fichier_corrige",
         ]
 
     def clean_fichier(self):
         f = self.cleaned_data.get("fichier")
         if f and f.content_type != "application/pdf":
             raise forms.ValidationError("Seuls les fichiers PDF sont autorisés.")
+        return f
+
+    def clean_fichier_corrige(self):
+        f = self.cleaned_data.get("fichier_corrige")
+        if f and f.content_type != "application/pdf":
+            raise forms.ValidationError("Seuls les fichiers PDF sont autorisés pour le corrigé.")
         return f
 
 
@@ -255,8 +259,6 @@ class AssistantPedagogiqueForm(forms.ModelForm):
         model = AssistantPedagogique
         fields = ["user", "filiere"]
 
-<<<<<<< HEAD
-=======
 
 class ProfilEtudiantForm(forms.Form):
     """Formulaire de gestion du profil étudiant : identité, faculté, filière, niveau, photo."""
@@ -370,7 +372,6 @@ class ProfilEtudiantForm(forms.Form):
                 self.etudiant.photo = self.cleaned_data["photo"]
             self.etudiant.save()
 
-<<<<<<< HEAD
 
 class AdminAddUserForm(forms.Form):
     """Formulaire « Add user » pour le tableau de bord admin (style Django admin)."""
@@ -450,7 +451,3 @@ class AdminAddUserForm(forms.Form):
             group, _ = Group.objects.get_or_create(name="Assistant pédagogique")
             user.groups.add(group)
         return user
-
-=======
->>>>>>> page-utilisateur-fonctionnel
->>>>>>> 5d26dfbf1a41354cd3ff05b52e017e01e8727378

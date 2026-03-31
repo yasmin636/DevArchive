@@ -3,22 +3,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
-<<<<<<< HEAD
-from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
-=======
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.db import models
 from django.db.utils import ProgrammingError
-from django.http import FileResponse, Http404
+from django.db.models import Avg, Count
+from django.http import FileResponse, Http404, JsonResponse
+from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.core.mail import send_mail
->>>>>>> page-utilisateur-fonctionnel
 from django.views.generic import TemplateView
 
 from .forms import (
@@ -27,12 +23,9 @@ from .forms import (
     EmailChangeForm,
     EtudiantRegistrationForm,
     PasswordChangeFormStyled,
-<<<<<<< HEAD
-)
-from .models import Archive, AssistantPedagogique, Filiere, Niveau
-=======
     ProfilEtudiantForm,
 )
+from .constants import CORRIGE_GRATUITS_MAX
 from .models import (
     Archive,
     AssistantPedagogique,
@@ -48,9 +41,10 @@ from .models import (
     Historique,
     HistoriqueArchive,
     Niveau,
+    NoteArchive,
+    ConsultationCorrigeGratuite,
     TelechargementEtudiant,
 )
->>>>>>> page-utilisateur-fonctionnel
 
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
@@ -69,8 +63,6 @@ def user_est_assistant(user):
     return user.groups.filter(name__in=[GROUPE_ASSISTANT, GROUPE_ADMIN_SYSTEME]).exists()
 
 
-<<<<<<< HEAD
-=======
 def user_est_etudiant(user):
     """True si l'utilisateur a un profil Étudiant (et pas assistant/admin)."""
     if not user.is_authenticated:
@@ -80,7 +72,6 @@ def user_est_etudiant(user):
     return hasattr(user, "etudiant") and user.etudiant is not None
 
 
->>>>>>> page-utilisateur-fonctionnel
 class PersonnelRequiredMixin(UserPassesTestMixin):
     """
     Mixin qui restreint l'accès à l'espace personnel aux assistants pédagogiques
@@ -90,8 +81,6 @@ class PersonnelRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         return user_est_assistant(self.request.user)
-<<<<<<< HEAD
-=======
 
 
 class EtudiantRequiredMixin(UserPassesTestMixin):
@@ -100,7 +89,6 @@ class EtudiantRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         return user_est_etudiant(self.request.user)
->>>>>>> page-utilisateur-fonctionnel
 
 
 def accueil(request):
@@ -187,8 +175,6 @@ def inscription(request):
     )
 
 
-<<<<<<< HEAD
-=======
 def confirmer_email(request, uidb64, token):
     """
     Active le compte après clic sur le lien reçu par email.
@@ -217,7 +203,7 @@ def confirmer_email(request, uidb64, token):
     )
     return redirect("inscription")
 
->>>>>>> page-utilisateur-fonctionnel
+
 @login_required
 def profil(request):
     """
@@ -309,11 +295,8 @@ class ConnexionView(LoginView):
             return reverse_lazy("admin_dashboard")
         if user_est_assistant(self.request.user):
             return reverse_lazy("personnel")
-<<<<<<< HEAD
-=======
         if user_est_etudiant(self.request.user):
             return reverse_lazy("espace_etudiant")
->>>>>>> page-utilisateur-fonctionnel
         return reverse_lazy("inscription")
 
 
@@ -343,8 +326,6 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         return ctx
 
 
-<<<<<<< HEAD
-=======
 def _archives_queryset_for_etudiant(request):
     """Archives visibles par l'étudiant (sa filière et, si renseigné, son niveau)."""
     etudiant = getattr(request.user, "etudiant", None)
@@ -357,6 +338,34 @@ def _archives_queryset_for_etudiant(request):
     return qs.filter(
         models.Q(niveau__isnull=True) | models.Q(niveau=etudiant.niveau)
     ).order_by("-date_archive")
+
+
+def _enrich_sujets_cards(archives_list, user):
+    """Métadonnées pour les cartes « sujets visités » : favoris, moyenne des notes."""
+    out = []
+    for a in archives_list:
+        if a.examen_id:
+            fav_count = Favori.objects.filter(examen_id=a.examen_id).count()
+        else:
+            fav_count = FavoriArchive.objects.filter(archive_id=a.pk).count()
+        agg = NoteArchive.objects.filter(archive=a).aggregate(avg=Avg("note"), n=Count("id"))
+        avg = agg["avg"]
+        n_note = agg["n"] or 0
+        user_note = (
+            NoteArchive.objects.filter(archive=a, user=user)
+            .values_list("note", flat=True)
+            .first()
+        )
+        out.append(
+            {
+                "archive": a,
+                "favori_count": fav_count,
+                "note_moyenne": round(float(avg), 1) if avg is not None else None,
+                "nb_notes": n_note,
+                "user_note": user_note,
+            }
+        )
+    return out
 
 
 class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView):
@@ -384,7 +393,9 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
         ctx["matieres_list"] = matieres_list
         ctx["matiere_choisie"] = matiere_choisie
         ctx["archives"] = archives
-        ctx["sujets_plus_visites"] = archives[:8]
+        top = list(archives[:8])
+        ctx["sujets_plus_visites"] = top
+        ctx["sujets_cartes"] = _enrich_sujets_cards(top, self.request.user)
         archive_by_examen = {}
         for a in archives:
             if a.examen_id and a.examen_id not in archive_by_examen:
@@ -414,6 +425,7 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
             favori_archive_ids = set()
         ctx["favori_examen_ids"] = favori_examen_ids
         ctx["favori_archive_ids"] = favori_archive_ids
+        ctx.update(_context_quota_corrige(self.request.user))
         return ctx
 
 
@@ -633,7 +645,6 @@ def etudiant_telechargements(request):
     )
 
 
->>>>>>> page-utilisateur-fonctionnel
 @login_required
 def creer_archive(request):
     if request.method != "POST":
@@ -670,8 +681,6 @@ def voir_archive_pdf(request, pk: int):
     return FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
 
 
-<<<<<<< HEAD
-=======
 @login_required
 def voir_archive_pdf_etudiant(request, pk: int):
     """Permet à un étudiant de consulter le PDF dans le navigateur. nb_vues n'est incrémenté qu'une seule fois par utilisateur (première consultation)."""
@@ -709,6 +718,71 @@ def voir_archive_pdf_etudiant(request, pk: int):
     response = FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
     response["Content-Disposition"] = "inline; filename*=UTF-8''" + _safe_filename(archive)
     return response
+
+
+@login_required
+def voir_corrige_pdf_etudiant(request, pk: int):
+    """Consultation du corrigé PDF (sans incrémenter les vues du sujet)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
+    response["Content-Disposition"] = "inline; filename*=UTF-8''" + _safe_filename_corrige(archive)
+    return response
+
+
+@login_required
+def telecharger_corrige_etudiant(request, pk: int):
+    """Téléchargement du corrigé PDF (même quota que la consultation)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
+    response["Content-Disposition"] = "attachment; filename*=UTF-8''" + _safe_filename_corrige(archive)
+    return response
+
+
+@login_required
+@require_POST
+def noter_archive_etudiant(request, pk: int):
+    """Enregistre une note 1–5 sur une archive (AJAX JSON)."""
+    if not user_est_etudiant(request.user):
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+    try:
+        note = int(request.POST.get("note") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "invalid"}, status=400)
+    if note < 1 or note > 5:
+        return JsonResponse({"ok": False, "error": "invalid"}, status=400)
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    NoteArchive.objects.update_or_create(
+        user=request.user,
+        archive=archive,
+        defaults={"note": note},
+    )
+    agg = NoteArchive.objects.filter(archive=archive).aggregate(avg=Avg("note"), n=Count("id"))
+    avg = agg["avg"]
+    return JsonResponse(
+        {
+            "ok": True,
+            "moyenne": round(float(avg), 1) if avg is not None else None,
+            "nb_votes": agg["n"] or 0,
+            "user_note": note,
+        }
+    )
 
 
 @login_required
@@ -792,6 +866,48 @@ def _safe_filename(archive) -> str:
     return quote(base + ".pdf", safe="")
 
 
+def _safe_filename_corrige(archive) -> str:
+    from urllib.parse import quote
+    base = (archive.title or "document").strip()
+    base = "".join(c if c.isalnum() or c in ".-_ " else "_" for c in base)[:80].strip() or "document"
+    return quote(base + "_corrige.pdf", safe="")
+
+
+def _context_quota_corrige(user):
+    """IDs d'archives dont le corrigé a déjà été « débloqué » + places restantes."""
+    ids = list(
+        ConsultationCorrigeGratuite.objects.filter(user=user).values_list(
+            "archive_id", flat=True
+        )
+    )
+    n = len(ids)
+    return {
+        "corrige_archives_debloques": ids,
+        "corrige_gratuits_restants": max(0, CORRIGE_GRATUITS_MAX - n),
+        "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+    }
+
+
+def _reserver_accès_corrige_gratuit(request, archive):
+    """
+    Autorise l'accès au corrigé : au plus CORRIGE_GRATUITS_MAX archives distinctes
+    par utilisateur ; les réouvertures du même corrigé restent gratuites.
+    Retourne une HttpResponse 403 si quota dépassé, sinon None.
+    """
+    user = request.user
+    if ConsultationCorrigeGratuite.objects.filter(user=user, archive=archive).exists():
+        return None
+    if ConsultationCorrigeGratuite.objects.filter(user=user).count() >= CORRIGE_GRATUITS_MAX:
+        return render(
+            request,
+            "corrige_quota_depasse.html",
+            {"max_corrige": CORRIGE_GRATUITS_MAX},
+            status=403,
+        )
+    ConsultationCorrigeGratuite.objects.create(user=user, archive=archive)
+    return None
+
+
 @login_required
 def toggle_favori_etudiant(request, pk: int):
     """Ajoute ou retire une archive des favoris (par examen si lié, sinon par archive directe)."""
@@ -838,7 +954,6 @@ def retirer_favori_etudiant(request, examen_id: int):
     return redirect(next_url)
 
 
->>>>>>> page-utilisateur-fonctionnel
 def _archives_queryset_for_user(request):
     assistant = getattr(request.user, "assistant_pedagogique", None)
     qs = Archive.objects.all()

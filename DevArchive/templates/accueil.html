@@ -3,19 +3,28 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>DevArchive – Université de Djibouti</title>
+    <title>SIGAUD – Université de Djibouti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include 'includes/sigaud_theme_head.html' %}
     <link rel="stylesheet" href="{% static 'css/accueil.css' %}">
 </head>
-<body>
+<body class="sigaud-themed sigaud-accueil">
+    <div class="accueil-bg" aria-hidden="true">
+        <div class="accueil-bg__wash"></div>
+        <div class="accueil-bg__blob accueil-bg__blob--1"></div>
+        <div class="accueil-bg__blob accueil-bg__blob--2"></div>
+        <div class="accueil-bg__blob accueil-bg__blob--3"></div>
+        <canvas id="accueil-network-canvas" class="accueil-bg__canvas" width="1920" height="1080"></canvas>
+    </div>
     <header class="header">
         <div class="container">
             <div class="header-inner">
                 <div class="brand">
                     <div class="header-logo-small">
-                        <img src="{% static 'img/logo_site.png' %}" alt="DevArchive - Université de Djibouti">
+                        <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD - Université de Djibouti">
                     </div>
                     <div>
+                        <div class="brand-title">SIGAUD</div>
                         <div class="brand-sub">Université de Djibouti</div>
                     </div>
                 </div>
@@ -25,6 +34,10 @@
                     <a href="#contact" class="nav-link">Contact</a>
                 </nav>
                 <div class="header-btns">
+                    <button type="button" class="theme-toggle-btn" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+                        <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+                        <span class="theme-toggle-label">Sombre</span>
+                    </button>
                     <a href="{% url 'inscription' %}" class="btn btn-outline">S'inscrire</a>
                     <a href="{% url 'connexion' %}" class="btn btn-solid">Connexion</a>
                     <div class="header-logo-small">
@@ -42,7 +55,7 @@
                     <div>
                         <span class="hero-tag">Patrimoine académique de Djibouti</span>
                         <h1 class="hero-title">Une solution moderne pour préserver le patrimoine académique</h1>
-                        <p class="hero-desc">DevArchive simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
+                        <p class="hero-desc">SIGAUD simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
                         <div class="hero-img-wrap" style="display:none;">
                             <img src="#" alt="">
                         </div>
@@ -56,7 +69,7 @@
 
         <section class="features" id="facultes">
             <div class="container">
-                <h2 class="section-title">Les avantages de DevArchive</h2>
+                <h2 class="section-title">Les avantages de SIGAUD</h2>
                 <div class="features-grid">
                     <div class="feature-card">
                         <div class="feature-icon">💬</div>
@@ -122,7 +135,7 @@
         <div class="container">
             <div class="footer-inner">
                 <div>
-                    <div class="footer-brand">DevArchive</div>
+                    <div class="footer-brand">SIGAUD</div>
                     <p class="footer-desc">Le système centralisé d'archivage des examens de l'Université de Djibouti. Développé pour soutenir la réussite des étudiants et l'excellence académique.</p>
                 </div>
                 <div class="footer-col">
@@ -149,5 +162,6 @@
             </div>
         </div>
     </footer>
+    <script src="{% static 'js/accueil_network.js' %}" defer></script>
 </body>
 </html>

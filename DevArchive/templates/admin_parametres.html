@@ -1,17 +1,15 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Paramètres – Admin Sigaud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
   <style>
     :root {
-      --primary: #3B82F6;
-      --primary-dark: #1D4ED8;
-      --sidebar-bg: #1E2836;
-      --sidebar-bg-active: #2d3a4d;
-      --sidebar-muted: #8b9cad;
-      --sidebar-text: #fff;
+      --primary: #5b21b6;
+      --primary-dark: #3b0764;
       --card: #fff;
       --border: #e5e7eb;
       --text: #111827;
@@ -19,26 +17,7 @@
       --radius: 12px;
       --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
     }
-    *{box-sizing:border-box;} body{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#F3F4F6;color:var(--text);}
-    .sidebar{width:260px;background:var(--sidebar-bg);border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;}
-    .sidebar-brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:20px 18px;background:var(--sidebar-bg);border-bottom:1px solid rgba(255,255,255,.06);}
-    .sidebar-brand-row{display:flex;align-items:center;gap:12px;}
-    .sidebar-brand-icon{width:44px;height:44px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;}
-    .sidebar-brand-icon img{width:100%;height:100%;object-fit:contain;}
-    .sidebar-brand-text{font-weight:800;font-size:16px;color:#fff;}
-    .sidebar-brand-sub{font-size:12px;color:var(--sidebar-muted);font-weight:500;margin-left:56px;}
-    .sidebar-nav{flex:1;padding:16px 0;}
-    .sidebar-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sidebar-muted);padding:0 18px 10px;margin-top:8px;}
-    .sidebar-nav .icon{font-size:18px;opacity:.9;}
-    .sidebar-nav a{display:flex;align-items:center;gap:12px;padding:12px 18px;margin:0 10px;border-radius:10px;color:var(--sidebar-text);text-decoration:none;font-size:14px;font-weight:600;}
-    .sidebar-nav a:hover{background:var(--sidebar-bg-active);color:#fff;}
-    .sidebar-nav a.active{background:var(--sidebar-bg-active);color:#fff;border-radius:10px 0 0 10px;margin-right:0;padding-right:22px;}
-    .sidebar-user{padding:18px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;background:var(--sidebar-bg);}
-    .sidebar-avatar{width:44px;height:44px;border-radius:50%;background:var(--sidebar-bg-active);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;}
-    .sidebar-user-name{margin:0;font-weight:700;font-size:14px;color:#fff;}
-    .sidebar-user-role{margin:2px 0 0;font-size:12px;color:var(--sidebar-muted);}
-    .sidebar-user a{color:#fff;text-decoration:none;font-weight:600;font-size:12px;margin-top:6px;}
-    .sidebar-user a:hover{text-decoration:underline;}
+    *{box-sizing:border-box;} body.admin-sigaud{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);}
     .main{flex:1;display:flex;flex-direction:column;min-width:0;}
     .main-header{padding:24px 28px;border-bottom:1px solid var(--border);background:#fff;}
     .main-header h1{margin:0;font-size:24px;font-weight:800;}
@@ -75,6 +54,8 @@
     }
     .sys-admin-kicker .dot{width:6px;height:6px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 3px rgba(147,197,253,.45);}
     .sys-admin-title{margin:0 0 10px;font-size:22px;font-weight:800;line-height:1.25;color:#475569;}
+    .sys-admin-title-link{color:inherit;text-decoration:none;}
+    .sys-admin-title-link:hover{color:#3b82f6;text-decoration:underline;}
     .sys-admin-lead{margin:0 0 18px;font-size:15px;color:#64748b;line-height:1.6;max-width:52ch;}
     .sys-admin-grid{
       display:grid;
@@ -123,16 +104,12 @@
     .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
   </style>
 </head>
-<body>
-  {% load static %}
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="sidebar-brand-row">
-        <div class="sidebar-brand-icon"><img src="{% static 'logo_site.png' %}" alt="Université de Djibouti" /></div>
-        <span class="sidebar-brand-text">Université de Djibouti</span>
-      </div>
-      <span class="sidebar-brand-sub">Tableau de bord admin</span>
-    </div>
+    {% include 'includes/admin_sidebar_brand.html' %}
     <nav class="sidebar-nav">
       <div class="sidebar-section">Principal</div>
       <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
@@ -168,7 +145,7 @@
         <section class="sys-admin-hero" aria-labelledby="sys-admin-heading">
           <div class="sys-admin-hero-inner">
             <p class="sys-admin-kicker"><span class="dot" aria-hidden="true"></span> Console avancée</p>
-            <h2 id="sys-admin-heading" class="sys-admin-title">Administration système</h2>
+            <h2 id="sys-admin-heading" class="sys-admin-title"><a href="{% url 'administration_systeme' %}" class="sys-admin-title-link">Administration système</a></h2>
             <p class="sys-admin-lead">
               Accédez à l’interface Django pour configurer les modèles, les groupes et les droits d’accès au niveau base de données — le même outil que les super-utilisateurs utilisent pour la maintenance technique.
             </p>
@@ -197,12 +174,12 @@
             </div>
           </div>
           <div class="sys-admin-actions">
-            <a href="{% url 'admin:index' %}" class="btn" target="_blank" rel="noopener noreferrer">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Ouvrir l’administration Django
+            <a href="{% url 'administration_systeme' %}" class="btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Ouvrir la console administration système
             </a>
             <p class="sys-admin-note">
-              <strong>Interface standard Django.</strong> S’ouvre dans un nouvel onglet pour ne pas quitter Sigaud.
+              <strong>Interface Sigaud.</strong> Raccourcis vers les modèles (ajout / modification) comme dans l’admin Django, sans l’écran d’accueil vert classique.
             </p>
           </div>
         </section>

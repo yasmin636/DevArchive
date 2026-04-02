@@ -10,6 +10,8 @@ from django.db.utils import ProgrammingError
 from django.db.models import Avg, Count
 from django.http import FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST
+from datetime import timedelta
+
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -49,6 +51,21 @@ from .models import (
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
 GROUPE_ADMIN_SYSTEME = "Administrateur système"
+
+
+def user_est_admin_sigaud(user):
+    """
+    Accès au tableau de bord admin Sigaud (/admin-dashboard/) :
+    superuser Django, ou membre du groupe « Administrateur système ».
+
+    Le simple « Staff » (personnel administratif) n’ouvre pas cet espace :
+    ces comptes vont sur l’espace personnel (personnel.html).
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return user.groups.filter(name=GROUPE_ADMIN_SYSTEME).exists()
 
 
 def user_est_assistant(user):
@@ -93,7 +110,7 @@ class EtudiantRequiredMixin(UserPassesTestMixin):
 
 def accueil(request):
     """
-    Page d'accueil publique de DevArchive.
+    Page d'accueil publique de SIGAUD.
     """
     return render(request, "accueil.html")
 
@@ -129,15 +146,15 @@ def inscription(request):
             confirm_url = request.build_absolute_uri(
                 reverse("confirmer_email", args=[uid, token])
             )
-            sujet = "Confirmez votre adresse email - DevArchive"
+            sujet = "Confirmez votre adresse email - SIGAUD"
             message = (
                 "Bonjour,\n\n"
-                "Vous venez de créer un compte sur DevArchive avec cette adresse email.\n"
+                "Vous venez de créer un compte sur SIGAUD avec cette adresse email.\n"
                 "Pour confirmer que cette adresse existe bien et vous appartient, cliquez sur le lien ci-dessous :\n\n"
                 f"{confirm_url}\n\n"
                 "Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.\n\n"
                 "Cordialement,\n"
-                "L'équipe DevArchive"
+                "L'équipe SIGAUD"
             )
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
             try:
@@ -283,19 +300,20 @@ class ConnexionView(LoginView):
         """
         Priorité :
         1. paramètre ?next=
-        2. tableau de bord admin si staff/superuser
-        3. espace personnel si assistant pédagogique
+        2. tableau de bord admin : superuser ou groupe « Administrateur système » uniquement
+        3. espace personnel (personnel.html) : staff, assistant pédagogique, etc. (via user_est_assistant)
         4. espace étudiant si étudiant
         5. sinon page d'inscription
         """
         url = self.get_redirect_url()
         if url:
             return url
-        if self.request.user.is_staff or self.request.user.is_superuser:
+        u = self.request.user
+        if user_est_admin_sigaud(u):
             return reverse_lazy("admin_dashboard")
-        if user_est_assistant(self.request.user):
+        if user_est_assistant(u):
             return reverse_lazy("personnel")
-        if user_est_etudiant(self.request.user):
+        if user_est_etudiant(u):
             return reverse_lazy("espace_etudiant")
         return reverse_lazy("inscription")
 
@@ -315,6 +333,13 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         archives = _archives_queryset_for_user(self.request).order_by("-date_archive")
         if assistant:
             ctx["assistant_filiere"] = assistant.filiere
+            ctx["niveaux_qs"] = Niveau.objects.filter(
+                faculte_id=assistant.filiere.faculte_id
+            ).order_by("code", "libelle")
+        else:
+            ctx["niveaux_qs"] = Niveau.objects.select_related("faculte").order_by(
+                "faculte__code", "code"
+            )
         ctx["archive_form"] = ArchiveForm()
         ctx["archives"] = archives
         ctx["stat_total"] = archives.count()
@@ -657,12 +682,22 @@ def creer_archive(request):
         if assistant:
             archive.filiere = assistant.filiere.libelle.strip()
         archive.save()
-        messages.success(request, "Le document a été archivé avec succès.")
+        msg_ok = "Le document a été archivé avec succès."
+        if archive.fichier_corrige:
+            msg_ok += (
+                " Le corrigé est joint : les étudiants pourront l’ouvrir avec « Consulter correction » "
+                "après avoir consulté le sujet."
+            )
+        messages.success(request, msg_ok)
     else:
-        # On affiche un message d'erreur lisible pour aider à corriger le formulaire
         msg = "Le formulaire d'archivage contient des erreurs. "
         if form.errors.get("type"):
             msg += "Vous devez sélectionner le type (CC ou Examen Final). "
+        err_parts = []
+        for field, errs in form.errors.items():
+            err_parts.append(f"{field}: {errs.as_text().strip()}")
+        if err_parts:
+            msg += " " + " ".join(err_parts)
         messages.error(request, msg)
     return redirect("personnel")
 
@@ -1011,80 +1046,108 @@ def _format_activity_ago(dt):
     return f"il y a {d} j"
 
 
+def _dashboard_user_role(user):
+    """Badge rôle pour le tableau de bord (étudiant, enseignant, etc.)."""
+    from django.core.exceptions import ObjectDoesNotExist
+
+    if user.is_superuser:
+        return "admin", "Admin"
+    try:
+        user.etudiant
+        return "student", "Étudiant"
+    except ObjectDoesNotExist:
+        pass
+    try:
+        user.assistant_pedagogique
+        return "assistant", "Assistant"
+    except ObjectDoesNotExist:
+        pass
+    if user.is_staff:
+        return "teacher", "Enseignant"
+    return "user", "Utilisateur"
+
+
+def _growth_pct(recent_count, prev_count):
+    """Pourcentage d’évolution entre deux périodes (30 j glissants)."""
+    if prev_count == 0:
+        return None if recent_count == 0 else 100
+    return round((recent_count - prev_count) / prev_count * 100)
+
+
+def _redirect_si_pas_admin_sigaud(request):
+    """Redirige vers l'accueil avec message si l'utilisateur n'a pas accès admin Sigaud."""
+    if user_est_admin_sigaud(request.user):
+        return None
+    messages.warning(request, "Accès réservé aux administrateurs.")
+    return redirect("accueil")
+
+
 @login_required
 def admin_dashboard(request):
-    """Tableau de bord Sigaud : réservé staff/superuser, données comme admin.py."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    """Tableau de bord Sigaud : staff, superuser ou groupe Administrateur système."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.auth import get_user_model
     from django.db.models import Count
     from django.contrib.admin.models import LogEntry
 
     User = get_user_model()
     total_users = User.objects.count()
-    total_assistants = AssistantPedagogique.objects.count()
     total_archives = Archive.objects.count()
-    recent_users = User.objects.order_by("-date_joined")[:5]
+    total_facultes = Faculte.objects.count()
+    total_filieres = Filiere.objects.count()
 
-    # Activité récente : dernières actions admin (LogEntry)
-    log_entries = (
-        LogEntry.objects.select_related("user", "content_type")
-        .order_by("-action_time")[:10]
+    today = timezone.now().date()
+    d30 = today - timedelta(days=30)
+    d60 = today - timedelta(days=60)
+
+    users_recent = User.objects.filter(date_joined__date__gte=d30).count()
+    users_prev = User.objects.filter(date_joined__date__gte=d60, date_joined__date__lt=d30).count()
+    growth_users_pct = _growth_pct(users_recent, users_prev)
+
+    archives_recent = Archive.objects.filter(date_archive__gte=d30).count()
+    archives_prev = Archive.objects.filter(date_archive__gte=d60, date_archive__lt=d30).count()
+    growth_archives_pct = _growth_pct(archives_recent, archives_prev)
+
+    recent_users = (
+        User.objects.select_related("etudiant", "assistant_pedagogique")
+        .order_by("-date_joined")[:8]
     )
-    action_labels = {
-        1: "Ajout",
-        2: "Modification",
-        3: "Suppression",
-    }
-    model_labels = {
-        "user": "utilisateur",
-        "archive": "document / examen",
-        "assistantpedagogique": "assistant pédagogique",
-        "faculte": "faculté",
-        "filiere": "filière",
-        "niveau": "niveau",
-        "etudiant": "étudiant",
-        "group": "groupe",
-    }
-    recent_activity = []
-    for log in log_entries:
-        model_name = (log.content_type.model if log.content_type else "").lower()
-        model_label = model_labels.get(model_name, model_name or "élément")
-        action = action_labels.get(log.action_flag, f"Action {log.action_flag}")
-        if log.action_flag == 1:
-            if model_name == "assistantpedagogique":
-                label = "Nouvel assistant pédagogique créé"
-            elif model_name == "archive":
-                label = "Nouvel examen / document ajouté"
-            else:
-                label = f"Nouveau {model_label} ajouté"
-        elif log.action_flag == 2:
-            label = f"{model_label.capitalize()} modifié"
-        elif log.action_flag == 3:
-            if model_name == "archive":
-                label = "Document / examen supprimé"
-            else:
-                label = f"{model_label.capitalize()} supprimé"
-        else:
-            label = f"{action} – {model_label}"
-        user_name = log.user.get_full_name().strip() or log.user.username if log.user else "—"
-        recent_activity.append({
-            "label": label,
-            "object_repr": log.object_repr[:80] if log.object_repr else "",
-            "user_name": user_name,
-            "time_ago": _format_activity_ago(log.action_time),
-        })
+    dashboard_user_rows = []
+    for u in recent_users:
+        kind, label = _dashboard_user_role(u)
+        dashboard_user_rows.append(
+            {
+                "user": u,
+                "role_kind": kind,
+                "role_label": label,
+            }
+        )
+
+    facultes_avec_filieres = (
+        Faculte.objects.annotate(nb_filieres=Count("filieres"))
+        .order_by("libelle")[:12]
+    )
+
+    notification_count = LogEntry.objects.filter(
+        action_time__gte=timezone.now() - timedelta(days=7)
+    ).count()
 
     return render(
         request,
         "admin.html",
         {
             "total_users": total_users,
-            "total_assistants": total_assistants,
             "total_archives": total_archives,
+            "total_facultes": total_facultes,
+            "total_filieres": total_filieres,
+            "growth_users_pct": growth_users_pct,
+            "growth_archives_pct": growth_archives_pct,
             "recent_users": recent_users,
-            "recent_activity": recent_activity,
+            "dashboard_user_rows": dashboard_user_rows,
+            "facultes_avec_filieres": facultes_avec_filieres,
+            "notification_count": notification_count,
         },
     )
 
@@ -1092,9 +1155,9 @@ def admin_dashboard(request):
 @login_required
 def admin_utilisateurs(request):
     """Liste des utilisateurs avec recherche et filtres (style Django admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.auth import get_user_model
     from django.contrib.auth.models import Group
 
@@ -1160,9 +1223,9 @@ def admin_utilisateurs(request):
 @login_required
 def admin_add_user(request):
     """Page « Add user » style Django admin (en-tête bleu-vert, sidebar, formulaire + profil assistant)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from .forms import AdminAddUserForm
 
     form = AdminAddUserForm()
@@ -1187,9 +1250,9 @@ def admin_add_user(request):
 @login_required
 def admin_documents(request):
     """Liste des archives/documents (données comme admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     documents = Archive.objects.all().order_by("-date_archive")
     return render(request, "admin_documents.html", {"documents": documents})
 
@@ -1197,9 +1260,9 @@ def admin_documents(request):
 @login_required
 def admin_statistiques(request):
     """Statistiques sur les archives (agrégats)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.db.models import Count
 
     total_archives = Archive.objects.count()
@@ -1231,9 +1294,9 @@ def admin_statistiques(request):
 @login_required
 def admin_facultes(request):
     """Liste des facultés (comme admin.py Facultés)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.db.models import Count
 
     facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
@@ -1243,18 +1306,43 @@ def admin_facultes(request):
 @login_required
 def admin_parametres(request):
     """Page paramètres : lien vers l'admin Django."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     return render(request, "admin_parametres.html", {})
+
+
+@login_required
+def administration_systeme(request):
+    """Console type « index admin Django » (interface personnalisée Sigaud)."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    from django.contrib.admin.models import LogEntry
+
+    from .constants import CORRIGE_GRATUITS_MAX
+
+    recent_actions = (
+        LogEntry.objects.filter(user=request.user)
+        .select_related("content_type")
+        .order_by("-action_time")[:20]
+    )
+    return render(
+        request,
+        "administration_systeme.html",
+        {
+            "recent_actions": recent_actions,
+            "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+        },
+    )
 
 
 @login_required
 def admin_audit_logs(request):
     """Audit logs (LogEntry comme l'admin Django)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.admin.models import LogEntry
 
     logs = (
@@ -1267,9 +1355,9 @@ def admin_audit_logs(request):
 @login_required
 def admin_notifications(request):
     """Centre de notifications (dernières actions admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.admin.models import LogEntry
 
     notifications = (

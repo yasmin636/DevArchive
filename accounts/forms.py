@@ -153,7 +153,7 @@ class EtudiantRegistrationForm(forms.Form):
 
 class ArchiveForm(forms.ModelForm):
     """
-    Formulaire pour l'archivage d'un examen avec PDF.
+    Formulaire pour l'archivage d'un examen avec PDF (sujet) et corrigé optionnel.
     """
 
     class Meta:
@@ -170,6 +170,19 @@ class ArchiveForm(forms.ModelForm):
             "fichier",
             "fichier_corrige",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fichier"].label = "Sujet / énoncé (PDF)"
+        self.fields["fichier"].help_text = (
+            "Document consulté en premier par les étudiants (aperçu ou téléchargement)."
+        )
+        self.fields["fichier_corrige"].label = "Corrigé (PDF)"
+        self.fields["fichier_corrige"].help_text = (
+            "Optionnel lors de la création : les étudiants y accèdent via « Consulter correction » "
+            "après avoir ouvert le sujet."
+        )
+        self.fields["fichier_corrige"].required = False
 
     def clean_fichier(self):
         f = self.cleaned_data.get("fichier")

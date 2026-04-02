@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration système — SIGAUD</title>
+  <style>
+    :root {
+      --body-bg: #ffffff;
+      --content-bg: #ffffff;
+      --header-bg: linear-gradient(135deg, #5b21b6 0%, #4c1d95 55%, #6d28d9 100%);
+      --header-bg-solid: #5b21b6;
+      --header-border: #4c1d95;
+      --module-bg: #ffffff;
+      --module-border: #e5e7eb;
+      --caption-bg: #f5f3ff;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --link: #5b21b6;
+      --link-hover: #4c1d95;
+      --add-color: #15803d;
+      --change-color: #b45309;
+      --breadcrumbs: #6b7280;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      background: var(--body-bg);
+      color: var(--text);
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+    }
+    a:hover { color: var(--link-hover); text-decoration: underline; }
+
+    #header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 24px;
+      padding: 12px 24px;
+      background: var(--header-bg-solid);
+      background-image: var(--header-bg);
+      border-bottom: 1px solid var(--header-border);
+      box-shadow: 0 2px 12px rgba(91, 33, 182, 0.2);
+    }
+
+    #branding h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: #faf5ff;
+    }
+
+    #user-tools {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #e9d5ff;
+    }
+
+    #user-tools a {
+      color: #ffffff;
+      font-weight: 600;
+    }
+    #user-tools a:hover { color: #f5d0fe; }
+
+    .breadcrumbs {
+      padding: 10px 24px;
+      color: var(--breadcrumbs);
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--module-border);
+      background: #fafafa;
+    }
+
+    #content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px 24px 48px;
+    }
+
+    #content-main {
+      flex: 1 1 520px;
+      min-width: 280px;
+      padding-right: 24px;
+    }
+
+    #content-related {
+      flex: 0 1 320px;
+      min-width: 260px;
+    }
+
+    .module {
+      margin-bottom: 24px;
+      background: var(--module-bg);
+      border: 1px solid var(--module-border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+
+    .module table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .module caption {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--caption-bg);
+      border-bottom: 1px solid #ddd6fe;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #5b21b6;
+    }
+
+    .module th,
+    .module td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--module-border);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .module th {
+      width: 100%;
+      font-weight: 600;
+    }
+
+    .module tbody tr:last-child th,
+    .module tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .model-name { font-weight: 500; color: var(--text); }
+
+    .actions {
+      white-space: nowrap;
+      text-align: right;
+      font-size: 0.8rem;
+    }
+
+    .actions a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 12px;
+      white-space: nowrap;
+    }
+
+    .actions .addlink { color: var(--add-color); }
+    .actions .changelink { color: var(--change-color); }
+
+    .icon-add::before {
+      content: "+";
+      display: inline-block;
+      font-weight: 800;
+      margin-right: 2px;
+    }
+
+    .icon-change::before {
+      content: "✎";
+      display: inline-block;
+      margin-right: 2px;
+      font-size: 0.95em;
+    }
+
+    #recent-actions-module h2 {
+      margin: 0;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--caption-bg);
+      border-bottom: 1px solid #ddd6fe;
+      color: #5b21b6;
+    }
+
+    #recent-actions-module h3 {
+      margin: 0;
+      padding: 8px 14px 4px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .actionlist {
+      list-style: none;
+      margin: 0;
+      padding: 8px 14px 14px;
+    }
+
+    .actionlist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .actionlist li:last-child { border-bottom: none; }
+
+    .actionlist .mini-icon {
+      margin-right: 6px;
+      opacity: 0.85;
+    }
+
+    .actionlist .mini-icon.add { color: var(--add-color); }
+    .actionlist .mini-icon.change { color: var(--change-color); }
+
+    .toolbar-search {
+      margin-bottom: 20px;
+    }
+
+    .toolbar-search label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .toolbar-search input {
+      width: 100%;
+      max-width: 360px;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .toolbar-search input:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    }
+
+    .corrige-hint {
+      display: none;
+      margin-top: 8px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: #5b21b6;
+      background: #ede9fe;
+      border: 1px solid #ddd6fe;
+      border-radius: 6px;
+    }
+
+    .corrige-hint.is-visible { display: block; }
+
+    tr[data-model-row].hidden { display: none; }
+
+    .console-footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--module-border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 900px) {
+      #content-main { padding-right: 0; }
+      #content-related { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div id="branding">
+      <h1 id="site-name">Administration système</h1>
+    </div>
+    <div id="user-tools">
+      Bienvenue, <strong id="user-name">{{ user.get_full_name|default:user.username }}</strong>.
+      <a href="{% url 'parametres_compte' %}">Modifier le mot de passe</a>
+      /
+      <a href="{% url 'logout' %}">Déconnexion</a>
+    </div>
+  </div>
+
+  <div class="breadcrumbs">
+    <a href="{% url 'admin_dashboard' %}">Tableau de bord Sigaud</a>
+    › Administration système
+  </div>
+
+  <div id="content">
+    <div id="content-main">
+      <div class="toolbar-search">
+        <label for="filter-models">Filtrer les modèles</label>
+        <input type="search" id="filter-models" placeholder="Tapez pour filtrer…" autocomplete="off" aria-label="Filtrer les modèles">
+      </div>
+
+      <div class="app-accounts module">
+        <table summary="Modèles du module Accounts">
+          <caption>Accounts</caption>
+          <tbody>
+            <tr data-model-row data-keywords="accès corrigés gratuits consultation">
+              <th scope="row">
+                <span class="model-name">Accès corrigés gratuits</span>
+                <button type="button" class="corrige-toggle" style="margin-left:8px;padding:2px 8px;font-size:0.7rem;cursor:pointer;background:#ede9fe;border:1px solid #c4b5fd;color:#5b21b6;border-radius:4px;font-weight:600;" title="Rappel quota étudiants">Quota</button>
+                <div class="corrige-hint" id="corrige-quota-msg" aria-live="polite">
+                  Règle côté étudiants — corrigés gratuits : jusqu’à <strong>{{ corrige_gratuits_max }}</strong> corrigés <em>différents</em> ; rouvrir le même corrigé reste gratuit.
+                </div>
+              </th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_consultationcorrigegratuite_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_consultationcorrigegratuite_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="assistants pédagogiques">
+              <th scope="row"><span class="model-name">Assistants pédagogiques</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_assistantpedagogique_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_assistantpedagogique_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="facultés">
+              <th scope="row"><span class="model-name">Facultés</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_faculte_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_faculte_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="filières">
+              <th scope="row"><span class="model-name">Filières</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_filiere_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_filiere_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="niveaux">
+              <th scope="row"><span class="model-name">Niveaux</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_niveau_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_niveau_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="étudiants">
+              <th scope="row"><span class="model-name">Étudiants</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:accounts_etudiant_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:accounts_etudiant_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-auth module">
+        <table summary="Authentification">
+          <caption>Authentication and Authorization</caption>
+          <tbody>
+            <tr data-model-row data-keywords="groups groupes">
+              <th scope="row"><span class="model-name">Groups</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:auth_group_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:auth_group_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+            <tr data-model-row data-keywords="users utilisateurs">
+              <th scope="row"><span class="model-name">Users</span></th>
+              <td class="actions">
+                <a href="{% url 'admin:auth_user_add' %}" class="addlink"><span class="icon-add"></span>Ajouter</a>
+                <a href="{% url 'admin:auth_user_changelist' %}" class="changelink"><span class="icon-change"></span>Modifier</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="console-footer">
+        Les actions <strong>Ajouter</strong> / <strong>Modifier</strong> ouvrent les écrans techniques Django (thème classique) pour éditer les données.
+        <a href="{% url 'admin:index' %}">Index Django complet</a>
+      </p>
+    </div>
+
+    <div id="content-related">
+      <div class="module" id="recent-actions-module">
+        <h2>Actions récentes</h2>
+        <h3>Mes actions</h3>
+        <ul class="actionlist">
+          {% for log in recent_actions %}
+          <li>
+            {% if log.action_flag == 1 %}
+            <span class="mini-icon add" aria-hidden="true">+</span>
+            {% elif log.action_flag == 2 %}
+            <span class="mini-icon change" aria-hidden="true">✎</span>
+            {% else %}
+            <span class="mini-icon change" aria-hidden="true">−</span>
+            {% endif %}
+            {{ log.object_repr|truncatechars:56 }}
+            {% if log.content_type %}
+            <span style="color:var(--text-muted)"> ({{ log.content_type.name }})</span>
+            {% endif %}
+          </li>
+          {% empty %}
+          <li style="color:var(--text-muted)">Aucune action enregistrée pour votre compte.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var input = document.getElementById('filter-models');
+      var rows = document.querySelectorAll('[data-model-row]');
+      if (input && rows.length) {
+        input.addEventListener('input', function () {
+          var q = (input.value || '').toLowerCase().trim();
+          rows.forEach(function (row) {
+            var kw = (row.getAttribute('data-keywords') || '') + ' ' + (row.textContent || '');
+            kw = kw.toLowerCase();
+            row.classList.toggle('hidden', q !== '' && kw.indexOf(q) === -1);
+          });
+        });
+      }
+
+      var btn = document.querySelector('.corrige-toggle');
+      var hint = document.getElementById('corrige-quota-msg');
+      if (btn && hint) {
+        btn.addEventListener('click', function () {
+          hint.classList.toggle('is-visible');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

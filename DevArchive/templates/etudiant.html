@@ -5,16 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tableau de bord étudiant — SIGAUD</title>
+  {% include 'includes/sigaud_theme_head.html' %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{% static 'css/etudiant.css' %}">
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 etudiant-layout">
 
-<nav class="top-nav">
+<nav class="top-nav top-nav--etudiant-dashboard">
   <a href="{% url 'espace_etudiant' %}" class="brand">
     <div class="brand-logo-wrap">
       <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD - Université de Djibouti" class="brand-logo">
@@ -24,21 +24,27 @@
       <span class="brand-sub">Système Intégré de Gestion des Archives de l'Université de Djibouti</span>
     </div>
   </a>
-  <div class="user-area">
-    <div class="user-info d-none d-md-block">
-      <p class="user-name">{{ request.user.get_full_name|default:request.user.username }}</p>
-      <p class="user-role">Étudiant {{ etudiant.niveau.code }}</p>
-    </div>
+  <div class="user-area user-area--etudiant-dashboard">
     <div class="dropdown">
-      <button class="avatar-dropdown btn btn-link p-0 border-0" type="button" id="dropdownProfil" data-bs-toggle="dropdown" aria-expanded="false" title="Mon compte">
-        <div class="avatar">
+      <button class="header-profile-pill dropdown-toggle" type="button" id="dropdownProfil" data-bs-toggle="dropdown" aria-expanded="false" title="Mon compte — menu">
+        {% if etudiant.photo %}
+        <img src="{{ etudiant.photo.url }}" alt="" class="header-profile-pill__photo" width="36" height="36">
+        {% else %}
+        <span class="header-profile-pill__avatar" aria-hidden="true">
           {% with name=request.user.get_full_name|default:request.user.username %}
             {{ name|slice:":2"|upper }}
           {% endwith %}
-        </div>
+        </span>
+        {% endif %}
+        <span class="header-profile-pill__meta d-none d-sm-flex">
+          <span class="header-profile-pill__hello">Bonjour, {{ request.user.first_name|default:request.user.username|truncatechars:14 }}</span>
+          <span class="header-profile-pill__sub">Étudiant · {{ etudiant.niveau.code }}</span>
+        </span>
+        <span class="header-profile-pill__touch" aria-hidden="true"></span>
       </button>
       <ul class="dropdown-menu dropdown-menu-end shadow-sm profil-dropdown" aria-labelledby="dropdownProfil">
-        <li><h6 class="dropdown-header">{{ request.user.get_full_name|default:request.user.username }}</h6></li>
+        <li><h6 class="dropdown-header mb-1">{{ request.user.get_full_name|default:request.user.username }}</h6></li>
+        <li class="px-3 pb-2 small text-muted border-bottom">{{ etudiant.filiere }} · {{ faculte }}</li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'etudiant_collection' %}"><i class="bi bi-collection me-2"></i>Collection</a></li>
         <li><a class="dropdown-item" href="{% url 'etudiant_favoris' %}"><i class="bi bi-heart me-2"></i>Favoris</a></li>
@@ -55,22 +61,23 @@
         </li>
       </ul>
     </div>
+    <button type="button" class="theme-toggle-btn" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+      <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+      <span class="theme-toggle-label d-none d-lg-inline">Sombre</span>
+    </button>
   </div>
 </nav>
 
 <div class="layout-etudiant flex-grow-1">
   <aside class="sidebar-etudiant">
-    <header class="welcome-banner welcome-banner-etudiant" aria-label="Accueil">
-      <div class="welcome-logo">
-        <div class="welcome-logo-icon">
-          <img src="{% static 'img/univ.jpg' %}" alt="Université de Djibouti">
-        </div>
-        <div class="welcome-logo-text">
-          Université de Djibouti
-          <small>Espace Étudiant</small>
-        </div>
+    <header class="sidebar-etudiant-brand" aria-label="SIGAUD">
+      <div class="sidebar-etudiant-brand__icon">
+        <img src="{% static 'img/univ.jpg' %}" alt="">
       </div>
-      <h2>Bonjour {{ request.user.first_name|default:request.user.username }}.</h2>
+      <div class="sidebar-etudiant-brand__text">
+        <span class="welcome-brand-sigaud">SIGAUD</span>
+        <small>Espace étudiant</small>
+      </div>
     </header>
     <nav class="sidebar-nav" aria-label="Navigation principale">
       <span class="sidebar-nav-label">Navigation</span>
@@ -94,17 +101,39 @@
     </nav>
   </aside>
 
-  <main class="main-content">
+  <main class="main-content main-content--dashboard">
+  <section class="subjects-carousel-section mb-4" aria-label="Défilement des sujets">
+    <div class="subjects-carousel-head">
+      <h2 class="subjects-carousel-title"><i class="bi bi-collection-play"></i> Sujets à découvrir</h2>
+    </div>
+    <div class="subjects-carousel-viewport" data-subjects-carousel tabindex="0" aria-label="Bandeau de sujets défilants">
+      <div class="subjects-carousel-track">
+        {% for item in sujets_cartes %}
+        {% with archive=item.archive %}
+        {% if archive.fichier %}
+        <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="carousel-subject-card" target="_blank" rel="noopener">
+        {% else %}
+        <a href="#sujets-title" class="carousel-subject-card carousel-subject-card--muted">
+        {% endif %}
+          <span class="carousel-subject-card__sem {% if archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
+          <strong class="carousel-subject-card__title">{{ archive.title|truncatechars:56 }}</strong>
+          <span class="carousel-subject-card__meta">{{ archive.session }} {{ archive.annee }} · {{ archive.get_type_display }}</span>
+          <span class="carousel-subject-card__hint">{% if archive.fichier %}Ouvrir le PDF{% else %}Voir la fiche{% endif %} <i class="bi bi-arrow-right-short"></i></span>
+        </a>
+        {% endwith %}
+        {% empty %}
+        <p class="subjects-carousel-empty text-muted mb-0">Aucun sujet à afficher pour le moment.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class="dashboard-primary-col">
   <section class="mb-4" aria-labelledby="sujets-title">
     <div class="section-title section-title--pill">
       <h3 id="sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets les plus visités</h3>
       <a href="#recherche" class="link-all">Voir tout</a>
     </div>
-    <p class="corrige-quota-banner mb-3">
-      <i class="bi bi-info-circle"></i>
-      Corrigés gratuits : <strong>{{ corrige_gratuits_restants }}</strong> / {{ corrige_gratuits_max }} corrigés <em>différents</em> encore disponibles.
-      Rouvrir un corrigé déjà consulté reste gratuit.
-    </p>
   <div class="subject-cards subject-cards--v2">
     {% for item in sujets_cartes %}
     {% with archive=item.archive %}
@@ -116,9 +145,6 @@
           <p class="subject-card-v2__subtitle">{{ archive.session }} {{ archive.annee }} - {{ archive.get_type_display }}</p>
           <div class="subject-card-v2__tags-row">
             <span class="subject-card-v2__badge-sem {% if archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
-            {% if archive.fichier %}
-            <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-tag subject-tag--web" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Version web</a>
-            {% endif %}
           </div>
           <div class="subject-card-v2__meta-line">
             <span title="Filière"><i class="bi bi-mortarboard"></i> {{ archive.filiere|truncatechars:24 }}</span>
@@ -159,16 +185,28 @@
         <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
         {% if archive.fichier_corrige %}
           {% if archive.pk in corrige_archives_debloques or corrige_gratuits_restants > 0 %}
-        <a href="{% url 'voir_corrige_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige" target="_blank" rel="noopener"><i class="bi bi-clipboard-check"></i> Consulter correction</a>
+        <a href="{% url 'voir_corrige_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige" target="_blank" rel="noopener" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}"><i class="bi bi-clipboard-check"></i> Consulter correction</a>
           {% else %}
-        <span class="subject-btn subject-btn--corrige subject-btn--disabled" title="Vous avez atteint la limite de {{ corrige_gratuits_max }} corrigés gratuits (différents). Les corrigés déjà ouverts restent accessibles depuis l’historique ou en rouvrant le même lien."><i class="bi bi-lock"></i> Correction (quota gratuit atteint)</span>
+        <span class="subject-btn subject-btn--corrige subject-btn--disabled" role="button" tabindex="0" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}" title="Vous avez atteint la limite de {{ corrige_gratuits_max }} corrigés gratuits (différents). Les corrigés déjà ouverts restent accessibles depuis l’historique ou en rouvrant le même lien."><i class="bi bi-lock"></i> Correction (quota gratuit atteint)</span>
           {% endif %}
         {% else %}
         <span class="subject-btn subject-btn--corrige subject-btn--disabled" title="Aucun corrigé déposé pour ce sujet"><i class="bi bi-clipboard-x"></i> Correction indisponible</span>
         {% endif %}
         <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="subject-btn subject-btn--download"><i class="bi bi-download"></i> Télécharger</a>
         <a href="{% url 'etudiant_commenter_archive' archive.pk %}" class="subject-link-comment"><i class="bi bi-chat-dots"></i> Commenter</a>
+        {% if archive.fichier_corrige %}
+        <p class="subject-correction-hint small text-muted mb-0 mt-2 w-100" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}">
+          <i class="bi bi-arrow-down-short"></i> Consultez d’abord le sujet ci-dessus, puis ouvrez le corrigé avec <strong>Consulter correction</strong> (le corrigé s’affiche dans un nouvel onglet).
+        </p>
+        {% endif %}
       </div>
+      {% if archive.fichier_corrige %}
+      <p class="corrige-quota-banner corrige-quota-banner--reveal mb-0 mt-2" id="corrige-quota-msg-{{ archive.pk }}" hidden>
+        <i class="bi bi-info-circle"></i>
+        Corrigés gratuits : <strong>{{ corrige_gratuits_restants }}</strong> / {{ corrige_gratuits_max }} corrigés <em>différents</em> encore disponibles.
+        Rouvrir un corrigé déjà consulté reste gratuit.
+      </p>
+      {% endif %}
       {% else %}
       <p class="subject-card-v2__no-file text-muted small">Document non disponible pour le moment.</p>
       {% endif %}
@@ -191,19 +229,17 @@
           </div>
           <div class="subject-card-v2__footer-tags">
             {% if archive.fichier_corrige %}
-            <span class="subject-tag subject-tag--corrige"><i class="bi bi-check2-circle"></i> Corrigé disponible</span>
+            <span class="subject-tag subject-tag--corrige" role="button" tabindex="0" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}"><i class="bi bi-check2-circle"></i> Corrigé disponible</span>
             {% else %}
             <span class="subject-tag subject-tag--muted">Corrigé non disponible</span>
             {% endif %}
           </div>
         </div>
-        <p class="subject-card-v2__corrige-note">
-          {% if archive.fichier_corrige %}
-            Le corrigé peut être consulté ou téléchargé. Chaque <strong>nouveau</strong> corrigé compte dans votre quota gratuit ({{ corrige_gratuits_max }} corrigés <em>différents</em>) ; rouvrir le même corrigé reste gratuit.
-          {% else %}
-            Aucun fichier corrigé n’a été déposé pour ce sujet par l’équipe pédagogique.
-          {% endif %}
+        {% if archive.fichier_corrige %}
+        <p class="subject-card-v2__corrige-note" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}">
+          Le corrigé peut être consulté ou téléchargé. Chaque <strong>nouveau</strong> corrigé compte dans votre quota gratuit ({{ corrige_gratuits_max }} corrigés <em>différents</em>) ; rouvrir le même corrigé reste gratuit.
         </p>
+        {% endif %}
       </div>
     </article>
     {% endwith %}
@@ -321,6 +357,7 @@
     </div>
   </div>
   </section>
+  </div>
   </main>
 </div>
 
@@ -378,6 +415,58 @@
 </script>
 <script>
 (function() {
+  var viewport = document.querySelector('[data-subjects-carousel]');
+  if (!viewport) return;
+  var track = viewport.querySelector('.subjects-carousel-track');
+  if (!track || !track.children.length) return;
+
+  var cards = track.querySelectorAll('a.carousel-subject-card');
+  var empty = track.querySelector('.subjects-carousel-empty');
+  if (empty || cards.length === 0) return;
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  cards.forEach(function(node) {
+    var clone = node.cloneNode(true);
+    clone.setAttribute('data-carousel-clone', '1');
+    track.appendChild(clone);
+  });
+
+  var loopWidth = track.scrollWidth / 2;
+
+  function refreshLoopWidth() {
+    loopWidth = track.scrollWidth / 2;
+  }
+  window.addEventListener('resize', function() {
+    requestAnimationFrame(refreshLoopWidth);
+  });
+  window.addEventListener('load', refreshLoopWidth);
+
+  var paused = false;
+  var speed = 0.7;
+  function tick() {
+    if (!paused && loopWidth > viewport.clientWidth + 8) {
+      viewport.scrollLeft += speed;
+      if (viewport.scrollLeft >= loopWidth - 0.5) {
+        viewport.scrollLeft -= loopWidth;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  function pauseBriefly() {
+    paused = true;
+    setTimeout(function() { paused = false; }, 2200);
+  }
+
+  viewport.addEventListener('touchstart', function() { paused = true; }, { passive: true });
+  viewport.addEventListener('touchend', pauseBriefly, { passive: true });
+  viewport.addEventListener('wheel', pauseBriefly, { passive: true });
+})();
+</script>
+<script>
+(function() {
   function getCookie(name) {
     var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return v ? decodeURIComponent(v[2]) : '';
@@ -417,6 +506,29 @@
           .catch(function() {});
       });
     });
+  });
+})();
+</script>
+<script>
+(function() {
+  function revealQuota(trigger) {
+    var id = trigger.getAttribute('data-show-corrige-quota');
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el || !el.hidden) return;
+    el.hidden = false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  document.addEventListener('click', function(e) {
+    var t = e.target.closest('[data-show-corrige-quota]');
+    if (t) revealQuota(t);
+  }, true);
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var t = e.target.closest('[data-show-corrige-quota][role="button"]');
+    if (!t || !document.body.contains(t)) return;
+    e.preventDefault();
+    revealQuota(t);
   });
 })();
 </script>

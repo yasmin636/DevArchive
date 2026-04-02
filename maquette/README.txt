@@ -1,4 +1,4 @@
-Maquette DevArchive — Frontend uniquement
+Maquette SIGAUD — Frontend uniquement
 =========================================
 
 Ce dossier contient des copies des pages du projet en HTML/CSS/JS statiques,

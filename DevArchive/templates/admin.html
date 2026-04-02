@@ -1,17 +1,21 @@
+{% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tableau de bord – Admin Sigaud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
   <style>
     :root {
-      --primary: #3B82F6;
-      --primary-dark: #1D4ED8;
-      --sidebar-bg: #1E2836;
-      --sidebar-bg-active: #2d3a4d;
-      --sidebar-muted: #8b9cad;
-      --sidebar-text: #ffffff;
+      --primary: #5b21b6;
+      --primary-dark: #3b0764;
+      --sidebar-bg: #1e0b3a;
+      --sidebar-bg-active: #4c1d95;
+      --sidebar-muted: #a78bfa;
+      --sidebar-text: #f5f3ff;
       --card: #ffffff;
       --border: #e5e7eb;
       --text: #111827;
@@ -24,153 +28,13 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; }
-    body {
+    body.admin-sigaud {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: #F3F4F6;
       color: var(--text);
       display: flex;
       min-height: 100vh;
     }
-    /* Sidebar – thème sombre Université de Djibouti */
-    .sidebar {
-      width: 260px;
-      flex-shrink: 0;
-      background: var(--sidebar-bg);
-      border-right: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-brand {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-      padding: 20px 18px;
-      background: var(--sidebar-bg);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .sidebar-brand-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .sidebar-brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      overflow: hidden;
-      background: rgba(255,255,255,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .sidebar-brand-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-    .sidebar-brand-text {
-      font-weight: 800;
-      font-size: 16px;
-      color: #fff;
-      letter-spacing: .02em;
-      line-height: 1.2;
-    }
-    .sidebar-brand-sub {
-      font-size: 12px;
-      color: var(--sidebar-muted);
-      font-weight: 500;
-      margin-left: 56px;
-    }
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 0;
-      overflow-y: auto;
-    }
-    .sidebar-section {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--sidebar-muted);
-      padding: 0 18px 10px;
-      margin-top: 8px;
-    }
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 18px;
-      margin: 0 10px;
-      border-radius: 10px;
-      color: var(--sidebar-text);
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 14px;
-      transition: background .15s, color .15s, transform .1s;
-    }
-    .sidebar-nav a:hover {
-      background: var(--sidebar-bg-active);
-      color: #fff;
-      transform: translateX(2px);
-    }
-    .sidebar-nav a.active {
-      background: var(--sidebar-bg-active);
-      color: #fff;
-      border-radius: 10px 0 0 10px;
-      margin-right: 0;
-      padding-right: 22px;
-    }
-    .sidebar-nav .icon {
-      font-size: 18px;
-      opacity: .9;
-    }
-    .sidebar-user {
-      padding: 18px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--sidebar-bg);
-    }
-    .sidebar-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--sidebar-bg-active);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-    .sidebar-user-name {
-      font-weight: 700;
-      font-size: 14px;
-      color: #fff;
-      margin: 0;
-    }
-    .sidebar-user-role {
-      font-size: 12px;
-      color: var(--sidebar-muted);
-      margin: 2px 0 0;
-    }
-    .sidebar-user a {
-      color: #fff;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 12px;
-      margin-top: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .sidebar-user a:hover {
-      text-decoration: underline;
-    }
+    /* Sidebar : static/css/admin_sidebar.css */
     /* Main */
     .main {
       flex: 1;
@@ -237,7 +101,7 @@
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      color: var(--sidebar-text);
+      color: var(--text);
       cursor: pointer;
       text-decoration: none;
       box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
@@ -250,61 +114,122 @@
       padding: 28px;
       overflow: auto;
     }
-    /* Cards overview */
+    /* KPI — 4 carrés, bordure arc-en-ciel (cadre) */
     .overview {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 20px;
-      margin-bottom: 28px;
+      margin-bottom: 0;
+    }
+    .overview-kpi-frame {
+      border-radius: 18px;
+      padding: 3px;
+      height: 100%;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .overview-kpi-frame:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+    }
+    .overview-kpi-frame.kpi-rainbow-1 {
+      background: conic-gradient(from 200deg at 50% 50%, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444);
+    }
+    .overview-kpi-frame.kpi-rainbow-2 {
+      background: conic-gradient(from 20deg at 50% 50%, #f43f5e, #fb923c, #facc15, #4ade80, #2dd4bf, #6366f1, #a855f7, #f43f5e);
+    }
+    .overview-kpi-frame.kpi-rainbow-3 {
+      background: conic-gradient(from 290deg at 50% 50%, #dc2626, #ea580c, #ca8a04, #16a34a, #0891b2, #2563eb, #7c3aed, #db2777, #dc2626);
+    }
+    .overview-kpi-frame.kpi-rainbow-4 {
+      background: conic-gradient(from 110deg at 50% 50%, #e11d48, #f97316, #fde047, #4ade80, #22d3ee, #4f46e5, #c026d3, #e11d48);
     }
     .overview-card {
       background: #ffffff;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: 20px 22px;
-      box-shadow: var(--shadow);
+      border-radius: 15px;
+      border: none;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      margin: 0;
+      padding: 1.1rem 1.15rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
     }
     .overview-card::after {
       content: "";
       position: absolute;
-      inset: auto -60px -60px auto;
-      width: 120px;
-      height: 120px;
+      inset: auto -40% -35% auto;
+      width: 75%;
+      aspect-ratio: 1;
       border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, rgba(59,130,246,.16), transparent 60%);
-      opacity: .7;
+      background: radial-gradient(circle at 30% 30%, rgba(91, 33, 182, 0.12), transparent 62%);
+      opacity: 0.85;
+      pointer-events: none;
     }
+    .overview-card > * {
+      position: relative;
+      z-index: 1;
+    }
+    .overview-card .kpi-icon {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      z-index: 2;
+    }
+    .kpi-icon-users { background: rgba(59, 130, 246, 0.18); color: #1d4ed8; }
+    .kpi-icon-docs { background: rgba(34, 197, 94, 0.18); color: #15803d; }
+    .kpi-icon-fac { background: rgba(6, 182, 212, 0.2); color: #0e7490; }
+    .kpi-icon-fil { background: rgba(139, 92, 246, 0.18); color: #6d28d9; }
     .overview-label {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: .06em;
+      letter-spacing: 0.07em;
+      line-height: 1.25;
     }
     .overview-value {
-      font-size: 28px;
+      font-size: clamp(1.45rem, 3.8vw, 2rem);
       font-weight: 800;
-      margin-top: 8px;
+      margin-top: 6px;
+      letter-spacing: -0.02em;
+      color: var(--text);
     }
     .overview-trend {
       margin-top: 6px;
-      font-size: 13px;
+      font-size: 12px;
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
       color: var(--success);
+    }
+    .overview-trend-muted {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .overview-trend .trend-caption {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .overview-trend.warning {
+      color: var(--warning);
     }
     .overview-trend.danger {
       color: var(--danger);
     }
     /* Panels */
     .panel-row {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
-      gap: 24px;
-      margin-bottom: 24px;
+      margin-bottom: 0;
     }
     .panel {
       background: #ffffff;
@@ -335,8 +260,8 @@
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
-      background: #EFF6FF;
-      color: #1D4ED8;
+      background: #ede9fe;
+      color: #5b21b6;
     }
     .badge-danger {
       background: #FEE2E2;
@@ -408,6 +333,145 @@
       text-decoration: none;
     }
     .link:hover { text-decoration: underline; }
+    .btn-add-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-add-user:hover {
+      background: #1d4ed8;
+      color: #fff;
+    }
+    .btn-structures {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 0.55rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      text-decoration: none;
+      margin-top: 1rem;
+    }
+    .btn-structures:hover {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .table-user-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .table-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
+      color: #3730a3;
+      font-weight: 800;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .table-user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.25;
+    }
+    .table-user-email {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    .role-pill {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .role-pill.role-admin { background: #ede9fe; color: #5b21b6; }
+    .role-pill.role-student { background: #dbeafe; color: #1d4ed8; }
+    .role-pill.role-teacher { background: #fef3c7; color: #b45309; }
+    .role-pill.role-assistant { background: #fce7f3; color: #be185d; }
+    .role-pill.role-user { background: #f3f4f6; color: #4b5563; }
+    .status-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .status-dot.inactive {
+      background: #9ca3af;
+    }
+    .btn-icon-notif {
+      position: relative;
+    }
+    .notif-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 1.1rem;
+      height: 1.1rem;
+      padding: 0 0.28rem;
+      font-size: 0.65rem;
+      font-weight: 800;
+      line-height: 1.1rem;
+    }
+    .faculty-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .faculty-list-item:last-child {
+      border-bottom: none;
+    }
+    .faculty-list-item .fac-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .faculty-list-item .fac-count {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .link-all-users {
+      display: inline-block;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
     .main-footer {
       margin-top: auto;
       padding: 18px 28px;
@@ -422,14 +486,6 @@
       text-decoration: none;
     }
     .main-footer a:hover { text-decoration: underline; }
-    @media (max-width: 1100px) {
-      .overview {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .panel-row {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
     @media (max-width: 768px) {
       body {
         flex-direction: column;
@@ -450,21 +506,15 @@
     }
   </style>
 </head>
-<body>
-  {% load static %}
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="sidebar-brand-row">
-        <div class="sidebar-brand-icon">
-          <img src="{% static 'logo_site.png' %}" alt="Université de Djibouti" />
-        </div>
-        <span class="sidebar-brand-text">Université de Djibouti</span>
-      </div>
-      <span class="sidebar-brand-sub">Tableau de bord admin</span>
-    </div>
+    {% include 'includes/admin_sidebar_brand.html' %}
     <nav class="sidebar-nav">
       <div class="sidebar-section">Principal</div>
-      <a href="{% url 'admin_dashboard' %}" class="active"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_dashboard' %}" class="active"><span class="icon"><i class="bi bi-speedometer2"></i></span> Tableau de bord</a>
       <a href="{% url 'admin_utilisateurs' %}"><span class="icon">👥</span> Utilisateurs</a>
       <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
       <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
@@ -487,109 +537,163 @@
     </div>
   </aside>
 
-  <main class="main">
+  <main class="main d-flex flex-column">
     <header class="main-header">
       <div class="title-block">
-        <h1>Tableau de bord</h1>
-        <p class="sub">Vue d’ensemble des utilisateurs, documents et activité de Sigaud.</p>
+        <h1>Tableau de Bord</h1>
+        <p class="sub">Bienvenue, voici un aperçu de l’activité du système aujourd’hui.</p>
       </div>
       <div class="tools">
         <form class="search-wrap" method="get" action="{% url 'admin_dashboard' %}" role="search">
-          <span class="ico">🔍</span>
-          <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Rechercher un utilisateur, un document…" />
+          <span class="ico"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Rechercher…" />
         </form>
-        <a href="{% url 'admin_notifications' %}" class="btn-icon" title="Notifications">🔔</a>
+        <a href="{% url 'admin_notifications' %}" class="btn-icon btn-icon-notif" title="Notifications">
+          <i class="bi bi-bell"></i>
+          {% if notification_count %}
+          <span class="badge rounded-pill bg-danger notif-badge">{% if notification_count > 99 %}99+{% else %}{{ notification_count }}{% endif %}</span>
+          {% endif %}
+        </a>
       </div>
     </header>
 
-    <div class="main-content">
-      <section class="overview">
-        <article class="overview-card">
-          <div class="overview-label">Utilisateurs</div>
-          <div class="overview-value">{{ total_users }}</div>
-          <div class="overview-trend">
-            <span style="color:var(--muted);">Total des comptes</span>
+    <div class="main-content container-fluid py-4 flex-grow-1">
+      <section class="overview row g-3 g-lg-4 mb-4" aria-label="Indicateurs clés">
+        <div class="col-6 col-lg-3">
+          <div class="overview-kpi-frame kpi-rainbow-1 h-100">
+            <article class="overview-card">
+              <span class="kpi-icon kpi-icon-users" aria-hidden="true"><i class="bi bi-people-fill"></i></span>
+              <div class="overview-label">Utilisateurs totaux</div>
+              <div class="overview-value">{{ total_users|intcomma }}</div>
+              <div class="overview-trend">
+                {% if growth_users_pct is not None %}
+                <span class="fw-semibold {% if growth_users_pct > 0 %}text-success{% elif growth_users_pct < 0 %}text-danger{% else %}text-muted{% endif %}">{% if growth_users_pct > 0 %}+{% endif %}{{ growth_users_pct }}%</span>
+                <span class="overview-trend-muted">vs période précédente</span>
+                {% else %}
+                <span class="overview-trend-muted">Évolution N/A</span>
+                {% endif %}
+              </div>
+            </article>
           </div>
-        </article>
-        <article class="overview-card">
-          <div class="overview-label">Documents archivés</div>
-          <div class="overview-value">{{ total_archives }}</div>
-          <div class="overview-trend">
-            <span style="color:var(--muted);">Total des archives</span>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="overview-kpi-frame kpi-rainbow-2 h-100">
+            <article class="overview-card">
+              <span class="kpi-icon kpi-icon-docs" aria-hidden="true"><i class="bi bi-file-earmark-text-fill"></i></span>
+              <div class="overview-label">Documents archivés</div>
+              <div class="overview-value">{{ total_archives|intcomma }}</div>
+              <div class="overview-trend">
+                {% if growth_archives_pct is not None %}
+                <span class="fw-semibold {% if growth_archives_pct > 0 %}text-success{% elif growth_archives_pct < 0 %}text-danger{% else %}text-muted{% endif %}">{% if growth_archives_pct > 0 %}+{% endif %}{{ growth_archives_pct }}%</span>
+                <span class="overview-trend-muted">vs période précédente</span>
+                {% else %}
+                <span class="overview-trend-muted">Évolution N/A</span>
+                {% endif %}
+              </div>
+            </article>
           </div>
-        </article>
-        <article class="overview-card">
-          <div class="overview-label">Espace de stockage utilisé</div>
-          <div class="overview-value">68%</div>
-          <div class="overview-trend warning">
-            ▲ +2% <span style="color:var(--muted);">sur la semaine</span>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="overview-kpi-frame kpi-rainbow-3 h-100">
+            <article class="overview-card">
+              <span class="kpi-icon kpi-icon-fac" aria-hidden="true"><i class="bi bi-building"></i></span>
+              <div class="overview-label">Facultés existantes</div>
+              <div class="overview-value">{{ total_facultes }}</div>
+              <div class="overview-trend overview-trend-muted">
+                <span>{% if total_facultes > 1 %}facultés{% else %}faculté{% endif %}</span>
+              </div>
+            </article>
           </div>
-        </article>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="overview-kpi-frame kpi-rainbow-4 h-100">
+            <article class="overview-card">
+              <span class="kpi-icon kpi-icon-fil" aria-hidden="true"><i class="bi bi-diagram-3-fill"></i></span>
+              <div class="overview-label">Filières & structures</div>
+              <div class="overview-value">{{ total_filieres }}</div>
+              <div class="overview-trend overview-trend-muted">
+                <span>parcours académiques</span>
+              </div>
+            </article>
+          </div>
+        </div>
       </section>
 
-      <section class="panel-row">
-        <article class="panel">
-          <div class="panel-header">
+      <section class="panel-row row g-4 align-items-stretch">
+        <article class="panel col-12 col-xl-8 d-flex flex-column">
+          <div class="panel-header align-items-start">
             <div>
-              <h2 class="panel-title">Utilisateurs récents</h2>
-              <p class="panel-sub">Derniers comptes créés sur la plateforme.</p>
+              <h2 class="panel-title">Gestion des utilisateurs</h2>
+              <p class="panel-sub">Suivi des comptes et statuts.</p>
             </div>
-            <span class="pill badge-success">Actifs</span>
+            <a href="{% url 'admin:auth_user_add' %}" class="btn-add-user"><i class="bi bi-plus-lg"></i> Ajouter</a>
           </div>
-          <div style="overflow-x:auto;">
-            <table>
+          <div class="flex-grow-1" style="overflow-x:auto;">
+            <table class="mb-0">
               <thead>
                 <tr>
                   <th>Nom</th>
                   <th>Rôle</th>
-                  <th>Filière</th>
-                  <th>Dernière connexion</th>
+                  <th>Statut</th>
+                  <th class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {% for u in recent_users %}
+                {% for row in dashboard_user_rows %}
+                {% with u=row.user %}
                 <tr>
-                  <td>{{ u.get_full_name|default:u.username }}</td>
                   <td>
-                    {% if u.is_superuser %}Super admin{% elif u.is_staff %}Staff{% else %}Utilisateur{% endif %}
+                    <div class="table-user-cell">
+                      <div class="table-avatar">
+                        {% with a=u.first_name|slice:":1" b=u.last_name|slice:":1" %}
+                          {% if a or b %}{{ a|upper }}{{ b|upper }}{% else %}{{ u.username|default:"?"|slice:":2"|upper }}{% endif %}
+                        {% endwith %}
+                      </div>
+                      <div>
+                        <div class="table-user-name">{{ u.get_full_name|default:u.username }}</div>
+                        {% if u.email %}<div class="table-user-email">{{ u.email }}</div>{% endif %}
+                      </div>
+                    </div>
                   </td>
-                  <td>—</td>
-                  <td>{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</td>
+                  <td><span class="role-pill role-{{ row.role_kind }}">{{ row.role_label }}</span></td>
+                  <td>
+                    <span class="status-cell">
+                      <span class="status-dot{% if not u.is_active %} inactive{% endif %}"></span>
+                      {% if u.is_active %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{% url 'admin:auth_user_change' u.pk %}" class="btn btn-sm btn-outline-primary">Modifier</a>
+                  </td>
                 </tr>
+                {% endwith %}
                 {% empty %}
-                <tr><td colspan="4">Aucun utilisateur.</td></tr>
+                <tr><td colspan="4" class="text-muted py-4 text-center">Aucun utilisateur pour le moment.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+          <a href="{% url 'admin_utilisateurs' %}" class="link link-all-users">Voir tous les utilisateurs</a>
         </article>
 
-        <article class="panel">
+        <article class="panel col-12 col-xl-4 d-flex flex-column">
           <div class="panel-header">
             <div>
-              <h2 class="panel-title">Activité récente</h2>
-              <p class="panel-sub">Dernières actions effectuées dans l’archive.</p>
+              <h2 class="panel-title">Facultés &amp; départements</h2>
+              <p class="panel-sub">Répartition par structure.</p>
             </div>
-            <span class="pill badge-warning">Résumé</span>
           </div>
-          <ul class="activity-list">
-            {% for item in recent_activity %}
-            <li>
-              <span class="activity-title">{{ item.label }}</span>
-              <div class="activity-meta">
-                {% if item.object_repr %}{{ item.object_repr }}{% endif %}
-                {% if item.object_repr and item.user_name %} · {% endif %}
-                {% if item.user_name %}par <span class="link">{{ item.user_name }}</span>{% endif %}
-                {% if item.time_ago %} · {{ item.time_ago }}{% endif %}
-              </div>
-            </li>
+          <div class="flex-grow-1">
+            {% for fac in facultes_avec_filieres %}
+            <div class="faculty-list-item">
+              <span class="fac-name">{{ fac.libelle }}</span>
+              <span class="fac-count">{{ fac.nb_filieres }} filière{{ fac.nb_filieres|pluralize }}</span>
+            </div>
             {% empty %}
-            <li>
-              <span class="activity-title">Aucune activité récente</span>
-              <div class="activity-meta">Les actions effectuées dans l’admin apparaîtront ici.</div>
-            </li>
+            <p class="text-muted small mb-0">Aucune faculté enregistrée.</p>
             {% endfor %}
-          </ul>
+          </div>
+          <a href="{% url 'admin_facultes' %}" class="btn-structures">Gérer les structures</a>
         </article>
       </section>
     </div>
@@ -598,6 +702,7 @@
       © 2023 Sigaud – Tableau de bord administrateur.
     </footer>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
 

@@ -130,6 +130,11 @@ urlpatterns = [
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),
     path("admin-dashboard/parametres/", views.admin_parametres, name="admin_parametres"),
+    path(
+        "admin-dashboard/administration-systeme/",
+        views.administration_systeme,
+        name="administration_systeme",
+    ),
     path("admin-dashboard/audit-logs/", views.admin_audit_logs, name="admin_audit_logs"),
     path("admin-dashboard/notifications/", views.admin_notifications, name="admin_notifications"),
     # utilisé dans le template personnel.html : {% url 'logout' %}

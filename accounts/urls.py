@@ -1,7 +1,7 @@
 from django.urls import path
+from django.conf import settings
 from django.views.generic import RedirectView
 from django.contrib.auth.views import (
-    LogoutView,
     PasswordResetView,
     PasswordResetDoneView,
     PasswordResetConfirmView,
@@ -10,15 +10,19 @@ from django.contrib.auth.views import (
 
 from . import views
 
+_admin_login_path = getattr(settings, "ADMIN_LOGIN_PATH", "connexion/administrateur-prive")
+_admin_login_path = _admin_login_path.strip("/")
+if not _admin_login_path:
+    _admin_login_path = "connexion/administrateur-prive-9x7k1q"
+
 urlpatterns = [
     path("", views.accueil, name="accueil"),  # page d'accueil : /
     path("inscription/", views.inscription, name="inscription"),
-    path(
-        "inscription/confirmation/<uidb64>/<token>/",
-        views.confirmer_email,
-        name="confirmer_email",
-    ),
-    path("connexion/", views.ConnexionView.as_view(), name="connexion"),
+    path("inscription/verification-code/", views.verifier_code_inscription, name="verifier_code_inscription"),
+    path("connexion/", RedirectView.as_view(pattern_name="connexion_etudiant", permanent=False), name="connexion"),
+    path("connexion/etudiant/", views.ConnexionEtudiantView.as_view(), name="connexion_etudiant"),
+    path("connexion/personnel/", views.ConnexionPersonnelView.as_view(), name="connexion_personnel"),
+    path(f"{_admin_login_path}/", views.ConnexionAdminView.as_view(), name="connexion_admin"),
     # Ancienne URL /etudiant/ → redirection vers le nouvel espace étudiant
     path("etudiant/", RedirectView.as_view(pattern_name="espace_etudiant", permanent=False)),
     # Ancienne URL /profil/ → redirection vers /personnel/profil/
@@ -125,7 +129,23 @@ urlpatterns = [
     ),
     # Tableau de bord admin Sigaud (staff/superuser)
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    # Compatibilité : anciens liens "Modifier" de l'admin Django vers la page SIGAUD.
+    path(
+        "admin-dashboard/system/auth/user/<int:pk>/change/",
+        RedirectView.as_view(pattern_name="admin_modifier_utilisateur", permanent=False),
+    ),
     path("admin-dashboard/utilisateurs/", views.admin_utilisateurs, name="admin_utilisateurs"),
+    path("admin-dashboard/utilisateurs/ajouter/", views.admin_add_user, name="admin_add_user"),
+    path(
+        "admin-dashboard/utilisateurs/<int:pk>/modifier/",
+        views.admin_modifier_utilisateur,
+        name="admin_modifier_utilisateur",
+    ),
+    path(
+        "admin-dashboard/utilisateurs/<int:pk>/supprimer/",
+        views.admin_supprimer_utilisateur,
+        name="admin_supprimer_utilisateur",
+    ),
     path("admin-dashboard/documents/", views.admin_documents, name="admin_documents"),
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),
@@ -137,8 +157,8 @@ urlpatterns = [
     ),
     path("admin-dashboard/audit-logs/", views.admin_audit_logs, name="admin_audit_logs"),
     path("admin-dashboard/notifications/", views.admin_notifications, name="admin_notifications"),
-    # utilisé dans le template personnel.html : {% url 'logout' %}
-    path("deconnexion/", LogoutView.as_view(next_page="connexion"), name="logout"),
+    # Déconnexion (GET/POST) : compatible avec les pages utilisant un lien simple.
+    path("deconnexion/", views.deconnexion, name="logout"),
     # Mot de passe oublié / réinitialisation
     path(
         "mot-de-passe/oublie/",

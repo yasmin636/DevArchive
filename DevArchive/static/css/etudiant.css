@@ -603,9 +603,8 @@ html[data-theme="dark"] .carousel-subject-card__sem.is-s2 {
 }
 
 .dashboard-primary-col .subject-cards--v2 {
-  max-width: min(100%, 300px);
-  margin-left: 0;
-  margin-right: auto;
+  max-width: none;
+  width: 100%;
 }
 
 /* Bandeau d'accueil (pages sans sidebar détaillée) */
@@ -740,12 +739,11 @@ html[data-theme="dark"] .corrige-quota-banner {
 /* Cartes sujets — version compacte (largeur réduite, actions en grille) */
 .subject-cards--v2 {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.85rem;
   margin-bottom: 1.5rem;
-  max-width: min(100%, 300px);
-  margin-left: 0;
-  margin-right: auto;
+  max-width: none;
+  width: 100%;
 }
 
 .subject-card-v2 {
@@ -1303,6 +1301,24 @@ html[data-theme="dark"] .corrige-quota-banner {
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.badge-session-normale {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-session-rattrapage {
+  background: #fff3cd;
+  color: #b45309;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .link-consulter {

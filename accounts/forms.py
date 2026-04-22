@@ -4,7 +4,7 @@ from .models import AssistantPedagogique, Etudiant, Faculte, Filiere, Niveau, Ar
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 class ConnexionForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
@@ -186,13 +186,15 @@ class ArchiveForm(forms.ModelForm):
 
     def clean_fichier(self):
         f = self.cleaned_data.get("fichier")
-        if f and f.content_type != "application/pdf":
+        # En création, f est généralement un UploadedFile (avec content_type).
+        # En modification sans nouvel upload, f est un FieldFile (pas de content_type).
+        if f and hasattr(f, "content_type") and f.content_type != "application/pdf":
             raise forms.ValidationError("Seuls les fichiers PDF sont autorisés.")
         return f
 
     def clean_fichier_corrige(self):
         f = self.cleaned_data.get("fichier_corrige")
-        if f and f.content_type != "application/pdf":
+        if f and hasattr(f, "content_type") and f.content_type != "application/pdf":
             raise forms.ValidationError("Seuls les fichiers PDF sont autorisés pour le corrigé.")
         return f
 
@@ -388,11 +390,27 @@ class ProfilEtudiantForm(forms.Form):
 
 class AdminAddUserForm(forms.Form):
     """Formulaire « Add user » pour le tableau de bord admin (style Django admin)."""
+    role = forms.ChoiceField(
+        choices=[
+            ("etudiant", "Étudiant"),
+            ("assistant", "Assistant"),
+            ("admin", "Administrateur (superutilisateur)"),
+        ],
+        label="Type de compte",
+        initial="etudiant",
+        widget=forms.RadioSelect(attrs={"class": "admin-radio role-radio"}),
+    )
     username = forms.CharField(
         max_length=150,
         label="Nom d'utilisateur",
         help_text="Requis. 150 caractères ou moins. Lettres, chiffres et @/./+/-/_ uniquement.",
         widget=forms.TextInput(attrs={"class": "admin-input", "autocomplete": "username"}),
+    )
+    email = forms.EmailField(
+        label="Adresse email",
+        required=True,
+        widget=forms.EmailInput(attrs={"class": "admin-input", "autocomplete": "email"}),
+        help_text="Adresse email de connexion (utilisée pour les notifications et la récupération du mot de passe).",
     )
     password_authentication = forms.ChoiceField(
         choices=[("enabled", "Activé"), ("disabled", "Désactivé")],
@@ -419,12 +437,33 @@ class AdminAddUserForm(forms.Form):
         widget=forms.PasswordInput(attrs={"class": "admin-input", "autocomplete": "new-password"}),
         help_text="Saisissez le même mot de passe que ci-dessus, pour vérification.",
     )
-    filiere = forms.ModelChoiceField(
+    assistant_filiere = forms.ModelChoiceField(
         queryset=Filiere.objects.all().order_by("libelle"),
-        label="Filière",
+        label="Filière (assistant)",
         required=False,
         widget=forms.Select(attrs={"class": "admin-select"}),
-        help_text="Optionnel : associer un profil assistant pédagogique à cet utilisateur.",
+        help_text="Requis pour un compte assistant.",
+    )
+    etudiant_faculte = forms.ModelChoiceField(
+        queryset=Faculte.objects.all().order_by("libelle"),
+        label="Faculté (étudiant)",
+        required=False,
+        widget=forms.Select(attrs={"class": "admin-select"}),
+        help_text="Requis pour un compte étudiant.",
+    )
+    etudiant_filiere = forms.ModelChoiceField(
+        queryset=Filiere.objects.all().order_by("libelle"),
+        label="Filière (étudiant)",
+        required=False,
+        widget=forms.Select(attrs={"class": "admin-select"}),
+        help_text="Requis pour un compte étudiant.",
+    )
+    etudiant_niveau = forms.ModelChoiceField(
+        queryset=Niveau.objects.all().order_by("libelle"),
+        label="Niveau (étudiant)",
+        required=False,
+        widget=forms.Select(attrs={"class": "admin-select"}),
+        help_text="Requis pour un compte étudiant.",
     )
 
     def clean_username(self):
@@ -434,8 +473,16 @@ class AdminAddUserForm(forms.Form):
             raise forms.ValidationError("Un utilisateur avec ce nom d'utilisateur existe déjà.")
         return username
 
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        User = get_user_model()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Cette adresse email est déjà utilisée.")
+        return email
+
     def clean(self):
         cleaned_data = super().clean()
+        role = cleaned_data.get("role") or "etudiant"
         if cleaned_data.get("password_authentication") == "enabled":
             p1 = cleaned_data.get("password1")
             p2 = cleaned_data.get("password2")
@@ -445,22 +492,191 @@ class AdminAddUserForm(forms.Form):
                 self.add_error("password2", "Les deux mots de passe ne correspondent pas.")
             if p1 and len(p1) < 8:
                 self.add_error("password1", "Le mot de passe doit contenir au moins 8 caractères.")
+        if role == "assistant":
+            if not cleaned_data.get("assistant_filiere"):
+                self.add_error("assistant_filiere", "Veuillez sélectionner la filière de l'assistant.")
+        elif role == "etudiant":
+            faculte = cleaned_data.get("etudiant_faculte")
+            if not faculte:
+                self.add_error("etudiant_faculte", "Veuillez sélectionner la faculté de l'étudiant.")
+            if not cleaned_data.get("etudiant_filiere"):
+                self.add_error("etudiant_filiere", "Veuillez sélectionner la filière de l'étudiant.")
+            if not cleaned_data.get("etudiant_niveau"):
+                self.add_error("etudiant_niveau", "Veuillez sélectionner le niveau de l'étudiant.")
+            filiere = cleaned_data.get("etudiant_filiere")
+            niveau = cleaned_data.get("etudiant_niveau")
+            if faculte and filiere and filiere.faculte_id != faculte.id:
+                self.add_error("etudiant_filiere", "La filière doit appartenir à la faculté sélectionnée.")
+            if faculte and niveau and niveau.faculte_id != faculte.id:
+                self.add_error("etudiant_niveau", "Le niveau doit appartenir à la faculté sélectionnée.")
+            if filiere and niveau and filiere.faculte_id != niveau.faculte_id:
+                self.add_error("etudiant_niveau", "Le niveau doit appartenir à la même faculté que la filière.")
         return cleaned_data
 
     def save(self):
         User = get_user_model()
         username = self.cleaned_data["username"].strip()
+        email = self.cleaned_data["email"].strip().lower()
         password = self.cleaned_data.get("password1") or ""
+        role = self.cleaned_data.get("role") or "etudiant"
         if self.cleaned_data.get("password_authentication") == "disabled":
-            user = User.objects.create_user(username=username, password=None)
+            user = User.objects.create_user(username=username, email=email, password=None)
             user.set_unusable_password()
             user.save()
         else:
-            user = User.objects.create_user(username=username, password=password or None)
-        filiere = self.cleaned_data.get("filiere")
-        if filiere:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password or None,
+            )
+        if role == "admin":
             from django.contrib.auth.models import Group
+
+            user.is_staff = True
+            user.is_superuser = True
+            user.save(update_fields=["is_staff", "is_superuser"])
+            group, _ = Group.objects.get_or_create(name="Administrateur système")
+            user.groups.add(group)
+        elif role == "assistant":
+            filiere = self.cleaned_data.get("assistant_filiere")
             AssistantPedagogique.objects.create(user=user, filiere=filiere)
-            group, _ = Group.objects.get_or_create(name="Assistant pédagogique")
+            # Le signal add_assistant_to_group ajoute automatiquement le groupe Assistant pédagogique.
+        else:
+            from django.contrib.auth.models import Group
+
+            Etudiant.objects.create(
+                user=user,
+                filiere=self.cleaned_data["etudiant_filiere"],
+                niveau=self.cleaned_data["etudiant_niveau"],
+            )
+            group, _ = Group.objects.get_or_create(name="Étudiant")
             user.groups.add(group)
         return user
+
+
+class AdminEditUserForm(forms.Form):
+    """Edition d'un utilisateur depuis le tableau de bord admin SIGAUD."""
+
+    username = forms.CharField(
+        max_length=150,
+        label="Nom d'utilisateur",
+        widget=forms.TextInput(attrs={"class": "admin-input", "autocomplete": "username"}),
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        label="Prénom",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "admin-input", "autocomplete": "given-name"}),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        label="Nom",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "admin-input", "autocomplete": "family-name"}),
+    )
+    email = forms.EmailField(
+        label="Adresse email",
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "admin-input", "autocomplete": "email"}),
+    )
+    is_active = forms.BooleanField(
+        label="Compte actif",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "admin-check"}),
+    )
+    is_staff = forms.BooleanField(
+        label="Accès staff",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "admin-check"}),
+    )
+    is_superuser = forms.BooleanField(
+        label="Super administrateur",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "admin-check"}),
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all().order_by("name"),
+        required=False,
+        label="Groupes",
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "admin-checklist"}),
+    )
+    assistant_filiere = forms.ModelChoiceField(
+        queryset=Filiere.objects.all().order_by("libelle"),
+        required=False,
+        label="Filière assistant pédagogique",
+        widget=forms.Select(attrs={"class": "admin-select"}),
+    )
+
+    def __init__(self, user_instance, *args, **kwargs):
+        self.user_instance = user_instance
+        super().__init__(*args, **kwargs)
+        self.fields["username"].initial = user_instance.username
+        self.fields["first_name"].initial = user_instance.first_name
+        self.fields["last_name"].initial = user_instance.last_name
+        self.fields["email"].initial = user_instance.email
+        self.fields["is_active"].initial = user_instance.is_active
+        self.fields["is_staff"].initial = user_instance.is_staff
+        self.fields["is_superuser"].initial = user_instance.is_superuser
+        self.fields["groups"].initial = user_instance.groups.all()
+        assistant = getattr(user_instance, "assistant_pedagogique", None)
+        if assistant:
+            self.fields["assistant_filiere"].initial = assistant.filiere_id
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        UserModel = get_user_model()
+        if (
+            UserModel.objects.filter(username__iexact=username)
+            .exclude(pk=self.user_instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Un utilisateur avec ce nom d'utilisateur existe déjà.")
+        return username
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return ""
+        UserModel = get_user_model()
+        if UserModel.objects.filter(email__iexact=email).exclude(pk=self.user_instance.pk).exists():
+            raise forms.ValidationError("Cette adresse email est déjà utilisée.")
+        return email
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("is_superuser"):
+            cleaned["is_staff"] = True
+            self.cleaned_data["is_staff"] = True
+        return cleaned
+
+    def save(self):
+        u = self.user_instance
+        u.username = self.cleaned_data["username"].strip()
+        u.first_name = self.cleaned_data.get("first_name", "").strip()
+        u.last_name = self.cleaned_data.get("last_name", "").strip()
+        u.email = self.cleaned_data.get("email", "").strip().lower()
+        u.is_active = bool(self.cleaned_data.get("is_active"))
+        u.is_staff = bool(self.cleaned_data.get("is_staff"))
+        u.is_superuser = bool(self.cleaned_data.get("is_superuser"))
+        u.save()
+
+        selected_groups = self.cleaned_data.get("groups")
+        if selected_groups is not None:
+            u.groups.set(selected_groups)
+
+        assistant_group, _ = Group.objects.get_or_create(name="Assistant pédagogique")
+        filiere = self.cleaned_data.get("assistant_filiere")
+        assistant = getattr(u, "assistant_pedagogique", None)
+        if filiere:
+            if assistant:
+                assistant.filiere = filiere
+                assistant.save(update_fields=["filiere"])
+            else:
+                AssistantPedagogique.objects.create(user=u, filiere=filiere)
+            u.groups.add(assistant_group)
+        else:
+            if assistant:
+                assistant.delete()
+            u.groups.remove(assistant_group)
+
+        return u

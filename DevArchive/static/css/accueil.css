@@ -89,7 +89,8 @@ body.sigaud-accueil {
 .accueil-bg__canvas {
     position: absolute;
     inset: 0;
-    z-index: 2;
+    /* Reste sous les blobs ; le fond entier reste en dessous du contenu (z-index ci-dessous). */
+    z-index: 1;
     width: 100%;
     height: 100%;
     display: block;
@@ -126,12 +127,14 @@ html[data-theme="dark"] .accueil-bg__blob--3 {
     }
 }
 
-/* Contenu au-dessus du fond */
-body.sigaud-accueil > .header,
+/* Contenu au-dessus du fond (z-index > .accueil-bg et que le canvas ne recouvre pas le texte en composition). */
 body.sigaud-accueil > main,
 body.sigaud-accueil > footer {
     position: relative;
-    z-index: 1;
+    z-index: 5;
+}
+body.sigaud-accueil > .header {
+    z-index: 5;
 }
 
 .container {

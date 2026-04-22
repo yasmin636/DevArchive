@@ -626,7 +626,7 @@
               <h2 class="panel-title">Gestion des utilisateurs</h2>
               <p class="panel-sub">Suivi des comptes et statuts.</p>
             </div>
-            <a href="{% url 'admin:auth_user_add' %}" class="btn-add-user"><i class="bi bi-plus-lg"></i> Ajouter</a>
+            <a href="{% url 'admin_add_user' %}" class="btn-add-user"><i class="bi bi-plus-lg"></i> Ajouter</a>
           </div>
           <div class="flex-grow-1" style="overflow-x:auto;">
             <table class="mb-0">
@@ -663,7 +663,7 @@
                     </span>
                   </td>
                   <td class="text-end">
-                    <a href="{% url 'admin:auth_user_change' u.pk %}" class="btn btn-sm btn-outline-primary">Modifier</a>
+                    <a href="{% url 'admin_modifier_utilisateur' u.pk %}" class="btn btn-sm btn-outline-primary">Modifier</a>
                   </td>
                 </tr>
                 {% endwith %}

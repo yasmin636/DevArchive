@@ -1,0 +1,203 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ajouter utilisateur — Admin Sigaud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <style>
+    :root {
+      --border: #e5e7eb; --text: #111827; --muted: #6b7280; --radius: 12px; --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body.admin-sigaud { margin: 0; min-height: 100vh; display: flex; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+    .content-main { flex: 1; padding: 24px; min-width: 0; max-width: 920px; width: 100%; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+    .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+    .header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .btn-back { display: inline-flex; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); text-decoration: none; color: var(--text); font-weight: 600; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-full { grid-column: 1 / -1; }
+    .field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .admin-input, .admin-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+    .admin-input:focus, .admin-select:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
+    .admin-radio { display: flex; flex-wrap: wrap; gap: 12px; }
+    .admin-radio label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: normal; color: var(--text); }
+    .role-picker {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .role-picker .admin-radio {
+      display: contents;
+    }
+    .role-picker label {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .role-picker label:has(input:checked) {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      background: #eff6ff;
+    }
+    .role-section[hidden] { display: none !important; }
+    .errors { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-size: 13px; }
+    .error-text { color: #b91c1c; font-size: 12px; }
+    .actions { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .btn { border: 1px solid transparent; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-secondary { background: #fff; color: var(--text); border-color: var(--border); text-decoration: none; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
+  <aside class="sidebar">
+    {% include 'includes/admin_sidebar_brand.html' %}
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}" class="active"><span class="icon">👥</span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}"><span class="icon">⚙</span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {% with a=user.first_name|slice:":1" b=user.last_name|slice:":1" %}
+          {% if a or b %}{{ a }}{{ b }}{% else %}{{ user.username|default:"?"|slice:":2" }}{% endif %}
+        {% endwith %}
+      </div>
+      <div>
+        <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
+        <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
+        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="content-main">
+      <div class="header">
+        <div>
+          <h1>Ajouter utilisateur</h1>
+          <p>Créer un compte utilisateur sans passer par l'admin Django.</p>
+        </div>
+        <a href="{% url 'admin_utilisateurs' %}" class="btn-back">← Retour à la liste</a>
+      </div>
+
+      <section class="card">
+        {% if form.non_field_errors %}
+          <div class="errors">
+            {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+          </div>
+        {% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="grid">
+            <div class="field field-full">
+              <label>{{ form.role.label }}</label>
+              <div class="role-picker">{{ form.role }}</div>
+            </div>
+            <div class="field field-full">
+              <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+              {{ form.username }}
+              {% if form.username.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.username.help_text|safe }}</div>{% endif %}
+              {% for err in form.username.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full">
+              <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+              {{ form.email }}
+              {% if form.email.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.email.help_text|safe }}</div>{% endif %}
+              {% for err in form.email.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full">
+              <label>{{ form.password_authentication.label }}</label>
+              <div class="admin-radio">{{ form.password_authentication }}</div>
+            </div>
+            <div class="field">
+              <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+              {{ form.password1 }}
+              {% if form.password1.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.password1.help_text|safe }}</div>{% endif %}
+              {% for err in form.password1.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field">
+              <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+              {{ form.password2 }}
+              {% if form.password2.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.password2.help_text|safe }}</div>{% endif %}
+              {% for err in form.password2.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full role-section" data-role-section="assistant">
+              <label for="{{ form.assistant_filiere.id_for_label }}">{{ form.assistant_filiere.label }}</label>
+              {{ form.assistant_filiere }}
+              {% if form.assistant_filiere.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.assistant_filiere.help_text|safe }}</div>{% endif %}
+              {% for err in form.assistant_filiere.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full role-section" data-role-section="etudiant">
+              <label for="{{ form.etudiant_faculte.id_for_label }}">{{ form.etudiant_faculte.label }}</label>
+              {{ form.etudiant_faculte }}
+              {% if form.etudiant_faculte.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.etudiant_faculte.help_text|safe }}</div>{% endif %}
+              {% for err in form.etudiant_faculte.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full role-section" data-role-section="etudiant">
+              <label for="{{ form.etudiant_filiere.id_for_label }}">{{ form.etudiant_filiere.label }}</label>
+              {{ form.etudiant_filiere }}
+              {% if form.etudiant_filiere.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.etudiant_filiere.help_text|safe }}</div>{% endif %}
+              {% for err in form.etudiant_filiere.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="field field-full role-section" data-role-section="etudiant">
+              <label for="{{ form.etudiant_niveau.id_for_label }}">{{ form.etudiant_niveau.label }}</label>
+              {{ form.etudiant_niveau }}
+              {% if form.etudiant_niveau.help_text %}<div style="font-size:12px;color:var(--muted);">{{ form.etudiant_niveau.help_text|safe }}</div>{% endif %}
+              {% for err in form.etudiant_niveau.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="actions">
+            <a href="{% url 'admin_utilisateurs' %}" class="btn btn-secondary">Annuler</a>
+            <button type="submit" name="_action" value="save" class="btn btn-primary">Enregistrer</button>
+            <button type="submit" name="_action" value="add_another" class="btn btn-secondary">Enregistrer et ajouter un autre</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var radios = document.querySelectorAll('input[name="role"]');
+      var sections = document.querySelectorAll('[data-role-section]');
+      function selectedRole() {
+        var checked = document.querySelector('input[name="role"]:checked');
+        return checked ? checked.value : 'etudiant';
+      }
+      function toggleSections() {
+        var role = selectedRole();
+        sections.forEach(function (section) {
+          var match = section.getAttribute('data-role-section') === role;
+          section.hidden = !match;
+        });
+      }
+      radios.forEach(function (r) {
+        r.addEventListener('change', toggleSections);
+      });
+      toggleSections();
+    })();
+  </script>
+</body>
+</html>

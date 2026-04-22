@@ -3,31 +3,100 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Modifier l'archive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modifier l'archive — SIGAUD</title>
+  {% include 'includes/sigaud_theme_head.html' %}
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: var(--sigaud-page);
+      color: var(--sigaud-text);
+    }
+    .edit-wrap {
+      max-width: 860px;
+      margin: 2rem auto;
+    }
+    .edit-card {
+      border: 1px solid var(--sigaud-border);
+      border-radius: 14px;
+      box-shadow: var(--sigaud-shadow);
+      background: var(--sigaud-surface);
+    }
+    .edit-card .card-header {
+      border-bottom: 1px solid var(--sigaud-border);
+      background: linear-gradient(135deg, var(--sigaud-primary) 0%, var(--sigaud-violet) 100%);
+      color: #fff;
+      border-top-left-radius: 14px;
+      border-top-right-radius: 14px;
+    }
+    .field-note {
+      color: var(--sigaud-muted);
+      font-size: 0.82rem;
+      margin-top: 0.35rem;
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-7">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Modifier l'archive</h5>
-          </div>
-          <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
-              {% csrf_token %}
-              {{ form.as_p }}
-              <div class="d-flex justify-content-end gap-2 mt-3">
-                <a href="{% url 'personnel' %}" class="btn btn-outline-secondary">Annuler</a>
-                <button type="submit" class="btn btn-primary">Enregistrer</button>
+<body>
+  <div class="container">
+    <div class="edit-wrap">
+      <div class="edit-card card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Modifier l'archive</h5>
+          <button type="button" class="theme-toggle-btn" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+            <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+            <span class="theme-toggle-label">Sombre</span>
+          </button>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-muted mb-4">Mettez a jour les informations du sujet puis enregistrez les modifications.</p>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for err in form.non_field_errors %}
+                <div>{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            {% for field in form %}
+              <div class="mb-3">
+                <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                  <div class="field-note">{{ field.help_text|safe }}</div>
+                {% endif %}
+                {% for error in field.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
               </div>
-            </form>
-          </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <a href="{% url 'personnel' %}" class="btn btn-outline-secondary">Annuler</a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2-circle me-1"></i>Enregistrer les modifications
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    (function () {
+      document.querySelectorAll('input, select, textarea').forEach(function (el) {
+        if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'hidden') return;
+        if (el.tagName === 'SELECT') el.classList.add('form-select');
+        else if (el.type === 'file') el.classList.add('form-control');
+        else el.classList.add('form-control');
+      });
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

@@ -297,6 +297,7 @@
           <tr>
             <th>MATIÈRE / INTITULÉ</th>
             <th>ANNÉE</th>
+            <th>SESSION</th>
             <th>TYPE</th>
             <th>ACTIONS</th>
           </tr>
@@ -306,6 +307,13 @@
           <tr data-semestre="{{ archive.semestre|default:'' }}" data-annee="{{ archive.annee }}" data-type="{{ archive.type }}">
             <td>{{ archive.title }}</td>
             <td>{{ archive.annee }}</td>
+            <td>
+              {% if archive.session == "Rattrapage" %}
+              <span class="badge-session-rattrapage">RATTRAPAGE</span>
+              {% else %}
+              <span class="badge-session-normale">NORMALE</span>
+              {% endif %}
+            </td>
             <td>
               {% if archive.type == "Examen Final" %}<span class="badge-final">FINAL</span>{% else %}<span class="badge-controle">CONTRÔLE</span>{% endif %}
             </td>
@@ -318,7 +326,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-muted text-center py-3">Aucune archive pour votre filière.</td></tr>
+          <tr><td colspan="5" class="text-muted text-center py-3">Aucune archive pour votre filière.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -426,29 +434,74 @@
 
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  cards.forEach(function(node) {
-    var clone = node.cloneNode(true);
-    clone.setAttribute('data-carousel-clone', '1');
-    track.appendChild(clone);
-  });
-
-  var loopWidth = track.scrollWidth / 2;
-
-  function refreshLoopWidth() {
-    loopWidth = track.scrollWidth / 2;
-  }
-  window.addEventListener('resize', function() {
-    requestAnimationFrame(refreshLoopWidth);
-  });
-  window.addEventListener('load', refreshLoopWidth);
-
   var paused = false;
   var speed = 0.7;
+  var maxRotateIterations = 30;
+
+  function canScrollCarousel() {
+    return (track.scrollWidth - viewport.clientWidth) > 1;
+  }
+
+  function getFirstCard() {
+    return track.querySelector('a.carousel-subject-card');
+  }
+
+  function cardOuterWidth(el) {
+    if (!el) return 0;
+    var style = window.getComputedStyle(el);
+    var mr = parseFloat(style.marginRight || '0') || 0;
+    var ml = parseFloat(style.marginLeft || '0') || 0;
+    return el.offsetWidth + mr + ml;
+  }
+
+  function rotateForwardIfNeeded() {
+    if (!canScrollCarousel()) return;
+    var first = getFirstCard();
+    if (!first) return;
+    var w = cardOuterWidth(first);
+    if (w <= 0) return;
+    var i = 0;
+    while (viewport.scrollLeft >= w && i < maxRotateIterations) {
+      var before = viewport.scrollLeft;
+      viewport.scrollLeft -= w;
+      track.appendChild(first);
+      first = getFirstCard();
+      w = cardOuterWidth(first);
+      if (!first || w <= 0 || viewport.scrollLeft === before) break;
+      i += 1;
+    }
+  }
+
+  function rotateBackwardIfNeeded() {
+    if (!canScrollCarousel()) return;
+    var i = 0;
+    while (viewport.scrollLeft <= 0 && i < maxRotateIterations) {
+      var last = track.querySelector('a.carousel-subject-card:last-of-type');
+      if (!last) return;
+      var w = cardOuterWidth(last);
+      if (w <= 0) return;
+      var before = viewport.scrollLeft;
+      track.insertBefore(last, track.firstChild);
+      viewport.scrollLeft += w;
+      if (viewport.scrollLeft === before) break;
+      i += 1;
+    }
+  }
+
+  // Position initiale pour autoriser la rotation arrière sans "saut visuel".
+  (function seedInitialOffset() {
+    if (!canScrollCarousel()) return;
+    var first = getFirstCard();
+    var w = cardOuterWidth(first);
+    if (w > 0) viewport.scrollLeft = w;
+  })();
+
   function tick() {
-    if (!paused && loopWidth > viewport.clientWidth + 8) {
-      viewport.scrollLeft += speed;
-      if (viewport.scrollLeft >= loopWidth - 0.5) {
-        viewport.scrollLeft -= loopWidth;
+    if (!paused) {
+      if (canScrollCarousel()) {
+        viewport.scrollLeft += speed;
+        rotateForwardIfNeeded();
+        rotateBackwardIfNeeded();
       }
     }
     requestAnimationFrame(tick);
@@ -462,7 +515,13 @@
 
   viewport.addEventListener('touchstart', function() { paused = true; }, { passive: true });
   viewport.addEventListener('touchend', pauseBriefly, { passive: true });
-  viewport.addEventListener('wheel', pauseBriefly, { passive: true });
+  viewport.addEventListener('wheel', function() {
+    pauseBriefly();
+    setTimeout(function() {
+      rotateForwardIfNeeded();
+      rotateBackwardIfNeeded();
+    }, 40);
+  }, { passive: true });
 })();
 </script>
 <script>
@@ -476,10 +535,14 @@
     if (!url) return;
     var stars = card.querySelectorAll('.subject-star-btn');
     var label = card.querySelector('[data-rating-label]');
+    var currentNote = parseInt(card.getAttribute('data-user-note') || '0', 10);
+    if (isNaN(currentNote)) currentNote = 0;
     stars.forEach(function(btn) {
       btn.addEventListener('click', function() {
-        var note = parseInt(btn.getAttribute('data-note'), 10);
-        if (note < 1 || note > 5) return;
+        var clicked = parseInt(btn.getAttribute('data-note'), 10);
+        if (clicked < 1 || clicked > 5) return;
+        // Cliquer la même étoile retire la note.
+        var note = (currentNote === clicked) ? 0 : clicked;
         var fd = new FormData();
         fd.append('note', String(note));
         var tok = getCookie('csrftoken');
@@ -493,14 +556,20 @@
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (!data || !data.ok) return;
+            currentNote = parseInt(data.user_note || '0', 10);
+            if (isNaN(currentNote)) currentNote = 0;
             stars.forEach(function(b, i) {
               var ic = b.querySelector('i');
               if (!ic) return;
-              ic.className = (i < note) ? 'bi bi-star-fill' : 'bi bi-star';
+              ic.className = (i < currentNote) ? 'bi bi-star-fill' : 'bi bi-star';
             });
-            if (label && data.moyenne != null) {
+            if (label) {
               var votes = data.nb_votes || 0;
-              label.textContent = data.moyenne + ' (' + votes + ' vote' + (votes > 1 ? 's' : '') + ')';
+              if (data.moyenne != null) {
+                label.textContent = data.moyenne + ' (' + votes + ' vote' + (votes > 1 ? 's' : '') + ')';
+              } else {
+                label.textContent = '— (0 vote)';
+              }
             }
           })
           .catch(function() {});

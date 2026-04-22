@@ -2,6 +2,10 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+admin.site.site_header = "SIGAUD — Administration système"
+admin.site.site_title = "SIGAUD"
+admin.site.index_title = "Administration système"
+
 from .models import (
     AssistantPedagogique,
     ConsultationCorrigeGratuite,

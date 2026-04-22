@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(*_f)ohmf&-iu@hlyz)epl!xu=p=w0%g@ghml=1_#7d4yt23__'
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-(*_f)ohmf&-iu@hlyz)epl!xu=p=w0%g@ghml=1_#7d4yt23__",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").strip().lower() in {"1", "true", "yes", "on"}
 
-ALLOWED_HOSTS = []
+# Local + simulation « déploiement » via ngrok (*.ngrok-free.app, *.ngrok-free.dev, *.ngrok.io).
+# Surcharge optionnelle : variable d'environnement DJANGO_ALLOWED_HOSTS (liste séparée par des virgules).
+_default_allowed = "127.0.0.1,localhost,.ngrok-free.app,.ngrok-free.dev,.ngrok.io"
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", _default_allowed).split(",")
+    if h.strip()
+]
+
+# Après avoir lancé ngrok, si les formulaires renvoient une erreur CSRF (403), définir l’URL publique :
+#   PowerShell : $env:DJANGO_CSRF_TRUSTED_ORIGINS="https://VOTRE-SOUS-DOMAINE.ngrok-free.dev"
+#   (ou .ngrok-free.app selon l’URL affichée par ngrok)
+# (repérer l’URL dans la fenêtre ngrok, onglet « Forwarding ».)
+_trusted = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").strip()
+CSRF_TRUSTED_ORIGINS = [x.strip() for x in _trusted.split(",") if x.strip()]
+
+# Derrière ngrok (HTTPS), les en-têtes X-Forwarded-* sont utiles pour les URL absolues.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 
 # Application definition
@@ -45,6 +67,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'DevArchive.middleware.AppendNgrokCsrfTrustedOriginMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -76,12 +99,12 @@ WSGI_APPLICATION = 'DevArchive.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'base_devarchive',
-        'USER': 'postgres',
-        'PASSWORD': 'admin123',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': os.environ.get('DJANGO_DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('DJANGO_DB_NAME', 'base_devarchive'),
+        'USER': os.environ.get('DJANGO_DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', '353671'),
+        'HOST': os.environ.get('DJANGO_DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DJANGO_DB_PORT', '5432'),
     }
 }
 
@@ -109,6 +132,16 @@ AUTHENTICATION_BACKENDS = [
     "accounts.backend.EmailOuUsernameBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+# URL dédiée de connexion administrateur (à garder confidentielle).
+# Peut être surchargée via DJANGO_ADMIN_LOGIN_PATH, ex: "acces/adm-9x7k1q".
+ADMIN_LOGIN_PATH = os.environ.get("DJANGO_ADMIN_LOGIN_PATH", "connexion/administrateur-prive-9x7k1q")
+
+# Limitation des tentatives de connexion (utilisée sur les vues admin/personnel).
+LOGIN_ATTEMPT_LIMIT_MAX = int(os.environ.get("DJANGO_LOGIN_ATTEMPT_LIMIT_MAX", "5"))
+LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS = int(
+    os.environ.get("DJANGO_LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS", "900")
+)
 
 
 
@@ -144,10 +177,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "ayoubatteyeh0@gmail.com"
-EMAIL_HOST_PASSWORD = "jzqwbujinupmrfic"
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_USE_TLS", "true").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "ayoubatteyeh0@gmail.com")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "jzqwbujinupmrfic")
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)

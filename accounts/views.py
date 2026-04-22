@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.views import LoginView, LogoutView
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.views import LoginView
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import models
 from django.db.utils import ProgrammingError
@@ -13,13 +14,13 @@ from django.views.decorators.http import require_POST
 from datetime import timedelta
 
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.generic import TemplateView
+import random
 
 from .forms import (
+    AdminEditUserForm,
     ArchiveForm,
     ConnexionForm,
     EmailChangeForm,
@@ -94,7 +95,7 @@ class PersonnelRequiredMixin(UserPassesTestMixin):
     Mixin qui restreint l'accès à l'espace personnel aux assistants pédagogiques
     (et admins système via staff/superuser ou groupe).
     """
-    login_url = "connexion"
+    login_url = "connexion_personnel"
 
     def test_func(self):
         return user_est_assistant(self.request.user)
@@ -102,7 +103,7 @@ class PersonnelRequiredMixin(UserPassesTestMixin):
 
 class EtudiantRequiredMixin(UserPassesTestMixin):
     """Mixin qui restreint l'accès à l'espace étudiant aux utilisateurs avec profil Étudiant."""
-    login_url = "connexion"
+    login_url = "connexion_etudiant"
 
     def test_func(self):
         return user_est_etudiant(self.request.user)
@@ -140,18 +141,24 @@ def inscription(request):
             user.is_active = False
             user.save(update_fields=["is_active"])
 
-            # Envoi de l'email de confirmation
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            confirm_url = request.build_absolute_uri(
-                reverse("confirmer_email", args=[uid, token])
-            )
-            sujet = "Confirmez votre adresse email - SIGAUD"
+            # Envoi d'un code OTP à 6 chiffres par email
+            code = f"{random.randint(0, 999999):06d}"
+            expires_at = timezone.now() + timedelta(minutes=15)
+            request.session["inscription_verification"] = {
+                "user_id": user.pk,
+                "email": user.email,
+                "code": code,
+                "expires_at": expires_at.isoformat(),
+            }
+            request.session.modified = True
+
+            sujet = "Code de vérification - SIGAUD"
             message = (
                 "Bonjour,\n\n"
                 "Vous venez de créer un compte sur SIGAUD avec cette adresse email.\n"
-                "Pour confirmer que cette adresse existe bien et vous appartient, cliquez sur le lien ci-dessous :\n\n"
-                f"{confirm_url}\n\n"
+                "Saisissez ce code de vérification pour activer votre compte :\n\n"
+                f"{code}\n\n"
+                "Ce code expire dans 15 minutes.\n\n"
                 "Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.\n\n"
                 "Cordialement,\n"
                 "L'équipe SIGAUD"
@@ -166,9 +173,9 @@ def inscription(request):
             messages.success(
                 request,
                 "Votre compte a été créé. Un email de confirmation vient d'être envoyé. "
-                "Cliquez sur le lien dans ce mail pour activer votre compte.",
+                "Saisissez le code à 6 chiffres reçu pour activer votre compte.",
             )
-            return redirect("connexion")
+            return redirect("verifier_code_inscription")
     else:
         form = EtudiantRegistrationForm()
 
@@ -192,33 +199,78 @@ def inscription(request):
     )
 
 
-def confirmer_email(request, uidb64, token):
+def verifier_code_inscription(request):
     """
-    Active le compte après clic sur le lien reçu par email.
+    Active le compte après saisie d'un code de vérification à 6 chiffres.
     """
-    from django.contrib.auth.models import User
+    payload = request.session.get("inscription_verification")
+    if not payload:
+        messages.info(request, "Aucune vérification en cours. Merci de vous inscrire.")
+        return redirect("inscription")
 
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
+    email = payload.get("email", "")
+    code_input = ""
 
-    if user is not None and default_token_generator.check_token(user, token):
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
-        messages.success(
-            request,
-            "Votre adresse email a été confirmée. Vous pouvez maintenant vous connecter.",
-        )
-        return redirect("connexion")
+    if request.method == "POST":
+        action = request.POST.get("action", "verify")
+        User = get_user_model()
+        try:
+            user = User.objects.get(pk=payload.get("user_id"))
+        except User.DoesNotExist:
+            request.session.pop("inscription_verification", None)
+            messages.error(request, "Session de vérification invalide. Merci de vous réinscrire.")
+            return redirect("inscription")
 
-    messages.error(
+        if action == "resend":
+            new_code = f"{random.randint(0, 999999):06d}"
+            expires_at = timezone.now() + timedelta(minutes=15)
+            payload.update({"code": new_code, "expires_at": expires_at.isoformat()})
+            request.session["inscription_verification"] = payload
+            request.session.modified = True
+
+            sujet = "Nouveau code de vérification - SIGAUD"
+            message = (
+                "Bonjour,\n\n"
+                "Voici votre nouveau code de vérification SIGAUD :\n\n"
+                f"{new_code}\n\n"
+                "Ce code expire dans 15 minutes.\n\n"
+                "Cordialement,\n"
+                "L'équipe SIGAUD"
+            )
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            try:
+                send_mail(sujet, message, from_email, [user.email], fail_silently=True)
+            except Exception:
+                pass
+            messages.success(request, "Un nouveau code a été envoyé à votre adresse email.")
+            return redirect("verifier_code_inscription")
+
+        code_input = (request.POST.get("code") or "").strip()
+        expires_at_raw = payload.get("expires_at")
+        try:
+            expires_at = timezone.datetime.fromisoformat(expires_at_raw)
+            if timezone.is_naive(expires_at):
+                expires_at = timezone.make_aware(expires_at, timezone.get_current_timezone())
+        except Exception:
+            expires_at = timezone.now() - timedelta(seconds=1)
+
+        if timezone.now() > expires_at:
+            messages.error(request, "Le code a expiré. Demandez un nouveau code.")
+        elif code_input != payload.get("code"):
+            messages.error(request, "Code invalide. Vérifiez les 6 chiffres saisis.")
+        else:
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+            request.session.pop("inscription_verification", None)
+            messages.success(request, "Votre adresse email a été confirmée. Vous pouvez vous connecter.")
+            return redirect("connexion_etudiant")
+
+    return render(
         request,
-        "Le lien de confirmation est invalide ou a déjà été utilisé.",
+        "verifier_code_inscription.html",
+        {"email": email, "code_value": code_input},
     )
-    return redirect("inscription")
 
 
 @login_required
@@ -318,6 +370,139 @@ class ConnexionView(LoginView):
         return reverse_lazy("inscription")
 
 
+class ConnexionParRoleView(LoginView):
+    """
+    Vue de connexion générique restreinte à un rôle.
+    """
+
+    template_name = "Connexion.html"
+    authentication_form = ConnexionForm
+    redirect_authenticated_user = False
+    login_space_label = "SIGAUD"
+    show_signup_link = False
+    default_success_url_name = "accueil"
+    enable_login_attempt_limit = False
+
+    def user_is_allowed(self, user):
+        return True
+
+    def _login_attempt_limit_max(self):
+        return int(getattr(settings, "LOGIN_ATTEMPT_LIMIT_MAX", 5))
+
+    def _login_attempt_limit_window(self):
+        return int(getattr(settings, "LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS", 900))
+
+    def _client_ip(self):
+        forwarded_for = self.request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return (self.request.META.get("REMOTE_ADDR") or "unknown").strip()
+
+    def _attempt_cache_key(self):
+        scope = self.__class__.__name__
+        ip = self._client_ip()
+        return f"login_attempts:{scope}:{ip}"
+
+    def _is_locked(self):
+        if not self.enable_login_attempt_limit:
+            return False
+        return int(cache.get(self._attempt_cache_key(), 0) or 0) >= self._login_attempt_limit_max()
+
+    def _record_failed_attempt(self):
+        if not self.enable_login_attempt_limit:
+            return
+        key = self._attempt_cache_key()
+        timeout = self._login_attempt_limit_window()
+        current = int(cache.get(key, 0) or 0)
+        cache.set(key, current + 1, timeout=timeout)
+
+    def _clear_failed_attempts(self):
+        if not self.enable_login_attempt_limit:
+            return
+        cache.delete(self._attempt_cache_key())
+
+    def post(self, request, *args, **kwargs):
+        if self._is_locked():
+            form = self.get_form()
+            wait_minutes = max(1, self._login_attempt_limit_window() // 60)
+            form.add_error(
+                None,
+                f"Trop de tentatives de connexion. Réessayez dans environ {wait_minutes} minute(s).",
+            )
+            return self.form_invalid(form)
+        return super().post(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["login_space_label"] = self.login_space_label
+        ctx["show_signup_link"] = self.show_signup_link
+        return ctx
+
+    def get_success_url(self):
+        url = self.get_redirect_url()
+        if url:
+            return url
+        return reverse_lazy(self.default_success_url_name)
+
+    def form_valid(self, form):
+        user = form.get_user()
+        if not self.user_is_allowed(user):
+            messages.error(
+                self.request,
+                "Cet espace de connexion n'est pas autorisé pour votre compte.",
+            )
+            return self.form_invalid(form)
+        auth_login(self.request, user)
+        self._clear_failed_attempts()
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        if self.request.method == "POST":
+            self._record_failed_attempt()
+        return super().form_invalid(form)
+
+
+class ConnexionEtudiantView(ConnexionParRoleView):
+    login_space_label = "Espace étudiant"
+    show_signup_link = True
+    default_success_url_name = "espace_etudiant"
+
+    def user_is_allowed(self, user):
+        return user_est_etudiant(user)
+
+
+class ConnexionPersonnelView(ConnexionParRoleView):
+    login_space_label = "Espace assistant"
+    show_signup_link = False
+    default_success_url_name = "personnel"
+    enable_login_attempt_limit = True
+
+    def user_is_allowed(self, user):
+        return user_est_assistant(user) and not user_est_admin_sigaud(user)
+
+
+class ConnexionAdminView(ConnexionParRoleView):
+    login_space_label = "Espace administrateur"
+    show_signup_link = False
+    default_success_url_name = "admin_dashboard"
+    enable_login_attempt_limit = True
+
+    def user_is_allowed(self, user):
+        return user_est_admin_sigaud(user)
+
+
+@login_required
+def deconnexion(request):
+    """
+    Déconnecte l'utilisateur puis redirige vers la page de connexion.
+    Accepte GET/POST pour éviter les erreurs CSRF en tunnel de dev.
+    """
+    from django.contrib.auth import logout as auth_logout
+
+    auth_logout(request)
+    return redirect("connexion_etudiant")
+
+
 class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
     """
     Espace personnel réservé aux assistants pédagogiques.
@@ -325,7 +510,7 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
     """
 
     template_name = "personnel.html"
-    login_url = "connexion"
+    login_url = "connexion_personnel"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -398,7 +583,7 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
     Tableau de bord étudiant : sujets de sa filière, recherche, historique.
     """
     template_name = "etudiant.html"
-    login_url = "connexion"
+    login_url = "connexion_etudiant"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -799,15 +984,18 @@ def noter_archive_etudiant(request, pk: int):
         note = int(request.POST.get("note") or 0)
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "invalid"}, status=400)
-    if note < 1 or note > 5:
+    if note < 0 or note > 5:
         return JsonResponse({"ok": False, "error": "invalid"}, status=400)
     qs = _archives_queryset_for_etudiant(request)
     archive = get_object_or_404(qs, pk=pk)
-    NoteArchive.objects.update_or_create(
-        user=request.user,
-        archive=archive,
-        defaults={"note": note},
-    )
+    if note == 0:
+        NoteArchive.objects.filter(user=request.user, archive=archive).delete()
+    else:
+        NoteArchive.objects.update_or_create(
+            user=request.user,
+            archive=archive,
+            defaults={"note": note},
+        )
     agg = NoteArchive.objects.filter(archive=archive).aggregate(avg=Avg("note"), n=Count("id"))
     avg = agg["avg"]
     return JsonResponse(
@@ -815,7 +1003,7 @@ def noter_archive_etudiant(request, pk: int):
             "ok": True,
             "moyenne": round(float(avg), 1) if avg is not None else None,
             "nb_votes": agg["n"] or 0,
-            "user_note": note,
+            "user_note": note or None,
         }
     )
 
@@ -1013,6 +1201,7 @@ def modifier_archive(request, pk: int):
 
 
 @login_required
+@require_POST
 def supprimer_archive(request, pk: int):
     qs = _archives_queryset_for_user(request)
     archive = get_object_or_404(qs, pk=pk)
@@ -1238,13 +1427,59 @@ def admin_add_user(request):
             if action == "add_another":
                 return redirect("admin_add_user")
             if action == "continue":
-                from django.urls import reverse
-                try:
-                    return redirect("admin:auth_user_change", new_user.pk)
-                except Exception:
-                    return redirect("admin_utilisateurs")
+                return redirect("admin_modifier_utilisateur", pk=new_user.pk)
             return redirect("admin_utilisateurs")
     return render(request, "admin_add_user.html", {"form": form})
+
+
+@login_required
+def admin_modifier_utilisateur(request, pk: int):
+    """Edition d'un utilisateur dans l'UI admin SIGAUD (sans admin Django)."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=pk)
+
+    form = AdminEditUserForm(target_user)
+    if request.method == "POST":
+        form = AdminEditUserForm(target_user, request.POST)
+        if form.is_valid():
+            updated_user = form.save()
+            messages.success(
+                request,
+                f"L'utilisateur « {updated_user.username} » a été mis à jour.",
+            )
+            action = request.POST.get("_action", "save")
+            if action == "continue":
+                return redirect("admin_modifier_utilisateur", pk=updated_user.pk)
+            return redirect("admin_utilisateurs")
+
+    return render(
+        request,
+        "admin_modifier_utilisateur.html",
+        {"form": form, "target_user": target_user},
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_utilisateur(request, pk: int):
+    """Suppression d'un utilisateur depuis l'interface admin SIGAUD."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=pk)
+
+    if target_user.pk == request.user.pk:
+        messages.error(request, "Vous ne pouvez pas supprimer votre propre compte connecté.")
+        return redirect("admin_modifier_utilisateur", pk=target_user.pk)
+
+    username = target_user.username
+    target_user.delete()
+    messages.success(request, f"L'utilisateur « {username} » a été supprimé.")
+    return redirect("admin_utilisateurs")
 
 
 @login_required

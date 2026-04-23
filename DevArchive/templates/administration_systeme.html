@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Administration système — SIGAUD</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <style>
+    :root {
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body.admin-sigaud { margin: 0; min-height: 100vh; display: flex; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .main-header { padding: 24px 28px; border-bottom: 1px solid var(--border); background: #fff; }
+    .main-header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+    .main-header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+    .main-content { flex: 1; padding: 24px 28px; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head { padding: 14px 16px; border-bottom: 1px solid var(--border); background: #fafafa; }
+    .card-head h2 { margin: 0; font-size: 15px; font-weight: 800; }
+    .card-body { padding: 16px; }
+    .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .kpi { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff; }
+    .kpi .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .kpi .value { margin-top: 4px; font-size: 22px; font-weight: 800; color: #4c1d95; }
+    .note {
+      border: 1px solid #ddd6fe;
+      background: #f5f3ff;
+      color: #4c1d95;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .action-list { list-style: none; padding: 0; margin: 0; }
+    .action-list li { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .action-list li:last-child { border-bottom: none; }
+    .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; color: #fff; }
+    .btn-secondary { background: #fff; border-color: var(--border); color: var(--text); }
+    .main-footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; text-align: center; background: #fff; }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
+  <aside class="sidebar">
+    {% include 'includes/admin_sidebar_brand.html' %}
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}"><span class="icon">👥</span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}" class="active"><span class="icon">⚙</span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {% with a=user.first_name|slice:":1" b=user.last_name|slice:":1" %}
+          {% if a or b %}{{ a }}{{ b }}{% else %}{{ user.username|default:"?"|slice:":2" }}{% endif %}
+        {% endwith %}
+      </div>
+      <div>
+        <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
+        <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
+        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="main-header">
+      <h1>Administration système</h1>
+      <p>Centre système SIGAUD — version sécurisée sans pages techniques Django.</p>
+    </header>
+
+    <div class="main-content">
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <h2>État de la plateforme</h2>
+          </div>
+          <div class="card-body">
+            <div class="kpis">
+              <div class="kpi">
+                <div class="label">Actions récentes</div>
+                <div class="value">{{ recent_actions|length }}</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Quota corrigés</div>
+                <div class="value">{{ corrige_gratuits_max }}</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Mode</div>
+                <div class="value" style="font-size:18px;">SIGAUD</div>
+              </div>
+            </div>
+
+            <div class="note">
+              Les pages techniques de l’admin Django ont été retirées du parcours utilisateur.
+              Toutes les actions opérationnelles passent désormais par les écrans SIGAUD.
+            </div>
+
+            <div class="btn-row">
+              <a href="{% url 'admin_utilisateurs' %}" class="btn btn-primary">Gérer les utilisateurs</a>
+              <a href="{% url 'admin_facultes' %}" class="btn btn-secondary">Gérer les structures</a>
+              <a href="{% url 'admin_audit_logs' %}" class="btn btn-secondary">Voir les audits</a>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card">
+          <div class="card-head">
+            <h2>Mes dernières actions</h2>
+          </div>
+          <div class="card-body">
+            <ul class="action-list">
+              {% for log in recent_actions %}
+                <li>
+                  {{ log.object_repr|truncatechars:46 }}
+                  {% if log.content_type %}
+                    <div class="meta">{{ log.content_type.name }} · {{ log.action_time|date:"d/m/Y H:i" }}</div>
+                  {% else %}
+                    <div class="meta">{{ log.action_time|date:"d/m/Y H:i" }}</div>
+                  {% endif %}
+                </li>
+              {% empty %}
+                <li>Aucune action enregistrée.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <footer class="main-footer">© 2026 SIGAUD — Administration système</footer>
+  </main>
+</body>
+</html>

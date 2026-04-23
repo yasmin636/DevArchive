@@ -1,0 +1,341 @@
+/**
+ * SIGAUD — palette unifiée (référence : espace personnel)
+ * Couleurs primaires indigo / violet, arrière-plans slate clairs.
+ * Mode sombre : surfaces slate, texte clair.
+ */
+:root {
+  color-scheme: light;
+  --sigaud-primary: #4f46e5;
+  --sigaud-primary-hover: #4338ca;
+  --sigaud-primary-soft: #eef2ff;
+  --sigaud-violet: #7c3aed;
+  --sigaud-violet-soft: #ede9fe;
+  --sigaud-cyan: #0891b2;
+  --sigaud-cyan-soft: #cffafe;
+  --sigaud-page: #f1f5f9;
+  --sigaud-surface: #ffffff;
+  --sigaud-text: #1e293b;
+  --sigaud-muted: #64748b;
+  --sigaud-border: #e2e8f0;
+  --sigaud-sidebar: #1e293b;
+  --sigaud-sidebar-muted: #94a3b8;
+  --sigaud-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --bs-primary: #4f46e5;
+  --bs-primary-rgb: 79, 70, 229;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --sigaud-primary: #818cf8;
+  --sigaud-primary-hover: #6366f1;
+  --sigaud-primary-soft: rgba(129, 140, 248, 0.15);
+  --sigaud-violet: #a78bfa;
+  --sigaud-violet-soft: rgba(167, 139, 250, 0.12);
+  --sigaud-cyan: #22d3ee;
+  --sigaud-cyan-soft: rgba(34, 211, 238, 0.12);
+  --sigaud-page: #0f172a;
+  --sigaud-surface: #1e293b;
+  --sigaud-text: #f1f5f9;
+  --sigaud-muted: #94a3b8;
+  --sigaud-border: #334155;
+  --sigaud-sidebar: #020617;
+  --sigaud-sidebar-muted: #94a3b8;
+  --sigaud-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --bs-primary: #818cf8;
+  --bs-primary-rgb: 129, 140, 248;
+}
+
+/* Accueil / pages publiques */
+body.sigaud-themed {
+  background-color: var(--sigaud-page);
+  color: var(--sigaud-text);
+}
+
+/* Fond page d’accueil : géré dans accueil.css (.accueil-bg) */
+
+/* Bouton thème (icône) */
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--sigaud-border);
+  background: var(--sigaud-surface);
+  color: var(--sigaud-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--sigaud-primary);
+  color: var(--sigaud-primary);
+  background: var(--sigaud-primary-soft);
+}
+
+.theme-toggle-btn i {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 575.98px) {
+  .theme-toggle-btn .theme-toggle-label {
+    display: none !important;
+  }
+}
+
+/* Bouton thème fixe (connexion, admin) */
+.theme-toggle-fixed {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10050;
+  box-shadow: var(--sigaud-shadow);
+}
+
+/* Pages admin (styles inline) — mode sombre cohérent avec Sigaud */
+html[data-theme="dark"] body.admin-sigaud {
+  background: var(--sigaud-page) !important;
+  color: var(--sigaud-text) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .main-header,
+html[data-theme="dark"] body.admin-sigaud .main-footer {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+  color: var(--sigaud-text);
+}
+html[data-theme="dark"] body.admin-sigaud .main-header h1,
+html[data-theme="dark"] body.admin-sigaud .content-header h1 {
+  color: var(--sigaud-text);
+}
+html[data-theme="dark"] body.admin-sigaud .main-header .sub {
+  color: var(--sigaud-muted) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .main-content,
+html[data-theme="dark"] body.admin-sigaud .content-main {
+  background: transparent;
+  color: var(--sigaud-text);
+}
+html[data-theme="dark"] body.admin-sigaud .panel,
+html[data-theme="dark"] body.admin-sigaud .overview-card,
+html[data-theme="dark"] body.admin-sigaud .card,
+html[data-theme="dark"] body.admin-sigaud .table-wrap {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+  color: var(--sigaud-text);
+}
+html[data-theme="dark"] body.admin-sigaud ul.notifications li {
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud table th,
+html[data-theme="dark"] body.admin-sigaud .admin-table th {
+  background: var(--sigaud-page) !important;
+  color: var(--sigaud-muted) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud table td,
+html[data-theme="dark"] body.admin-sigaud .admin-table td {
+  border-color: var(--sigaud-border) !important;
+  color: var(--sigaud-text);
+}
+html[data-theme="dark"] body.admin-sigaud tbody tr:hover td,
+html[data-theme="dark"] body.admin-sigaud .admin-table tbody tr:hover {
+  background: rgba(148, 163, 184, 0.08) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .search-wrap {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .btn-icon {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+  color: var(--sigaud-text) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .filter-sidebar {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-wrap {
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.95) 0%, var(--sigaud-surface) 45%, var(--sigaud-surface) 100%) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-hero,
+html[data-theme="dark"] body.admin-sigaud .sys-admin-hero-inner {
+  background: var(--sigaud-surface) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-title {
+  color: var(--sigaud-text) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-lead,
+html[data-theme="dark"] body.admin-sigaud .sys-admin-note {
+  color: var(--sigaud-muted) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-feature {
+  background: var(--sigaud-page) !important;
+  border-color: var(--sigaud-border) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-feature h3 {
+  color: var(--sigaud-text) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-feature p {
+  color: var(--sigaud-muted) !important;
+}
+html[data-theme="dark"] body.admin-sigaud .sys-admin-actions {
+  background: var(--sigaud-page) !important;
+  border-color: var(--sigaud-border) !important;
+}
+
+/* Admin Sigaud — mode clair : arrière-plan à ronds (points + halos) */
+html[data-theme="light"] body.admin-sigaud {
+  background-color: #ede9fe;
+  background-image:
+    radial-gradient(ellipse 95% 60% at 50% -12%, rgba(76, 29, 149, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(91, 33, 182, 0.16), transparent 48%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(59, 7, 100, 0.14), transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(91, 33, 182, 0.11) 1.5px, transparent 2px),
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.06) 2px, transparent 3px);
+  background-size: auto, auto, auto, 26px 26px, 52px 52px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 13px 13px;
+}
+
+/* Marque SIGAUD — barre latérale admin (tous les templates) */
+body.admin-sigaud .sidebar-brand-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+body.admin-sigaud .sidebar-brand-sigaud {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  color: #faf5ff;
+  line-height: 1.15;
+}
+body.admin-sigaud .sidebar-brand-ud {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.2;
+}
+body.admin-sigaud .sidebar-brand-sub {
+  margin-left: 56px;
+}
+
+/* Admin — mode sombre : sidebar et variables alignées sur la palette sombre */
+html[data-theme="dark"] body.admin-sigaud {
+  --sidebar-bg: #0f172a;
+  --sidebar-bg-active: #1e293b;
+  --sidebar-muted: #94a3b8;
+  --sidebar-text: #f1f5f9;
+  --text: var(--sigaud-text);
+  --muted: var(--sigaud-muted);
+  --border: var(--sigaud-border);
+  --card: var(--sigaud-surface);
+  --primary: #a78bfa;
+  --primary-dark: #7c3aed;
+}
+
+html[data-theme="dark"] body.admin-sigaud .sidebar,
+html[data-theme="dark"] body.admin-sigaud .sidebar-brand,
+html[data-theme="dark"] body.admin-sigaud .sidebar-user {
+  background: var(--sidebar-bg) !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .sidebar-brand {
+  border-bottom-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .sidebar-user {
+  border-top-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .sidebar-avatar {
+  background: var(--sidebar-bg-active) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .pill {
+  background: rgba(129, 140, 248, 0.18) !important;
+  color: #e9d5ff !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .badge-success {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #86efac !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .badge-warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fcd34d !important;
+}
+
+/* KPI dashboard — cartes carrées en mode sombre (intérieur sombre, bordure arc-en-ciel conservée) */
+html[data-theme="dark"] body.admin-sigaud .overview-card {
+  background: var(--sigaud-surface) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .overview-card::after {
+  background: radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.15), transparent 62%);
+}
+
+html[data-theme="dark"] body.admin-sigaud .overview-kpi-frame:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] body.admin-sigaud .kpi-icon-users {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #93c5fd !important;
+}
+html[data-theme="dark"] body.admin-sigaud .kpi-icon-docs {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #86efac !important;
+}
+html[data-theme="dark"] body.admin-sigaud .kpi-icon-fac {
+  background: rgba(6, 182, 212, 0.2) !important;
+  color: #67e8f9 !important;
+}
+html[data-theme="dark"] body.admin-sigaud .kpi-icon-fil {
+  background: rgba(139, 92, 246, 0.22) !important;
+  color: #c4b5fd !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .btn-add-user {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+html[data-theme="dark"] body.admin-sigaud .btn-structures {
+  background: var(--sigaud-page) !important;
+  border-color: var(--sigaud-border) !important;
+  color: var(--sigaud-text) !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .table-avatar {
+  background: linear-gradient(145deg, #312e81, #4c1d95) !important;
+  color: #e9d5ff !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .role-pill.role-admin {
+  background: rgba(129, 140, 248, 0.2) !important;
+  color: #c4b5fd !important;
+}
+html[data-theme="dark"] body.admin-sigaud .role-pill.role-student {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+}
+html[data-theme="dark"] body.admin-sigaud .role-pill.role-teacher {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fcd34d !important;
+}
+html[data-theme="dark"] body.admin-sigaud .role-pill.role-assistant {
+  background: rgba(236, 72, 153, 0.18) !important;
+  color: #f9a8d4 !important;
+}
+html[data-theme="dark"] body.admin-sigaud .role-pill.role-user {
+  background: rgba(148, 163, 184, 0.15) !important;
+  color: var(--sigaud-muted) !important;
+}

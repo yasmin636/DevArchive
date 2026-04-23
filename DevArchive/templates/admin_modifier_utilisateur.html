@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modifier utilisateur — Admin Sigaud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <style>
+    :root {
+      --primary: #5b21b6;
+      --primary-soft: #ede9fe;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body.admin-sigaud { margin: 0; min-height: 100vh; display: flex; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+    .content-main { flex: 1; padding: 24px; min-width: 0; max-width: 980px; width: 100%; margin: 0 auto; }
+    .content-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+    .content-header h1 { margin: 0; font-size: 24px; font-weight: 800; color: var(--text); }
+    .content-header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 10px; text-decoration: none;
+      border: 1px solid var(--border); color: var(--text); background: #fff;
+      font-weight: 600; font-size: 13px;
+    }
+    .btn-back:hover { background: #f8fafc; color: var(--text); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    }
+    .card-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+    .card-body { padding: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-full { grid-column: 1 / -1; }
+    .field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .admin-input, .admin-select {
+      width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff;
+      padding: 10px 12px; font-size: 14px; color: var(--text);
+    }
+    .admin-input:focus, .admin-select:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+    }
+    .switches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .check-item {
+      display: flex; align-items: center; gap: 10px;
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff;
+    }
+    .check-item label { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: normal; }
+    .admin-check { width: 16px; height: 16px; }
+    .groups-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafafa;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 14px;
+    }
+    .groups-wrap label { margin: 0; font-size: 13px; font-weight: 500; color: var(--text); text-transform: none; letter-spacing: normal; }
+    .errors { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-size: 13px; }
+    .error-text { color: #b91c1c; font-size: 12px; }
+    .actions {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .actions-left, .actions-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 14px; border-radius: 10px; border: 1px solid transparent;
+      font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none;
+    }
+    .btn-secondary { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-primary { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35); }
+    .btn-primary:hover { background: #1d4ed8; color: #fff; }
+    .btn-danger { background: #dc2626; color: #fff; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3); }
+    .btn-danger:hover { background: #b91c1c; color: #fff; }
+    .meta-row { margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; background: var(--primary-soft); color: #4c1d95; font-size: 13px; }
+    .alert-success {
+      margin-bottom: 12px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534;
+      border-radius: 10px; padding: 10px 12px; font-size: 13px;
+    }
+    @media (max-width: 900px) {
+      .grid, .switches, .groups-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
+  <aside class="sidebar">
+    {% include 'includes/admin_sidebar_brand.html' %}
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}" class="active"><span class="icon">👥</span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}"><span class="icon">⚙</span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {% with a=user.first_name|slice:":1" b=user.last_name|slice:":1" %}
+          {% if a or b %}{{ a }}{{ b }}{% else %}{{ user.username|default:"?"|slice:":2" }}{% endif %}
+        {% endwith %}
+      </div>
+      <div>
+        <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
+        <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
+        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="content-main">
+      <header class="content-header">
+        <div>
+          <h1>Modifier utilisateur</h1>
+          <p>Gestion du compte « {{ target_user.username }} » dans l'interface SIGAUD.</p>
+        </div>
+        <a href="{% url 'admin_utilisateurs' %}" class="btn-back">← Retour à la liste</a>
+      </header>
+
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == "success" %}
+            <div class="alert-success">{{ message }}</div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Profil et autorisations</h2>
+        </div>
+        <div class="card-body">
+          <div class="meta-row">
+            ID utilisateur : <strong>{{ target_user.pk }}</strong> · Date d'inscription : <strong>{{ target_user.date_joined|date:"d/m/Y H:i" }}</strong>
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="errors">
+              {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+            </div>
+          {% endif %}
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="grid">
+              <div class="field">
+                <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% for err in form.username.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+              </div>
+              <div class="field">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% for err in form.email.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+              </div>
+              <div class="field">
+                <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                {{ form.first_name }}
+              </div>
+              <div class="field">
+                <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                {{ form.last_name }}
+              </div>
+            </div>
+
+            <div class="field field-full" style="margin-top: 14px;">
+              <label>Statuts</label>
+              <div class="switches">
+                <div class="check-item">{{ form.is_active }} <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label></div>
+                <div class="check-item">{{ form.is_staff }} <label for="{{ form.is_staff.id_for_label }}">{{ form.is_staff.label }}</label></div>
+                <div class="check-item">{{ form.is_superuser }} <label for="{{ form.is_superuser.id_for_label }}">{{ form.is_superuser.label }}</label></div>
+              </div>
+            </div>
+
+            <div class="field field-full" style="margin-top: 14px;">
+              <label>Groupes</label>
+              <div class="groups-wrap">
+                {{ form.groups }}
+              </div>
+            </div>
+
+            <div class="field field-full" style="margin-top: 14px;">
+              <label for="{{ form.assistant_filiere.id_for_label }}">{{ form.assistant_filiere.label }}</label>
+              {{ form.assistant_filiere }}
+              <div style="font-size:12px;color:var(--muted);margin-top:6px;">
+                Choisir une filière crée/met à jour le profil assistant pédagogique. Laisser vide pour retirer ce profil.
+              </div>
+            </div>
+
+            <div class="actions">
+              <div class="actions-left">
+                {% if target_user.pk != user.pk %}
+                <button
+                  type="submit"
+                  class="btn btn-danger"
+                  formaction="{% url 'admin_supprimer_utilisateur' target_user.pk %}"
+                  formmethod="post"
+                  onclick="return confirm('Supprimer définitivement cet utilisateur ? Cette action est irréversible.');"
+                >
+                  Supprimer
+                </button>
+                {% endif %}
+              </div>
+              <div class="actions-right">
+                <a href="{% url 'admin_utilisateurs' %}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" name="_action" value="save" class="btn btn-primary">Enregistrer</button>
+                <button type="submit" name="_action" value="continue" class="btn btn-secondary">Enregistrer et continuer</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,4 +1,4 @@
-body { margin: 0; font-size: 0.9rem; }
+body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(--sigaud-text); }
 
 #sidebar {
   position: fixed;
@@ -6,7 +6,7 @@ body { margin: 0; font-size: 0.9rem; }
   top: 0;
   bottom: 0;
   width: 260px;
-  background: #1e293b;
+  background: var(--sigaud-sidebar);
   color: #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -37,7 +37,7 @@ body { margin: 0; font-size: 0.9rem; }
 .logo-text small {
   display: block;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--sigaud-sidebar-muted);
   font-weight: 400;
 }
 
@@ -53,7 +53,7 @@ body { margin: 0; font-size: 0.9rem; }
   padding: 0.5rem 1.25rem;
   font-size: 0.7rem;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--sigaud-sidebar-muted);
 }
 
 .sidebar-nav a {
@@ -79,17 +79,17 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .nav-badge.purple {
-  background: #7c3aed;
+  background: var(--sigaud-violet);
   color: #fff;
 }
 
 .nav-badge.cyan {
-  background: #0891b2;
+  background: var(--sigaud-cyan);
   color: #fff;
 }
 
 .nav-badge.gray {
-  background: #64748b;
+  background: var(--sigaud-muted);
   color: #fff;
 }
 
@@ -109,7 +109,7 @@ body { margin: 0; font-size: 0.9rem; }
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #0d6efd;
+  background: var(--sigaud-primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -125,7 +125,7 @@ body { margin: 0; font-size: 0.9rem; }
 
 .user-role {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--sigaud-sidebar-muted);
 }
 
 .logout-btn {
@@ -157,13 +157,13 @@ body { margin: 0; font-size: 0.9rem; }
 #main {
   margin-left: 260px;
   min-height: 100vh;
-  background: #f1f5f9;
+  background: var(--sigaud-page);
 }
 
 .topbar {
-  background: #fff;
+  background: var(--sigaud-surface);
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--sigaud-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -178,7 +178,7 @@ body { margin: 0; font-size: 0.9rem; }
 .topbar-title small {
   display: block;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--sigaud-muted);
   font-weight: 400;
 }
 
@@ -187,13 +187,13 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .stat-card {
-  background: #fff;
+  background: var(--sigaud-surface);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--sigaud-shadow);
 }
 
 .stat-icon {
@@ -212,11 +212,11 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .stat-icon.purple {
-  background: #7c3aed;
+  background: var(--sigaud-violet);
 }
 
 .stat-icon.cyan {
-  background: #0891b2;
+  background: var(--sigaud-cyan);
 }
 
 .stat-icon.green {
@@ -226,19 +226,19 @@ body { margin: 0; font-size: 0.9rem; }
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--sigaud-text);
 }
 
 .stat-label {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--sigaud-muted);
 }
 
 .section-card {
-  background: #fff;
+  background: var(--sigaud-surface);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--sigaud-shadow);
   margin-bottom: 1rem;
 }
 
@@ -260,35 +260,36 @@ body { margin: 0; font-size: 0.9rem; }
 .arch-table th {
   text-align: left;
   padding: 0.6rem;
-  border-bottom: 1px solid #e2e8f0;
-  color: #64748b;
+  border-bottom: 1px solid var(--sigaud-border);
+  color: var(--sigaud-muted);
   font-weight: 600;
 }
 
 .arch-table td {
   padding: 0.6rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--sigaud-border);
+  color: var(--sigaud-text);
 }
 
 .badge-cc {
-  background: #ede9fe;
-  color: #7c3aed;
+  background: var(--sigaud-violet-soft);
+  color: var(--sigaud-violet);
   padding: 0.2rem 0.5rem;
   border-radius: 0.35rem;
   font-size: 0.75rem;
 }
 
 .badge-exam {
-  background: #cffafe;
-  color: #0891b2;
+  background: var(--sigaud-cyan-soft);
+  color: var(--sigaud-cyan);
   padding: 0.2rem 0.5rem;
   border-radius: 0.35rem;
   font-size: 0.75rem;
 }
 
 .badge-annee {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--sigaud-page);
+  color: var(--sigaud-muted);
   padding: 0.2rem 0.5rem;
   border-radius: 0.35rem;
   font-size: 0.75rem;
@@ -308,7 +309,7 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .action-btn.edit {
-  color: #0d6efd;
+  color: var(--sigaud-primary);
 }
 
 .action-btn.del {
@@ -334,7 +335,7 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .type-card {
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--sigaud-border);
   border-radius: 0.6rem;
   padding: 0.75rem 1.25rem;
   cursor: pointer;
@@ -351,13 +352,13 @@ body { margin: 0; font-size: 0.9rem; }
 }
 
 .type-card.selected-cc {
-  border-color: #7c3aed;
-  background: #ede9fe;
+  border-color: var(--sigaud-violet);
+  background: var(--sigaud-violet-soft);
 }
 
 .type-card.selected-exam {
-  border-color: #0891b2;
-  background: #cffafe;
+  border-color: var(--sigaud-cyan);
+  background: var(--sigaud-cyan-soft);
 }
 
 /* Sur desktop uniquement : quand la sidebar est fermée via le bouton */
@@ -382,6 +383,312 @@ body { margin: 0; font-size: 0.9rem; }
   }
   #main {
     margin-left: 0;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Espace personnel — aligné tableau de bord admin Sigaud
+   (fond lavande + points, sidebar violet, cartes KPI bordure arc-en-ciel)
+   ------------------------------------------------------------------------- */
+
+html[data-theme="light"] body.personnel-layout {
+  background-color: #ede9fe;
+  background-image:
+    radial-gradient(ellipse 95% 60% at 50% -12%, rgba(76, 29, 149, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(91, 33, 182, 0.16), transparent 48%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(59, 7, 100, 0.14), transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(91, 33, 182, 0.11) 1.5px, transparent 2px),
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.06) 2px, transparent 3px);
+  background-size: auto, auto, auto, 26px 26px, 52px 52px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 13px 13px;
+}
+
+html[data-theme="dark"] body.personnel-layout {
+  background-color: var(--sigaud-page);
+}
+
+body.personnel-layout #main {
+  background: transparent;
+}
+
+body.personnel-layout #sidebar {
+  background: linear-gradient(195deg, #1a0528 0%, #1e0b3a 35%, #12051f 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f5f3ff;
+}
+
+html[data-theme="dark"] body.personnel-layout #sidebar {
+  background: #0f172a;
+  border-right-color: rgba(148, 163, 184, 0.12);
+}
+
+body.personnel-layout .sidebar-logo {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.personnel-layout .logo-text {
+  color: #faf5ff;
+}
+
+body.personnel-layout .logo-text small {
+  color: #a78bfa;
+  font-weight: 500;
+}
+
+body.personnel-layout .sidebar-section {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+  padding-top: 0.75rem;
+}
+
+body.personnel-layout .sidebar-nav a {
+  margin: 0 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #f5f3ff;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+body.personnel-layout .sidebar-nav a:hover {
+  background: #4c1d95;
+  color: #fff;
+  transform: translateX(2px);
+}
+
+body.personnel-layout .sidebar-nav a.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 10px 0 0 10px;
+  margin-right: 0;
+  padding-right: 22px;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+body.personnel-layout .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.personnel-layout .user-name {
+  color: #fff;
+}
+
+body.personnel-layout .user-role {
+  color: #a78bfa;
+}
+
+body.personnel-layout .avatar {
+  background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
+}
+
+body.personnel-layout .topbar {
+  background: var(--sigaud-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+body.personnel-layout .section-card {
+  border: 1px solid var(--sigaud-border);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+/* Cartes KPI — cadre dégradé arc-en-ciel (identique logique admin.html) */
+.personnel-kpi-frame {
+  border-radius: 18px;
+  padding: 3px;
+  height: 100%;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.personnel-kpi-frame:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+}
+
+.personnel-kpi-rainbow-1 {
+  background: conic-gradient(
+    from 200deg at 50% 50%,
+    #ef4444,
+    #f97316,
+    #eab308,
+    #22c55e,
+    #06b6d4,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #ef4444
+  );
+}
+
+.personnel-kpi-rainbow-2 {
+  background: conic-gradient(
+    from 20deg at 50% 50%,
+    #f43f5e,
+    #fb923c,
+    #facc15,
+    #4ade80,
+    #2dd4bf,
+    #6366f1,
+    #a855f7,
+    #f43f5e
+  );
+}
+
+.personnel-kpi-rainbow-3 {
+  background: conic-gradient(
+    from 290deg at 50% 50%,
+    #dc2626,
+    #ea580c,
+    #ca8a04,
+    #16a34a,
+    #0891b2,
+    #2563eb,
+    #7c3aed,
+    #db2777,
+    #dc2626
+  );
+}
+
+.personnel-kpi-card {
+  background: #ffffff;
+  border-radius: 15px;
+  border: none;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 220px;
+  margin: 0;
+  padding: 1.1rem 1.15rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.personnel-kpi-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -40% -35% auto;
+  width: 75%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, rgba(91, 33, 182, 0.12), transparent 62%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.personnel-kpi-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.personnel-kpi-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  z-index: 2;
+}
+
+.personnel-kpi-icon-slate {
+  background: rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+.personnel-kpi-icon-purple {
+  background: rgba(139, 92, 246, 0.18);
+  color: #6d28d9;
+}
+
+.personnel-kpi-icon-cyan {
+  background: rgba(6, 182, 212, 0.2);
+  color: #0e7490;
+}
+
+.personnel-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sigaud-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: 1.25;
+  padding-right: 3rem;
+}
+
+.personnel-kpi-value {
+  font-size: clamp(1.45rem, 3.8vw, 2rem);
+  font-weight: 800;
+  margin-top: 6px;
+  letter-spacing: -0.02em;
+  color: var(--sigaud-text);
+}
+
+.personnel-kpi-foot {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sigaud-muted);
+}
+
+html[data-theme="dark"] body.personnel-layout .personnel-kpi-card {
+  background: var(--sigaud-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] body.personnel-layout .personnel-kpi-card::after {
+  background: radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.15), transparent 62%);
+}
+
+html[data-theme="dark"] body.personnel-layout .personnel-kpi-frame:hover {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+body.personnel-layout .nav-badge.gray {
+  background: rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+}
+
+.personnel-upload-sujet {
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+.personnel-upload-corrige {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.22) !important;
+}
+
+html[data-theme="dark"] .personnel-upload-sujet {
+  background: rgba(129, 140, 248, 0.08);
+}
+
+html[data-theme="dark"] .personnel-upload-corrige {
+  background: rgba(52, 211, 153, 0.08);
+}
+
+@media (max-width: 768px) {
+  body.personnel-layout .sidebar-nav a {
+    margin: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  body.personnel-layout .sidebar-nav a.active {
+    border-radius: 8px;
+    margin-right: 0;
+    padding-right: 14px;
+    box-shadow: inset 3px 0 0 #60a5fa;
   }
 }
 

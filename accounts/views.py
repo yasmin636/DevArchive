@@ -1,38 +1,34 @@
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.views import LoginView, LogoutView
-<<<<<<< HEAD
-from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
-=======
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.views import LoginView
+from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db import models
 from django.db.utils import ProgrammingError
-from django.http import FileResponse, Http404
+from django.db.models import Avg, Count
+from django.http import FileResponse, Http404, JsonResponse
+from django.views.decorators.http import require_POST
+from datetime import timedelta
+
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.core.mail import send_mail
->>>>>>> page-utilisateur-fonctionnel
 from django.views.generic import TemplateView
+import random
 
 from .forms import (
+    AdminEditUserForm,
     ArchiveForm,
     ConnexionForm,
     EmailChangeForm,
     EtudiantRegistrationForm,
     PasswordChangeFormStyled,
-<<<<<<< HEAD
-)
-from .models import Archive, AssistantPedagogique, Filiere, Niveau
-=======
     ProfilEtudiantForm,
 )
+from .constants import CORRIGE_GRATUITS_MAX
 from .models import (
     Archive,
     AssistantPedagogique,
@@ -48,13 +44,29 @@ from .models import (
     Historique,
     HistoriqueArchive,
     Niveau,
+    NoteArchive,
+    ConsultationCorrigeGratuite,
     TelechargementEtudiant,
 )
->>>>>>> page-utilisateur-fonctionnel
 
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
 GROUPE_ADMIN_SYSTEME = "Administrateur système"
+
+
+def user_est_admin_sigaud(user):
+    """
+    Accès au tableau de bord admin Sigaud (/admin-dashboard/) :
+    superuser Django, ou membre du groupe « Administrateur système ».
+
+    Le simple « Staff » (personnel administratif) n’ouvre pas cet espace :
+    ces comptes vont sur l’espace personnel (personnel.html).
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return user.groups.filter(name=GROUPE_ADMIN_SYSTEME).exists()
 
 
 def user_est_assistant(user):
@@ -69,8 +81,6 @@ def user_est_assistant(user):
     return user.groups.filter(name__in=[GROUPE_ASSISTANT, GROUPE_ADMIN_SYSTEME]).exists()
 
 
-<<<<<<< HEAD
-=======
 def user_est_etudiant(user):
     """True si l'utilisateur a un profil Étudiant (et pas assistant/admin)."""
     if not user.is_authenticated:
@@ -80,32 +90,28 @@ def user_est_etudiant(user):
     return hasattr(user, "etudiant") and user.etudiant is not None
 
 
->>>>>>> page-utilisateur-fonctionnel
 class PersonnelRequiredMixin(UserPassesTestMixin):
     """
     Mixin qui restreint l'accès à l'espace personnel aux assistants pédagogiques
     (et admins système via staff/superuser ou groupe).
     """
-    login_url = "connexion"
+    login_url = "connexion_personnel"
 
     def test_func(self):
         return user_est_assistant(self.request.user)
-<<<<<<< HEAD
-=======
 
 
 class EtudiantRequiredMixin(UserPassesTestMixin):
     """Mixin qui restreint l'accès à l'espace étudiant aux utilisateurs avec profil Étudiant."""
-    login_url = "connexion"
+    login_url = "connexion_etudiant"
 
     def test_func(self):
         return user_est_etudiant(self.request.user)
->>>>>>> page-utilisateur-fonctionnel
 
 
 def accueil(request):
     """
-    Page d'accueil publique de DevArchive.
+    Page d'accueil publique de SIGAUD.
     """
     return render(request, "accueil.html")
 
@@ -135,21 +141,27 @@ def inscription(request):
             user.is_active = False
             user.save(update_fields=["is_active"])
 
-            # Envoi de l'email de confirmation
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            confirm_url = request.build_absolute_uri(
-                reverse("confirmer_email", args=[uid, token])
-            )
-            sujet = "Confirmez votre adresse email - DevArchive"
+            # Envoi d'un code OTP à 6 chiffres par email
+            code = f"{random.randint(0, 999999):06d}"
+            expires_at = timezone.now() + timedelta(minutes=15)
+            request.session["inscription_verification"] = {
+                "user_id": user.pk,
+                "email": user.email,
+                "code": code,
+                "expires_at": expires_at.isoformat(),
+            }
+            request.session.modified = True
+
+            sujet = "Code de vérification - SIGAUD"
             message = (
                 "Bonjour,\n\n"
-                "Vous venez de créer un compte sur DevArchive avec cette adresse email.\n"
-                "Pour confirmer que cette adresse existe bien et vous appartient, cliquez sur le lien ci-dessous :\n\n"
-                f"{confirm_url}\n\n"
+                "Vous venez de créer un compte sur SIGAUD avec cette adresse email.\n"
+                "Saisissez ce code de vérification pour activer votre compte :\n\n"
+                f"{code}\n\n"
+                "Ce code expire dans 15 minutes.\n\n"
                 "Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.\n\n"
                 "Cordialement,\n"
-                "L'équipe DevArchive"
+                "L'équipe SIGAUD"
             )
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
             try:
@@ -161,9 +173,9 @@ def inscription(request):
             messages.success(
                 request,
                 "Votre compte a été créé. Un email de confirmation vient d'être envoyé. "
-                "Cliquez sur le lien dans ce mail pour activer votre compte.",
+                "Saisissez le code à 6 chiffres reçu pour activer votre compte.",
             )
-            return redirect("connexion")
+            return redirect("verifier_code_inscription")
     else:
         form = EtudiantRegistrationForm()
 
@@ -187,37 +199,80 @@ def inscription(request):
     )
 
 
-<<<<<<< HEAD
-=======
-def confirmer_email(request, uidb64, token):
+def verifier_code_inscription(request):
     """
-    Active le compte après clic sur le lien reçu par email.
+    Active le compte après saisie d'un code de vérification à 6 chiffres.
     """
-    from django.contrib.auth.models import User
+    payload = request.session.get("inscription_verification")
+    if not payload:
+        messages.info(request, "Aucune vérification en cours. Merci de vous inscrire.")
+        return redirect("inscription")
 
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
+    email = payload.get("email", "")
+    code_input = ""
 
-    if user is not None and default_token_generator.check_token(user, token):
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
-        messages.success(
-            request,
-            "Votre adresse email a été confirmée. Vous pouvez maintenant vous connecter.",
-        )
-        return redirect("connexion")
+    if request.method == "POST":
+        action = request.POST.get("action", "verify")
+        User = get_user_model()
+        try:
+            user = User.objects.get(pk=payload.get("user_id"))
+        except User.DoesNotExist:
+            request.session.pop("inscription_verification", None)
+            messages.error(request, "Session de vérification invalide. Merci de vous réinscrire.")
+            return redirect("inscription")
 
-    messages.error(
+        if action == "resend":
+            new_code = f"{random.randint(0, 999999):06d}"
+            expires_at = timezone.now() + timedelta(minutes=15)
+            payload.update({"code": new_code, "expires_at": expires_at.isoformat()})
+            request.session["inscription_verification"] = payload
+            request.session.modified = True
+
+            sujet = "Nouveau code de vérification - SIGAUD"
+            message = (
+                "Bonjour,\n\n"
+                "Voici votre nouveau code de vérification SIGAUD :\n\n"
+                f"{new_code}\n\n"
+                "Ce code expire dans 15 minutes.\n\n"
+                "Cordialement,\n"
+                "L'équipe SIGAUD"
+            )
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            try:
+                send_mail(sujet, message, from_email, [user.email], fail_silently=True)
+            except Exception:
+                pass
+            messages.success(request, "Un nouveau code a été envoyé à votre adresse email.")
+            return redirect("verifier_code_inscription")
+
+        code_input = (request.POST.get("code") or "").strip()
+        expires_at_raw = payload.get("expires_at")
+        try:
+            expires_at = timezone.datetime.fromisoformat(expires_at_raw)
+            if timezone.is_naive(expires_at):
+                expires_at = timezone.make_aware(expires_at, timezone.get_current_timezone())
+        except Exception:
+            expires_at = timezone.now() - timedelta(seconds=1)
+
+        if timezone.now() > expires_at:
+            messages.error(request, "Le code a expiré. Demandez un nouveau code.")
+        elif code_input != payload.get("code"):
+            messages.error(request, "Code invalide. Vérifiez les 6 chiffres saisis.")
+        else:
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+            request.session.pop("inscription_verification", None)
+            messages.success(request, "Votre adresse email a été confirmée. Vous pouvez vous connecter.")
+            return redirect("connexion_etudiant")
+
+    return render(
         request,
-        "Le lien de confirmation est invalide ou a déjà été utilisé.",
+        "verifier_code_inscription.html",
+        {"email": email, "code_value": code_input},
     )
-    return redirect("inscription")
 
->>>>>>> page-utilisateur-fonctionnel
+
 @login_required
 def profil(request):
     """
@@ -297,24 +352,155 @@ class ConnexionView(LoginView):
         """
         Priorité :
         1. paramètre ?next=
-        2. tableau de bord admin si staff/superuser
-        3. espace personnel si assistant pédagogique
+        2. tableau de bord admin : superuser ou groupe « Administrateur système » uniquement
+        3. espace personnel (personnel.html) : staff, assistant pédagogique, etc. (via user_est_assistant)
         4. espace étudiant si étudiant
         5. sinon page d'inscription
         """
         url = self.get_redirect_url()
         if url:
             return url
-        if self.request.user.is_staff or self.request.user.is_superuser:
+        u = self.request.user
+        if user_est_admin_sigaud(u):
             return reverse_lazy("admin_dashboard")
-        if user_est_assistant(self.request.user):
+        if user_est_assistant(u):
             return reverse_lazy("personnel")
-<<<<<<< HEAD
-=======
-        if user_est_etudiant(self.request.user):
+        if user_est_etudiant(u):
             return reverse_lazy("espace_etudiant")
->>>>>>> page-utilisateur-fonctionnel
         return reverse_lazy("inscription")
+
+
+class ConnexionParRoleView(LoginView):
+    """
+    Vue de connexion générique restreinte à un rôle.
+    """
+
+    template_name = "Connexion.html"
+    authentication_form = ConnexionForm
+    redirect_authenticated_user = False
+    login_space_label = "SIGAUD"
+    show_signup_link = False
+    default_success_url_name = "accueil"
+    enable_login_attempt_limit = False
+
+    def user_is_allowed(self, user):
+        return True
+
+    def _login_attempt_limit_max(self):
+        return int(getattr(settings, "LOGIN_ATTEMPT_LIMIT_MAX", 5))
+
+    def _login_attempt_limit_window(self):
+        return int(getattr(settings, "LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS", 900))
+
+    def _client_ip(self):
+        forwarded_for = self.request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return (self.request.META.get("REMOTE_ADDR") or "unknown").strip()
+
+    def _attempt_cache_key(self):
+        scope = self.__class__.__name__
+        ip = self._client_ip()
+        return f"login_attempts:{scope}:{ip}"
+
+    def _is_locked(self):
+        if not self.enable_login_attempt_limit:
+            return False
+        return int(cache.get(self._attempt_cache_key(), 0) or 0) >= self._login_attempt_limit_max()
+
+    def _record_failed_attempt(self):
+        if not self.enable_login_attempt_limit:
+            return
+        key = self._attempt_cache_key()
+        timeout = self._login_attempt_limit_window()
+        current = int(cache.get(key, 0) or 0)
+        cache.set(key, current + 1, timeout=timeout)
+
+    def _clear_failed_attempts(self):
+        if not self.enable_login_attempt_limit:
+            return
+        cache.delete(self._attempt_cache_key())
+
+    def post(self, request, *args, **kwargs):
+        if self._is_locked():
+            form = self.get_form()
+            wait_minutes = max(1, self._login_attempt_limit_window() // 60)
+            form.add_error(
+                None,
+                f"Trop de tentatives de connexion. Réessayez dans environ {wait_minutes} minute(s).",
+            )
+            return self.form_invalid(form)
+        return super().post(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["login_space_label"] = self.login_space_label
+        ctx["show_signup_link"] = self.show_signup_link
+        return ctx
+
+    def get_success_url(self):
+        url = self.get_redirect_url()
+        if url:
+            return url
+        return reverse_lazy(self.default_success_url_name)
+
+    def form_valid(self, form):
+        user = form.get_user()
+        if not self.user_is_allowed(user):
+            messages.error(
+                self.request,
+                "Cet espace de connexion n'est pas autorisé pour votre compte.",
+            )
+            return self.form_invalid(form)
+        auth_login(self.request, user)
+        self._clear_failed_attempts()
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        if self.request.method == "POST":
+            self._record_failed_attempt()
+        return super().form_invalid(form)
+
+
+class ConnexionEtudiantView(ConnexionParRoleView):
+    login_space_label = "Espace étudiant"
+    show_signup_link = True
+    default_success_url_name = "espace_etudiant"
+
+    def user_is_allowed(self, user):
+        return user_est_etudiant(user)
+
+
+class ConnexionPersonnelView(ConnexionParRoleView):
+    login_space_label = "Espace assistant"
+    show_signup_link = False
+    default_success_url_name = "personnel"
+    enable_login_attempt_limit = True
+
+    def user_is_allowed(self, user):
+        return user_est_assistant(user) and not user_est_admin_sigaud(user)
+
+
+class ConnexionAdminView(ConnexionParRoleView):
+    login_space_label = "Espace administrateur"
+    show_signup_link = False
+    default_success_url_name = "admin_dashboard"
+    enable_login_attempt_limit = True
+
+    def user_is_allowed(self, user):
+        return user_est_admin_sigaud(user)
+
+
+@login_required
+def deconnexion(request):
+    """
+    Déconnecte l'utilisateur puis redirige vers la page de connexion.
+    Accepte GET/POST pour éviter les erreurs CSRF en tunnel de dev.
+    """
+    from django.contrib.auth import logout as auth_logout
+
+    auth_logout(request)
+    return redirect("connexion_etudiant")
 
 
 class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
@@ -324,7 +510,7 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
     """
 
     template_name = "personnel.html"
-    login_url = "connexion"
+    login_url = "connexion_personnel"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -332,6 +518,13 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         archives = _archives_queryset_for_user(self.request).order_by("-date_archive")
         if assistant:
             ctx["assistant_filiere"] = assistant.filiere
+            ctx["niveaux_qs"] = Niveau.objects.filter(
+                faculte_id=assistant.filiere.faculte_id
+            ).order_by("code", "libelle")
+        else:
+            ctx["niveaux_qs"] = Niveau.objects.select_related("faculte").order_by(
+                "faculte__code", "code"
+            )
         ctx["archive_form"] = ArchiveForm()
         ctx["archives"] = archives
         ctx["stat_total"] = archives.count()
@@ -343,8 +536,6 @@ class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
         return ctx
 
 
-<<<<<<< HEAD
-=======
 def _archives_queryset_for_etudiant(request):
     """Archives visibles par l'étudiant (sa filière et, si renseigné, son niveau)."""
     etudiant = getattr(request.user, "etudiant", None)
@@ -359,12 +550,40 @@ def _archives_queryset_for_etudiant(request):
     ).order_by("-date_archive")
 
 
+def _enrich_sujets_cards(archives_list, user):
+    """Métadonnées pour les cartes « sujets visités » : favoris, moyenne des notes."""
+    out = []
+    for a in archives_list:
+        if a.examen_id:
+            fav_count = Favori.objects.filter(examen_id=a.examen_id).count()
+        else:
+            fav_count = FavoriArchive.objects.filter(archive_id=a.pk).count()
+        agg = NoteArchive.objects.filter(archive=a).aggregate(avg=Avg("note"), n=Count("id"))
+        avg = agg["avg"]
+        n_note = agg["n"] or 0
+        user_note = (
+            NoteArchive.objects.filter(archive=a, user=user)
+            .values_list("note", flat=True)
+            .first()
+        )
+        out.append(
+            {
+                "archive": a,
+                "favori_count": fav_count,
+                "note_moyenne": round(float(avg), 1) if avg is not None else None,
+                "nb_notes": n_note,
+                "user_note": user_note,
+            }
+        )
+    return out
+
+
 class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView):
     """
     Tableau de bord étudiant : sujets de sa filière, recherche, historique.
     """
     template_name = "etudiant.html"
-    login_url = "connexion"
+    login_url = "connexion_etudiant"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -384,7 +603,9 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
         ctx["matieres_list"] = matieres_list
         ctx["matiere_choisie"] = matiere_choisie
         ctx["archives"] = archives
-        ctx["sujets_plus_visites"] = archives[:8]
+        top = list(archives[:8])
+        ctx["sujets_plus_visites"] = top
+        ctx["sujets_cartes"] = _enrich_sujets_cards(top, self.request.user)
         archive_by_examen = {}
         for a in archives:
             if a.examen_id and a.examen_id not in archive_by_examen:
@@ -414,6 +635,7 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
             favori_archive_ids = set()
         ctx["favori_examen_ids"] = favori_examen_ids
         ctx["favori_archive_ids"] = favori_archive_ids
+        ctx.update(_context_quota_corrige(self.request.user))
         return ctx
 
 
@@ -633,7 +855,6 @@ def etudiant_telechargements(request):
     )
 
 
->>>>>>> page-utilisateur-fonctionnel
 @login_required
 def creer_archive(request):
     if request.method != "POST":
@@ -646,12 +867,22 @@ def creer_archive(request):
         if assistant:
             archive.filiere = assistant.filiere.libelle.strip()
         archive.save()
-        messages.success(request, "Le document a été archivé avec succès.")
+        msg_ok = "Le document a été archivé avec succès."
+        if archive.fichier_corrige:
+            msg_ok += (
+                " Le corrigé est joint : les étudiants pourront l’ouvrir avec « Consulter correction » "
+                "après avoir consulté le sujet."
+            )
+        messages.success(request, msg_ok)
     else:
-        # On affiche un message d'erreur lisible pour aider à corriger le formulaire
         msg = "Le formulaire d'archivage contient des erreurs. "
         if form.errors.get("type"):
             msg += "Vous devez sélectionner le type (CC ou Examen Final). "
+        err_parts = []
+        for field, errs in form.errors.items():
+            err_parts.append(f"{field}: {errs.as_text().strip()}")
+        if err_parts:
+            msg += " " + " ".join(err_parts)
         messages.error(request, msg)
     return redirect("personnel")
 
@@ -670,8 +901,6 @@ def voir_archive_pdf(request, pk: int):
     return FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
 
 
-<<<<<<< HEAD
-=======
 @login_required
 def voir_archive_pdf_etudiant(request, pk: int):
     """Permet à un étudiant de consulter le PDF dans le navigateur. nb_vues n'est incrémenté qu'une seule fois par utilisateur (première consultation)."""
@@ -709,6 +938,74 @@ def voir_archive_pdf_etudiant(request, pk: int):
     response = FileResponse(archive.fichier.open("rb"), content_type="application/pdf")
     response["Content-Disposition"] = "inline; filename*=UTF-8''" + _safe_filename(archive)
     return response
+
+
+@login_required
+def voir_corrige_pdf_etudiant(request, pk: int):
+    """Consultation du corrigé PDF (sans incrémenter les vues du sujet)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
+    response["Content-Disposition"] = "inline; filename*=UTF-8''" + _safe_filename_corrige(archive)
+    return response
+
+
+@login_required
+def telecharger_corrige_etudiant(request, pk: int):
+    """Téléchargement du corrigé PDF (même quota que la consultation)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
+    response["Content-Disposition"] = "attachment; filename*=UTF-8''" + _safe_filename_corrige(archive)
+    return response
+
+
+@login_required
+@require_POST
+def noter_archive_etudiant(request, pk: int):
+    """Enregistre une note 1–5 sur une archive (AJAX JSON)."""
+    if not user_est_etudiant(request.user):
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+    try:
+        note = int(request.POST.get("note") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "invalid"}, status=400)
+    if note < 0 or note > 5:
+        return JsonResponse({"ok": False, "error": "invalid"}, status=400)
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if note == 0:
+        NoteArchive.objects.filter(user=request.user, archive=archive).delete()
+    else:
+        NoteArchive.objects.update_or_create(
+            user=request.user,
+            archive=archive,
+            defaults={"note": note},
+        )
+    agg = NoteArchive.objects.filter(archive=archive).aggregate(avg=Avg("note"), n=Count("id"))
+    avg = agg["avg"]
+    return JsonResponse(
+        {
+            "ok": True,
+            "moyenne": round(float(avg), 1) if avg is not None else None,
+            "nb_votes": agg["n"] or 0,
+            "user_note": note or None,
+        }
+    )
 
 
 @login_required
@@ -792,6 +1089,48 @@ def _safe_filename(archive) -> str:
     return quote(base + ".pdf", safe="")
 
 
+def _safe_filename_corrige(archive) -> str:
+    from urllib.parse import quote
+    base = (archive.title or "document").strip()
+    base = "".join(c if c.isalnum() or c in ".-_ " else "_" for c in base)[:80].strip() or "document"
+    return quote(base + "_corrige.pdf", safe="")
+
+
+def _context_quota_corrige(user):
+    """IDs d'archives dont le corrigé a déjà été « débloqué » + places restantes."""
+    ids = list(
+        ConsultationCorrigeGratuite.objects.filter(user=user).values_list(
+            "archive_id", flat=True
+        )
+    )
+    n = len(ids)
+    return {
+        "corrige_archives_debloques": ids,
+        "corrige_gratuits_restants": max(0, CORRIGE_GRATUITS_MAX - n),
+        "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+    }
+
+
+def _reserver_accès_corrige_gratuit(request, archive):
+    """
+    Autorise l'accès au corrigé : au plus CORRIGE_GRATUITS_MAX archives distinctes
+    par utilisateur ; les réouvertures du même corrigé restent gratuites.
+    Retourne une HttpResponse 403 si quota dépassé, sinon None.
+    """
+    user = request.user
+    if ConsultationCorrigeGratuite.objects.filter(user=user, archive=archive).exists():
+        return None
+    if ConsultationCorrigeGratuite.objects.filter(user=user).count() >= CORRIGE_GRATUITS_MAX:
+        return render(
+            request,
+            "corrige_quota_depasse.html",
+            {"max_corrige": CORRIGE_GRATUITS_MAX},
+            status=403,
+        )
+    ConsultationCorrigeGratuite.objects.create(user=user, archive=archive)
+    return None
+
+
 @login_required
 def toggle_favori_etudiant(request, pk: int):
     """Ajoute ou retire une archive des favoris (par examen si lié, sinon par archive directe)."""
@@ -838,7 +1177,6 @@ def retirer_favori_etudiant(request, examen_id: int):
     return redirect(next_url)
 
 
->>>>>>> page-utilisateur-fonctionnel
 def _archives_queryset_for_user(request):
     assistant = getattr(request.user, "assistant_pedagogique", None)
     qs = Archive.objects.all()
@@ -863,6 +1201,7 @@ def modifier_archive(request, pk: int):
 
 
 @login_required
+@require_POST
 def supprimer_archive(request, pk: int):
     qs = _archives_queryset_for_user(request)
     archive = get_object_or_404(qs, pk=pk)
@@ -896,80 +1235,108 @@ def _format_activity_ago(dt):
     return f"il y a {d} j"
 
 
+def _dashboard_user_role(user):
+    """Badge rôle pour le tableau de bord (étudiant, enseignant, etc.)."""
+    from django.core.exceptions import ObjectDoesNotExist
+
+    if user.is_superuser:
+        return "admin", "Admin"
+    try:
+        user.etudiant
+        return "student", "Étudiant"
+    except ObjectDoesNotExist:
+        pass
+    try:
+        user.assistant_pedagogique
+        return "assistant", "Assistant"
+    except ObjectDoesNotExist:
+        pass
+    if user.is_staff:
+        return "teacher", "Enseignant"
+    return "user", "Utilisateur"
+
+
+def _growth_pct(recent_count, prev_count):
+    """Pourcentage d’évolution entre deux périodes (30 j glissants)."""
+    if prev_count == 0:
+        return None if recent_count == 0 else 100
+    return round((recent_count - prev_count) / prev_count * 100)
+
+
+def _redirect_si_pas_admin_sigaud(request):
+    """Redirige vers l'accueil avec message si l'utilisateur n'a pas accès admin Sigaud."""
+    if user_est_admin_sigaud(request.user):
+        return None
+    messages.warning(request, "Accès réservé aux administrateurs.")
+    return redirect("accueil")
+
+
 @login_required
 def admin_dashboard(request):
-    """Tableau de bord Sigaud : réservé staff/superuser, données comme admin.py."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    """Tableau de bord Sigaud : staff, superuser ou groupe Administrateur système."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.auth import get_user_model
     from django.db.models import Count
     from django.contrib.admin.models import LogEntry
 
     User = get_user_model()
     total_users = User.objects.count()
-    total_assistants = AssistantPedagogique.objects.count()
     total_archives = Archive.objects.count()
-    recent_users = User.objects.order_by("-date_joined")[:5]
+    total_facultes = Faculte.objects.count()
+    total_filieres = Filiere.objects.count()
 
-    # Activité récente : dernières actions admin (LogEntry)
-    log_entries = (
-        LogEntry.objects.select_related("user", "content_type")
-        .order_by("-action_time")[:10]
+    today = timezone.now().date()
+    d30 = today - timedelta(days=30)
+    d60 = today - timedelta(days=60)
+
+    users_recent = User.objects.filter(date_joined__date__gte=d30).count()
+    users_prev = User.objects.filter(date_joined__date__gte=d60, date_joined__date__lt=d30).count()
+    growth_users_pct = _growth_pct(users_recent, users_prev)
+
+    archives_recent = Archive.objects.filter(date_archive__gte=d30).count()
+    archives_prev = Archive.objects.filter(date_archive__gte=d60, date_archive__lt=d30).count()
+    growth_archives_pct = _growth_pct(archives_recent, archives_prev)
+
+    recent_users = (
+        User.objects.select_related("etudiant", "assistant_pedagogique")
+        .order_by("-date_joined")[:8]
     )
-    action_labels = {
-        1: "Ajout",
-        2: "Modification",
-        3: "Suppression",
-    }
-    model_labels = {
-        "user": "utilisateur",
-        "archive": "document / examen",
-        "assistantpedagogique": "assistant pédagogique",
-        "faculte": "faculté",
-        "filiere": "filière",
-        "niveau": "niveau",
-        "etudiant": "étudiant",
-        "group": "groupe",
-    }
-    recent_activity = []
-    for log in log_entries:
-        model_name = (log.content_type.model if log.content_type else "").lower()
-        model_label = model_labels.get(model_name, model_name or "élément")
-        action = action_labels.get(log.action_flag, f"Action {log.action_flag}")
-        if log.action_flag == 1:
-            if model_name == "assistantpedagogique":
-                label = "Nouvel assistant pédagogique créé"
-            elif model_name == "archive":
-                label = "Nouvel examen / document ajouté"
-            else:
-                label = f"Nouveau {model_label} ajouté"
-        elif log.action_flag == 2:
-            label = f"{model_label.capitalize()} modifié"
-        elif log.action_flag == 3:
-            if model_name == "archive":
-                label = "Document / examen supprimé"
-            else:
-                label = f"{model_label.capitalize()} supprimé"
-        else:
-            label = f"{action} – {model_label}"
-        user_name = log.user.get_full_name().strip() or log.user.username if log.user else "—"
-        recent_activity.append({
-            "label": label,
-            "object_repr": log.object_repr[:80] if log.object_repr else "",
-            "user_name": user_name,
-            "time_ago": _format_activity_ago(log.action_time),
-        })
+    dashboard_user_rows = []
+    for u in recent_users:
+        kind, label = _dashboard_user_role(u)
+        dashboard_user_rows.append(
+            {
+                "user": u,
+                "role_kind": kind,
+                "role_label": label,
+            }
+        )
+
+    facultes_avec_filieres = (
+        Faculte.objects.annotate(nb_filieres=Count("filieres"))
+        .order_by("libelle")[:12]
+    )
+
+    notification_count = LogEntry.objects.filter(
+        action_time__gte=timezone.now() - timedelta(days=7)
+    ).count()
 
     return render(
         request,
         "admin.html",
         {
             "total_users": total_users,
-            "total_assistants": total_assistants,
             "total_archives": total_archives,
+            "total_facultes": total_facultes,
+            "total_filieres": total_filieres,
+            "growth_users_pct": growth_users_pct,
+            "growth_archives_pct": growth_archives_pct,
             "recent_users": recent_users,
-            "recent_activity": recent_activity,
+            "dashboard_user_rows": dashboard_user_rows,
+            "facultes_avec_filieres": facultes_avec_filieres,
+            "notification_count": notification_count,
         },
     )
 
@@ -977,9 +1344,9 @@ def admin_dashboard(request):
 @login_required
 def admin_utilisateurs(request):
     """Liste des utilisateurs avec recherche et filtres (style Django admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.auth import get_user_model
     from django.contrib.auth.models import Group
 
@@ -1045,9 +1412,9 @@ def admin_utilisateurs(request):
 @login_required
 def admin_add_user(request):
     """Page « Add user » style Django admin (en-tête bleu-vert, sidebar, formulaire + profil assistant)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from .forms import AdminAddUserForm
 
     form = AdminAddUserForm()
@@ -1060,21 +1427,67 @@ def admin_add_user(request):
             if action == "add_another":
                 return redirect("admin_add_user")
             if action == "continue":
-                from django.urls import reverse
-                try:
-                    return redirect("admin:auth_user_change", new_user.pk)
-                except Exception:
-                    return redirect("admin_utilisateurs")
+                return redirect("admin_modifier_utilisateur", pk=new_user.pk)
             return redirect("admin_utilisateurs")
     return render(request, "admin_add_user.html", {"form": form})
 
 
 @login_required
+def admin_modifier_utilisateur(request, pk: int):
+    """Edition d'un utilisateur dans l'UI admin SIGAUD (sans admin Django)."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=pk)
+
+    form = AdminEditUserForm(target_user)
+    if request.method == "POST":
+        form = AdminEditUserForm(target_user, request.POST)
+        if form.is_valid():
+            updated_user = form.save()
+            messages.success(
+                request,
+                f"L'utilisateur « {updated_user.username} » a été mis à jour.",
+            )
+            action = request.POST.get("_action", "save")
+            if action == "continue":
+                return redirect("admin_modifier_utilisateur", pk=updated_user.pk)
+            return redirect("admin_utilisateurs")
+
+    return render(
+        request,
+        "admin_modifier_utilisateur.html",
+        {"form": form, "target_user": target_user},
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_utilisateur(request, pk: int):
+    """Suppression d'un utilisateur depuis l'interface admin SIGAUD."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    User = get_user_model()
+    target_user = get_object_or_404(User, pk=pk)
+
+    if target_user.pk == request.user.pk:
+        messages.error(request, "Vous ne pouvez pas supprimer votre propre compte connecté.")
+        return redirect("admin_modifier_utilisateur", pk=target_user.pk)
+
+    username = target_user.username
+    target_user.delete()
+    messages.success(request, f"L'utilisateur « {username} » a été supprimé.")
+    return redirect("admin_utilisateurs")
+
+
+@login_required
 def admin_documents(request):
     """Liste des archives/documents (données comme admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     documents = Archive.objects.all().order_by("-date_archive")
     return render(request, "admin_documents.html", {"documents": documents})
 
@@ -1082,9 +1495,9 @@ def admin_documents(request):
 @login_required
 def admin_statistiques(request):
     """Statistiques sur les archives (agrégats)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.db.models import Count
 
     total_archives = Archive.objects.count()
@@ -1116,9 +1529,9 @@ def admin_statistiques(request):
 @login_required
 def admin_facultes(request):
     """Liste des facultés (comme admin.py Facultés)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.db.models import Count
 
     facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
@@ -1128,18 +1541,43 @@ def admin_facultes(request):
 @login_required
 def admin_parametres(request):
     """Page paramètres : lien vers l'admin Django."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     return render(request, "admin_parametres.html", {})
+
+
+@login_required
+def administration_systeme(request):
+    """Console type « index admin Django » (interface personnalisée Sigaud)."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    from django.contrib.admin.models import LogEntry
+
+    from .constants import CORRIGE_GRATUITS_MAX
+
+    recent_actions = (
+        LogEntry.objects.filter(user=request.user)
+        .select_related("content_type")
+        .order_by("-action_time")[:20]
+    )
+    return render(
+        request,
+        "administration_systeme.html",
+        {
+            "recent_actions": recent_actions,
+            "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+        },
+    )
 
 
 @login_required
 def admin_audit_logs(request):
     """Audit logs (LogEntry comme l'admin Django)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.admin.models import LogEntry
 
     logs = (
@@ -1152,9 +1590,9 @@ def admin_audit_logs(request):
 @login_required
 def admin_notifications(request):
     """Centre de notifications (dernières actions admin)."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.warning(request, "Accès réservé aux administrateurs.")
-        return redirect("accueil")
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
     from django.contrib.admin.models import LogEntry
 
     notifications = (

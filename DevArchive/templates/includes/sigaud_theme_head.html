@@ -1,0 +1,8 @@
+{% load static %}
+<script>
+(function(){try{var s=localStorage.getItem('sigaud-theme');if(s!=='dark'&&s!=='light')s=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',s);document.documentElement.setAttribute('data-bs-theme',s);}catch(e){document.documentElement.setAttribute('data-theme','light');document.documentElement.setAttribute('data-bs-theme','light');}})();
+</script>
+<link rel="stylesheet" href="{% static 'css/theme_sigaud.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin_sidebar.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% include 'includes/theme_toggle_inline.html' %}

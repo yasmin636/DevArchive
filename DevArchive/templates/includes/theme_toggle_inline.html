@@ -1,0 +1,70 @@
+<script>
+(function () {
+  var STORAGE_KEY = "sigaud-theme";
+
+  function getPreferred() {
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
+
+  function applyTheme(theme) {
+    var t = theme === "dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+    document.documentElement.setAttribute("data-bs-theme", t);
+    try {
+      localStorage.setItem(STORAGE_KEY, t);
+    } catch (e) {}
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+      btn.setAttribute("aria-pressed", t === "dark" ? "true" : "false");
+      btn.setAttribute("title", t === "dark" ? "Passer en mode clair" : "Passer en mode sombre");
+      var label = btn.querySelector(".theme-toggle-label");
+      if (label) {
+        label.textContent = t === "dark" ? "Clair" : "Sombre";
+      }
+      var icon = btn.querySelector("i");
+      if (icon) {
+        icon.className = t === "dark" ? "bi bi-sun-fill" : "bi bi-moon-stars-fill";
+      }
+    });
+  }
+
+  function initTheme() {
+    var saved = null;
+    try {
+      saved = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {}
+    var t = saved === "dark" || saved === "light" ? saved : getPreferred();
+    applyTheme(t);
+  }
+
+  function toggleTheme() {
+    var cur = document.documentElement.getAttribute("data-theme") || "light";
+    applyTheme(cur === "dark" ? "light" : "dark");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      initTheme();
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          toggleTheme();
+        });
+      });
+    });
+  } else {
+    initTheme();
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        toggleTheme();
+      });
+    });
+  }
+
+  window.sigaudToggleTheme = toggleTheme;
+  window.sigaudApplyTheme = applyTheme;
+})();
+</script>

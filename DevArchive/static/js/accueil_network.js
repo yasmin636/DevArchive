@@ -1,0 +1,148 @@
+/**
+ * Fond type constellation / réseau : points reliés, mouvement fluide.
+ * Page d'accueil SIGAUD uniquement.
+ */
+(function () {
+  var canvas = document.getElementById("accueil-network-canvas");
+  if (!canvas) return;
+
+  var ctx = canvas.getContext("2d");
+  var particles = [];
+  var linkDistance = 150;
+  var running = true;
+  var reducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function isDark() {
+    return document.documentElement.getAttribute("data-theme") === "dark";
+  }
+
+  function particleCountForViewport() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var area = w * h;
+    var n = Math.floor(area / 12000);
+    return Math.max(48, Math.min(110, n));
+  }
+
+  function initParticles() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var n = particleCountForViewport();
+    particles = [];
+    for (var i = 0; i < n; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        r: Math.random() * 1.4 + 0.7,
+      });
+    }
+  }
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    initParticles();
+  }
+
+  function stepParticle(p, w, h) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 0) {
+      p.x = w;
+    } else if (p.x > w) {
+      p.x = 0;
+    }
+    if (p.y < 0) {
+      p.y = h;
+    } else if (p.y > h) {
+      p.y = 0;
+    }
+  }
+
+  function draw() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var dark = isDark();
+
+    ctx.clearRect(0, 0, w, h);
+
+    var i, j, dx, dy, dist, alpha;
+    var lineBase = dark ? [147, 197, 253] : [37, 99, 235];
+    var nodeRgb = dark ? [186, 230, 253] : [59, 130, 246];
+    var glowRgb = dark ? [125, 211, 252] : [147, 197, 253];
+
+    for (i = 0; i < particles.length; i++) {
+      for (j = i + 1; j < particles.length; j++) {
+        dx = particles[i].x - particles[j].x;
+        dy = particles[i].y - particles[j].y;
+        dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < linkDistance) {
+          alpha = (1 - dist / linkDistance) * (dark ? 0.22 : 0.28);
+          ctx.strokeStyle =
+            "rgba(" + lineBase[0] + "," + lineBase[1] + "," + lineBase[2] + "," + alpha + ")";
+          ctx.lineWidth = 0.65;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    for (i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.shadowBlur = dark ? 5 : 8;
+      ctx.shadowColor =
+        "rgba(" + glowRgb[0] + "," + glowRgb[1] + "," + glowRgb[2] + "," + (dark ? 0.45 : 0.55) + ")";
+      ctx.fillStyle =
+        "rgba(" + nodeRgb[0] + "," + nodeRgb[1] + "," + nodeRgb[2] + "," + (dark ? 0.75 : 0.85) + ")";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function frame() {
+    if (!running) return;
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var k;
+    if (!reducedMotion) {
+      for (k = 0; k < particles.length; k++) {
+        stepParticle(particles[k], w, h);
+      }
+    }
+    draw();
+    if (!reducedMotion) {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  window.addEventListener("resize", function () {
+    resize();
+    if (reducedMotion) draw();
+  });
+
+  resize();
+  if (reducedMotion) {
+    draw();
+  } else {
+    requestAnimationFrame(frame);
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    running = !document.hidden;
+    if (running && !reducedMotion) requestAnimationFrame(frame);
+  });
+})();

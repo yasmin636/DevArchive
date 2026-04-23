@@ -1,103 +1,211 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sélectionner un utilisateur à modifier – Admin</title>
+  <title>Utilisateurs — Admin Sigaud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
   <style>
     :root {
-      --primary: #3B82F6;
-      --sidebar-bg: #1E2836;
-      --sidebar-bg-active: #2d3a4d;
-      --sidebar-muted: #8b9cad;
-      --sidebar-text: #ffffff;
+      --primary: #5b21b6;
+      --primary-soft: #ede9fe;
       --card: #ffffff;
       --border: #e5e7eb;
       --text: #111827;
       --muted: #6b7280;
-      --radius: 8px;
-      --filter-bg: #22576b;
-      --btn-action-bg: #417690;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+      --success: #16a34a;
+      --danger: #dc2626;
+      --info: #2563eb;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: flex; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #fff; color: var(--text); }
-    .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; flex-shrink: 0; }
-    .sidebar-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 20px 18px; background: var(--sidebar-bg); border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .sidebar-brand-row { display: flex; align-items: center; gap: 12px; }
-    .sidebar-brand-icon { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .sidebar-brand-icon img { width: 100%; height: 100%; object-fit: contain; }
-    .sidebar-brand-text { font-weight: 800; font-size: 16px; color: #fff; }
-    .sidebar-brand-sub { font-size: 12px; color: var(--sidebar-muted); font-weight: 500; margin-left: 56px; }
-    .sidebar-nav { flex: 1; padding: 16px 0; }
-    .sidebar-section { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--sidebar-muted); padding: 0 18px 10px; margin-top: 8px; }
-    .sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 12px 18px; margin: 0 10px; border-radius: 10px; color: var(--sidebar-text); text-decoration: none; font-size: 14px; font-weight: 600; }
-    .sidebar-nav a:hover { background: var(--sidebar-bg-active); color: #fff; }
-    .sidebar-nav a.active { background: var(--sidebar-bg-active); color: #fff; border-radius: 10px 0 0 10px; margin-right: 0; padding-right: 22px; }
-    .sidebar-user { padding: 18px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; background: var(--sidebar-bg); }
-    .sidebar-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--sidebar-bg-active); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
-    .sidebar-user-name { margin: 0; font-weight: 700; font-size: 14px; color: #fff; }
-    .sidebar-user-role { margin: 2px 0 0; font-size: 12px; color: var(--sidebar-muted); }
-    .sidebar-user a { color: #fff; text-decoration: none; font-weight: 600; font-size: 12px; margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; }
-    .sidebar-user a:hover { text-decoration: underline; }
-
-    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
-    .content-wrap { display: flex; flex: 1; min-width: 0; }
-    .content-main { flex: 1; padding: 20px 24px; min-width: 0; }
-    .content-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-    .content-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--text); }
-    .btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--btn-action-bg); color: #fff !important; text-decoration: none; font-weight: 600; font-size: 13px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-add:hover { background: #205067; color: #fff; }
-
-    .search-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-    .search-bar input[type="search"], .search-bar input[type="text"] { padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; min-width: 260px; }
-    .search-bar input:focus { outline: none; border-color: var(--primary); }
-    .btn-search { padding: 8px 16px; background: var(--btn-action-bg); color: #fff; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; cursor: pointer; }
-    .btn-search:hover { background: #205067; }
-
-    .action-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-    .action-row label { font-size: 13px; color: var(--text); }
-    .action-row select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
-    .btn-run { padding: 6px 12px; background: var(--btn-action-bg); color: #fff; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; }
-    .btn-run:hover { background: #205067; }
-    .action-row .selected-count { font-size: 13px; color: var(--muted); }
-
-    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; }
-    .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .admin-table th, .admin-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-    .admin-table th { background: #f8f9fa; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-    .admin-table tbody tr:hover { background: #f8f9fa; }
-    .admin-table td a.user-link { color: #447e9b; font-weight: 600; text-decoration: none; }
-    .admin-table td a.user-link:hover { text-decoration: underline; }
-    .admin-table .col-check { width: 28px; }
-    .status-yes { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #22c55e; color: #fff; font-size: 12px; }
-    .status-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #ef4444; color: #fff; font-size: 12px; }
-    .result-count { margin-top: 12px; font-size: 13px; color: var(--muted); }
-
-    .filter-sidebar { width: 240px; flex-shrink: 0; background: #f8f9fa; border-left: 1px solid var(--border); padding: 0; }
-    .filter-sidebar .filter-title { background: var(--filter-bg); color: #fff; padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-    .filter-sidebar .filter-body { padding: 16px; }
-    .filter-sidebar .show-counts { display: block; margin-bottom: 16px; font-size: 13px; color: #447e9b; text-decoration: none; }
-    .filter-sidebar .show-counts:hover { text-decoration: underline; }
-    .filter-section { margin-bottom: 20px; }
-    .filter-section h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--text); }
-    .filter-section a { display: block; padding: 4px 0; font-size: 13px; color: #447e9b; text-decoration: none; }
-    .filter-section a:hover { text-decoration: underline; }
-    .filter-section a.active { font-weight: 700; color: #111; }
-    .main-footer { padding: 12px 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); background: #fff; }
+    body.admin-sigaud { margin: 0; min-height: 100vh; display: flex; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .main-header {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .main-header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+    .main-header p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+    .btn-add {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--info);
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+    .btn-add:hover { background: #1d4ed8; color: #fff; }
+    .main-content {
+      flex: 1;
+      width: 100%;
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 22px 24px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 14px;
+      align-items: start;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+    }
+    .card-head h2 { margin: 0; font-size: 15px; font-weight: 800; }
+    .card-body { padding: 14px 16px; }
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .search-row input[type="search"] {
+      flex: 1;
+      min-width: 230px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .search-row input[type="search"]:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+    }
+    .btn-search {
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-search:hover { background: #1d4ed8; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+      background: #f8fafc;
+      font-weight: 700;
+    }
+    tbody tr:hover td { background: #fafafa; }
+    .user-link {
+      color: #1f2937;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .user-link:hover { color: var(--info); text-decoration: underline; }
+    .email { color: var(--muted); font-size: 12px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .chip-active { color: var(--success); background: #ecfdf3; border: 1px solid #bbf7d0; }
+    .chip-inactive { color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; }
+    .chip-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+    .btn-edit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 10px;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      color: #1d4ed8;
+      background: #eff6ff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-edit:hover { background: #dbeafe; color: #1d4ed8; }
+    .table-foot {
+      padding: 10px 2px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .filter-card h3 {
+      margin: 14px 0 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .filter-links a {
+      display: block;
+      font-size: 13px;
+      text-decoration: none;
+      color: #334155;
+      padding: 4px 2px;
+      border-radius: 6px;
+    }
+    .filter-links a:hover { color: #1d4ed8; background: #eff6ff; }
+    .filter-links a.active { color: #1d4ed8; font-weight: 700; background: #eff6ff; }
+    .filter-reset {
+      display: inline-flex;
+      margin-top: 2px;
+      text-decoration: none;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .main-footer {
+      margin-top: auto;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      background: #fff;
+    }
+    @media (max-width: 1060px) {
+      .layout { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body>
-  {% load static %}
+<body class="admin-sigaud">
+  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+  </button>
+
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="sidebar-brand-row">
-        <div class="sidebar-brand-icon">
-          <img src="{% static 'logo_site.png' %}" alt="Université de Djibouti" />
-        </div>
-        <span class="sidebar-brand-text">Université de Djibouti</span>
-      </div>
-      <span class="sidebar-brand-sub">Tableau de bord admin</span>
-    </div>
+    {% include 'includes/admin_sidebar_brand.html' %}
     <nav class="sidebar-nav">
       <div class="sidebar-section">Principal</div>
       <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
@@ -124,126 +232,119 @@
   </aside>
 
   <main class="main">
-    <div class="content-wrap">
-      <div class="content-main">
-        <header class="content-header">
-          <h1>Sélectionner un utilisateur à modifier</h1>
-          <a href="{% url 'admin:auth_user_add' %}" class="btn-add">AJOUTER UTILISATEUR +</a>
-        </header>
+    <header class="main-header">
+      <div>
+        <h1>Utilisateurs</h1>
+        <p>Gestion des comptes SIGAUD, rôles et statuts.</p>
+      </div>
+      <a href="{% url 'admin_add_user' %}" class="btn-add">+ Ajouter utilisateur</a>
+    </header>
 
-        <form method="get" action="{% url 'admin_utilisateurs' %}" id="filter-form">
-          <input type="hidden" name="staff_status" value="{{ staff_status }}" />
-          <input type="hidden" name="superuser_status" value="{{ superuser_status }}" />
-          <input type="hidden" name="is_active" value="{{ is_active_filter }}" />
-          <input type="hidden" name="group" value="{{ selected_group }}" />
-          <div class="search-bar">
-            <span style="color:var(--muted);">🔍</span>
-            <input type="search" name="q" value="{{ query }}" placeholder="Rechercher…" />
-            <button type="submit" class="btn-search">Rechercher</button>
+    <div class="main-content">
+      <div class="layout">
+        <section class="card">
+          <div class="card-head">
+            <h2>Liste des utilisateurs</h2>
           </div>
-          <div class="action-row">
-            <label for="action">Action&nbsp;:</label>
-            <select name="action" id="action">
-              <option value="">--------</option>
-            </select>
-            <button type="button" class="btn-run">Exécuter</button>
-            <span class="selected-count"><span id="selected-n">0</span> sur <span id="total-n">{{ total_count }}</span> sélectionné(s)</span>
+          <div class="card-body">
+            <form method="get" action="{% url 'admin_utilisateurs' %}">
+              <input type="hidden" name="staff_status" value="{{ staff_status }}" />
+              <input type="hidden" name="superuser_status" value="{{ superuser_status }}" />
+              <input type="hidden" name="is_active" value="{{ is_active_filter }}" />
+              <input type="hidden" name="group" value="{{ selected_group }}" />
+              <div class="search-row">
+                <input type="search" name="q" value="{{ query }}" placeholder="Rechercher par nom, email..." />
+                <button type="submit" class="btn-search">Rechercher</button>
+              </div>
+            </form>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nom d'utilisateur</th>
+                    <th>Adresse e-mail</th>
+                    <th>Prénom</th>
+                    <th>Nom</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for u in users %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'admin_modifier_utilisateur' u.pk %}" class="user-link">{{ u.username }}</a>
+                    </td>
+                    <td>
+                      {% if u.email %}<span class="email">{{ u.email }}</span>{% else %}—{% endif %}
+                    </td>
+                    <td>{{ u.first_name|default:"—" }}</td>
+                    <td>{{ u.last_name|default:"—" }}</td>
+                    <td>
+                      {% if u.is_active %}
+                      <span class="chip chip-active"><span class="chip-dot"></span>Actif</span>
+                      {% else %}
+                      <span class="chip chip-inactive"><span class="chip-dot"></span>Inactif</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="{% url 'admin_modifier_utilisateur' u.pk %}" class="btn-edit">Modifier</a>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-muted">Aucun utilisateur trouvé.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">{{ total_count }} utilisateur{{ total_count|pluralize }}</div>
           </div>
-        </form>
+        </section>
 
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th class="col-check"><input type="checkbox" id="select-all" title="Tout sélectionner" /></th>
-                <th>Nom d'utilisateur</th>
-                <th>Adresse e-mail</th>
-                <th>Prénom</th>
-                <th>Nom de famille</th>
-                <th>Staff</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for u in users %}
-              <tr>
-                <td><input type="checkbox" name="user_id" value="{{ u.pk }}" class="row-select" /></td>
-                <td>
-                  <a href="{% url 'admin:auth_user_change' u.pk %}" class="user-link">{{ u.username }}</a>
-                </td>
-                <td>{{ u.email|default:"—" }}</td>
-                <td>{{ u.first_name|default:"—" }}</td>
-                <td>{{ u.last_name|default:"—" }}</td>
-                <td>
-                  {% if u.is_staff %}<span class="status-yes" title="Oui">✓</span>{% else %}<span class="status-no" title="Non">✕</span>{% endif %}
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="6">Aucun utilisateur.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <p class="result-count">{{ total_count }} utilisateur{{ total_count|pluralize }}</p>
-    </div>
+        <aside class="card filter-card">
+          <div class="card-head">
+            <h2>Filtres</h2>
+          </div>
+          <div class="card-body">
+            <a class="filter-reset" href="{% url 'admin_utilisateurs' %}">Réinitialiser les filtres</a>
 
-      <aside class="filter-sidebar">
-        <div class="filter-title">Filtre</div>
-        <div class="filter-body">
-          <a href="{% url 'admin_utilisateurs' %}?{% if query %}q={{ query|urlencode }}&{% endif %}staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="show-counts">Afficher les effectifs</a>
-
-          <div class="filter-section">
             <h3>Par statut staff</h3>
-            <a href="?q={{ query|urlencode }}&staff_status=all&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'all' %}active{% endif %}">Tous</a>
-            <a href="?q={{ query|urlencode }}&staff_status=yes&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'yes' %}active{% endif %}">Oui</a>
-            <a href="?q={{ query|urlencode }}&staff_status=no&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'no' %}active{% endif %}">Non</a>
-          </div>
-          <div class="filter-section">
-            <h3>Par statut superutilisateur</h3>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=all&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'all' %}active{% endif %}">Tous</a>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=yes&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'yes' %}active{% endif %}">Oui</a>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=no&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'no' %}active{% endif %}">Non</a>
-          </div>
-          <div class="filter-section">
-            <h3>Par actif</h3>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=all&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'all' %}active{% endif %}">Tous</a>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=yes&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'yes' %}active{% endif %}">Oui</a>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=no&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'no' %}active{% endif %}">Non</a>
-          </div>
-          <div class="filter-section">
-            <h3>Par groupe</h3>
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group=" class="{% if not selected_group %}active{% endif %}">Tous</a>
-            {% for g in groups %}
-            <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ g.name|urlencode }}" class="{% if selected_group == g.name %}active{% endif %}">{{ g.name }}</a>
-            {% endfor %}
-          </div>
-        </div>
-      </aside>
-    </div>
-    <footer class="main-footer">
-      © Université de Djibouti – Utilisateurs.
-    </footer>
-  </main>
+            <div class="filter-links">
+              <a href="?q={{ query|urlencode }}&staff_status=all&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'all' %}active{% endif %}">Tous</a>
+              <a href="?q={{ query|urlencode }}&staff_status=yes&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'yes' %}active{% endif %}">Oui</a>
+              <a href="?q={{ query|urlencode }}&staff_status=no&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if staff_status == 'no' %}active{% endif %}">Non</a>
+            </div>
 
-  <script>
-    (function() {
-      var selectAll = document.getElementById('select-all');
-      var rows = document.querySelectorAll('.row-select');
-      var selectedN = document.getElementById('selected-n');
-      function updateCount() {
-        var n = document.querySelectorAll('.row-select:checked').length;
-        selectedN.textContent = n;
-        if (selectAll) selectAll.checked = rows.length && n === rows.length;
-        if (selectAll) selectAll.indeterminate = n > 0 && n < rows.length;
-      }
-      if (selectAll) {
-        selectAll.addEventListener('change', function() {
-          rows.forEach(function(r) { r.checked = selectAll.checked; });
-          updateCount();
-        });
-      }
-      rows.forEach(function(r) { r.addEventListener('change', updateCount); });
-      updateCount();
-    })();
-  </script>
+            <h3>Par superutilisateur</h3>
+            <div class="filter-links">
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=all&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'all' %}active{% endif %}">Tous</a>
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=yes&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'yes' %}active{% endif %}">Oui</a>
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status=no&is_active={{ is_active_filter }}&group={{ selected_group|urlencode }}" class="{% if superuser_status == 'no' %}active{% endif %}">Non</a>
+            </div>
+
+            <h3>Par actif</h3>
+            <div class="filter-links">
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=all&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'all' %}active{% endif %}">Tous</a>
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=yes&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'yes' %}active{% endif %}">Oui</a>
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active=no&group={{ selected_group|urlencode }}" class="{% if is_active_filter == 'no' %}active{% endif %}">Non</a>
+            </div>
+
+            <h3>Par groupe</h3>
+            <div class="filter-links">
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group=" class="{% if not selected_group %}active{% endif %}">Tous</a>
+              {% for g in groups %}
+              <a href="?q={{ query|urlencode }}&staff_status={{ staff_status }}&superuser_status={{ superuser_status }}&is_active={{ is_active_filter }}&group={{ g.name|urlencode }}" class="{% if selected_group == g.name %}active{% endif %}">{{ g.name }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <footer class="main-footer">© 2026 SIGAUD — Utilisateurs</footer>
+  </main>
 </body>
 </html>

@@ -1,10 +1,12 @@
-body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(--sigaud-text); }
+body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(--sigaud-text); overflow-x: hidden; }
 
 #sidebar {
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
+  height: 100vh;
+  height: 100dvh;
   width: 260px;
   background: var(--sigaud-sidebar);
   color: #e2e8f0;
@@ -12,6 +14,7 @@ body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(
   flex-direction: column;
   z-index: 1030;
   transition: transform 0.2s;
+  overflow-x: hidden;
 }
 
 .sidebar-logo {
@@ -46,7 +49,13 @@ body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(
   padding: 1rem 0;
   margin: 0;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav li {
+  list-style: none;
 }
 
 .sidebar-section {
@@ -56,17 +65,23 @@ body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(
   color: var(--sigaud-sidebar-muted);
 }
 
-.sidebar-nav a {
+.sidebar-nav .sidebar-link {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 1.25rem;
   color: #cbd5e1;
   text-decoration: none;
+  border: 0;
+  background: transparent;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
 }
 
-.sidebar-nav a:hover,
-.sidebar-nav a.active {
+.sidebar-nav .sidebar-link:hover,
+.sidebar-nav .sidebar-link.active {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
@@ -96,6 +111,9 @@ body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(
 .sidebar-footer {
   padding: 1rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  background: inherit;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .user-info {
@@ -128,18 +146,18 @@ body { margin: 0; font-size: 0.9rem; background: var(--sigaud-page); color: var(
   color: var(--sigaud-sidebar-muted);
 }
 
-.logout-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #f87171;
-  text-decoration: none;
-  font-size: 0.875rem;
-  cursor: pointer;
+.sidebar-logout {
+  margin: 0;
+  padding: 0;
 }
 
-.logout-btn:hover {
-  color: #fca5a5;
+.sidebar-link-logout {
+  color: #dc3545 !important;
+}
+
+.sidebar-link-logout:hover {
+  background: rgba(220, 53, 69, 0.08);
+  color: #b02a37;
 }
 
 .overlay {
@@ -423,16 +441,57 @@ html[data-theme="dark"] body.personnel-layout #sidebar {
 }
 
 body.personnel-layout .sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.15rem 1.15rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 body.personnel-layout .logo-text {
+  min-width: 0;
   color: #faf5ff;
 }
 
+body.personnel-layout .logo-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.personnel-layout .logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+body.personnel-layout .logo-text .welcome-brand-sigaud {
+  display: block;
+}
+
 body.personnel-layout .logo-text small {
+  display: block;
   color: #a78bfa;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 4px;
+  line-height: 1.1;
+}
+
+body.personnel-layout .welcome-brand-sigaud {
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: 0.08em;
+  color: #faf5ff;
+  line-height: 1;
 }
 
 body.personnel-layout .sidebar-section {
@@ -442,7 +501,7 @@ body.personnel-layout .sidebar-section {
   padding-top: 0.75rem;
 }
 
-body.personnel-layout .sidebar-nav a {
+body.personnel-layout .sidebar-nav .sidebar-link {
   margin: 0 10px;
   padding: 12px 18px;
   border-radius: 10px;
@@ -452,13 +511,13 @@ body.personnel-layout .sidebar-nav a {
   transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 
-body.personnel-layout .sidebar-nav a:hover {
+body.personnel-layout .sidebar-nav .sidebar-link:hover {
   background: #4c1d95;
   color: #fff;
   transform: translateX(2px);
 }
 
-body.personnel-layout .sidebar-nav a.active {
+body.personnel-layout .sidebar-nav .sidebar-link.active {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border-radius: 10px 0 0 10px;
@@ -469,6 +528,16 @@ body.personnel-layout .sidebar-nav a.active {
 
 body.personnel-layout .sidebar-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
+}
+
+body.personnel-layout .sidebar-link-logout {
+  color: #f87171;
+}
+
+body.personnel-layout .sidebar-link-logout:hover {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
 }
 
 body.personnel-layout .user-name {
@@ -678,17 +747,52 @@ html[data-theme="dark"] .personnel-upload-corrige {
 }
 
 @media (max-width: 768px) {
-  body.personnel-layout .sidebar-nav a {
+  #sidebar {
+    width: min(88vw, 320px);
+  }
+
+  body.personnel-layout .sidebar-logo {
+    padding: 0.95rem 0.95rem;
+  }
+
+  body.personnel-layout .logo-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  body.personnel-layout .welcome-brand-sigaud {
+    font-size: 1.45rem;
+  }
+
+  body.personnel-layout .logo-text small {
+    font-size: 0.88rem;
+  }
+
+  body.personnel-layout .sidebar-nav .sidebar-link {
     margin: 0;
     border-radius: 8px;
     padding: 10px 14px;
   }
 
-  body.personnel-layout .sidebar-nav a.active {
+  body.personnel-layout .sidebar-nav .sidebar-link.active {
     border-radius: 8px;
     margin-right: 0;
     padding-right: 14px;
     box-shadow: inset 3px 0 0 #60a5fa;
+  }
+
+  body.personnel-layout .sidebar-footer {
+    padding: 0.85rem 0.95rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    margin-bottom: 6px;
+  }
+
+  body.personnel-layout .user-name {
+    font-size: 0.95rem;
+  }
+
+  body.personnel-layout .user-role {
+    font-size: 0.82rem;
   }
 }
 

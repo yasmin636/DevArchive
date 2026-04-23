@@ -6,7 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.utils import ProgrammingError
 from django.db.models import Avg, Count
 from django.http import FileResponse, Http404, JsonResponse
@@ -1421,14 +1421,29 @@ def admin_add_user(request):
     if request.method == "POST":
         form = AdminAddUserForm(request.POST)
         if form.is_valid():
-            new_user = form.save()
-            messages.success(request, f"L'utilisateur « {new_user.username } » a été créé.")
-            action = request.POST.get("_action", "save")
-            if action == "add_another":
-                return redirect("admin_add_user")
-            if action == "continue":
-                return redirect("admin_modifier_utilisateur", pk=new_user.pk)
-            return redirect("admin_utilisateurs")
+            try:
+                new_user = form.save()
+            except IntegrityError:
+                # Sécurité anti-race condition :
+                # si un username/email est créé juste avant l'enregistrement,
+                # on affiche l'erreur dans le formulaire au lieu d'une page 500.
+                username = (form.cleaned_data.get("username") or "").strip()
+                email = (form.cleaned_data.get("email") or "").strip().lower()
+                UserModel = get_user_model()
+                if username and UserModel.objects.filter(username__iexact=username).exists():
+                    form.add_error("username", "Un utilisateur avec ce nom d'utilisateur existe déjà.")
+                if email and UserModel.objects.filter(email__iexact=email).exists():
+                    form.add_error("email", "Cette adresse email est déjà utilisée.")
+                if not form.errors:
+                    form.add_error(None, "Impossible d'enregistrer ce compte. Veuillez vérifier les informations saisies.")
+            else:
+                messages.success(request, f"L'utilisateur « {new_user.username } » a été créé.")
+                action = request.POST.get("_action", "save")
+                if action == "add_another":
+                    return redirect("admin_add_user")
+                if action == "continue":
+                    return redirect("admin_modifier_utilisateur", pk=new_user.pk)
+                return redirect("admin_utilisateurs")
     return render(request, "admin_add_user.html", {"form": form})
 
 

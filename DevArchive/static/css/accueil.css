@@ -1,12 +1,12 @@
 * { box-sizing: border-box; }
 
-/* Fond bleu clair + motifs animés (page d’accueil uniquement) */
+/* Fond bleu + motifs animes (page d'accueil uniquement) */
 body.sigaud-accueil {
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--sigaud-text);
     line-height: 1.6;
-    background-color: #e0f2fe;
+    background-color: #0f2a5f;
     position: relative;
     min-height: 100vh;
 }
@@ -25,13 +25,13 @@ body.sigaud-accueil {
     z-index: 0;
     background: linear-gradient(
         155deg,
-        #f0f9ff 0%,
-        #e0f2fe 22%,
-        #bae6fd 48%,
-        #dbeafe 72%,
-        #f0f9ff 100%
+        #0b1f4a 0%,
+        #123a7a 22%,
+        #1d4ed8 48%,
+        #2563eb 72%,
+        #0f2a5f 100%
     );
-    box-shadow: inset 0 0 120px rgba(255, 255, 255, 0.65);
+    box-shadow: inset 0 0 140px rgba(8, 23, 52, 0.45);
 }
 
 .accueil-bg__blob {
@@ -46,7 +46,7 @@ body.sigaud-accueil {
 .accueil-bg__blob--1 {
     width: min(85vw, 520px);
     height: min(85vw, 520px);
-    background: radial-gradient(circle, rgba(147, 197, 253, 0.75) 0%, rgba(96, 165, 250, 0.35) 45%, transparent 68%);
+    background: radial-gradient(circle, rgba(147, 197, 253, 0.46) 0%, rgba(59, 130, 246, 0.28) 45%, transparent 68%);
     top: -12%;
     left: -18%;
     animation: accueil-blob-a 22s ease-in-out infinite alternate;
@@ -55,7 +55,7 @@ body.sigaud-accueil {
 .accueil-bg__blob--2 {
     width: min(70vw, 440px);
     height: min(70vw, 440px);
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.55) 0%, rgba(125, 211, 252, 0.25) 50%, transparent 70%);
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.38) 0%, rgba(125, 211, 252, 0.22) 50%, transparent 70%);
     bottom: -8%;
     right: -14%;
     animation: accueil-blob-b 26s ease-in-out infinite alternate;
@@ -64,7 +64,7 @@ body.sigaud-accueil {
 .accueil-bg__blob--3 {
     width: min(50vw, 320px);
     height: min(50vw, 320px);
-    background: radial-gradient(circle, rgba(165, 180, 252, 0.4) 0%, rgba(129, 140, 248, 0.22) 55%, transparent 72%);
+    background: radial-gradient(circle, rgba(165, 180, 252, 0.34) 0%, rgba(96, 165, 250, 0.2) 55%, transparent 72%);
     top: 38%;
     left: 42%;
     animation: accueil-blob-c 18s ease-in-out infinite alternate;
@@ -267,7 +267,7 @@ body.sigaud-accueil > .header {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--sigaud-muted);
+    color: #ffffff;
     margin-bottom: 12px;
 }
 .hero-title {
@@ -279,7 +279,7 @@ body.sigaud-accueil > .header {
 }
 .hero-desc {
     font-size: 16px;
-    color: var(--sigaud-muted);
+    color: #ffffff;
     margin: 0 0 24px;
     max-width: 520px;
 }

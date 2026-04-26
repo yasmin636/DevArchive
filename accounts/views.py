@@ -6,7 +6,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.db import IntegrityError, models
+from django.db import DatabaseError, IntegrityError, models
+from django.db.models.deletion import ProtectedError, RestrictedError
 from django.db.utils import ProgrammingError
 from django.db.models import Avg, Count
 from django.http import FileResponse, Http404, JsonResponse
@@ -85,7 +86,7 @@ def user_est_etudiant(user):
     """True si l'utilisateur a un profil Étudiant (et pas assistant/admin)."""
     if not user.is_authenticated:
         return False
-    if user_est_assistant(user):
+    if user_est_admin_sigaud(user):
         return False
     return hasattr(user, "etudiant") and user.etudiant is not None
 
@@ -107,6 +108,19 @@ class EtudiantRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         return user_est_etudiant(self.request.user)
+
+    def handle_no_permission(self):
+        # Evite une page 403 brute : on redirige vers l'espace adapte au role.
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        if user_est_admin_sigaud(self.request.user):
+            messages.info(self.request, "Votre compte est admin : redirection vers le tableau de bord.")
+            return redirect("admin_dashboard")
+        if user_est_assistant(self.request.user):
+            messages.info(self.request, "Votre compte est personnel : redirection vers l'espace personnel.")
+            return redirect("personnel")
+        messages.warning(self.request, "Acces etudiant reserve aux comptes avec profil etudiant.")
+        return redirect("connexion_etudiant")
 
 
 def accueil(request):
@@ -910,6 +924,9 @@ def voir_archive_pdf_etudiant(request, pk: int):
     archive = get_object_or_404(qs, pk=pk)
     if not archive.fichier:
         raise Http404("Aucun fichier associé.")
+    if not archive.fichier.storage.exists(archive.fichier.name):
+        messages.error(request, "Le fichier PDF demandé est introuvable.")
+        return redirect("espace_etudiant")
     premiere_consultation = False
     if archive.examen_id:
         obj, created = Historique.objects.get_or_create(
@@ -1054,6 +1071,9 @@ def telecharger_archive_etudiant(request, pk: int):
     archive = get_object_or_404(qs, pk=pk)
     if not archive.fichier:
         raise Http404("Aucun fichier associé.")
+    if not archive.fichier.storage.exists(archive.fichier.name):
+        messages.error(request, "Le fichier PDF demandé est introuvable.")
+        return redirect("espace_etudiant")
     archive.nb_telechargements += 1
     archive.save(update_fields=["nb_telechargements"])
     TelechargementEtudiant.objects.create(user=request.user, archive=archive)
@@ -1492,7 +1512,19 @@ def admin_supprimer_utilisateur(request, pk: int):
         return redirect("admin_modifier_utilisateur", pk=target_user.pk)
 
     username = target_user.username
-    target_user.delete()
+    try:
+        target_user.delete()
+    except (ProtectedError, RestrictedError, IntegrityError, DatabaseError):
+        # Fallback robuste si la suppression physique echoue
+        # (contraintes FK, table legacy manquante, schema incomplet, etc.).
+        target_user.is_active = False
+        target_user.save(update_fields=["is_active"])
+        messages.warning(
+            request,
+            "Suppression technique impossible (references en base). "
+            "Le compte a ete desactive a la place.",
+        )
+        return redirect("admin_modifier_utilisateur", pk=target_user.pk)
     messages.success(request, f"L'utilisateur « {username} » a été supprimé.")
     return redirect("admin_utilisateurs")
 
@@ -1505,6 +1537,77 @@ def admin_documents(request):
         return denied
     documents = Archive.objects.all().order_by("-date_archive")
     return render(request, "admin_documents.html", {"documents": documents})
+
+
+@login_required
+def admin_ajouter_archive(request):
+    """Ajout d'une archive depuis l'espace admin SIGAUD."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        form = ArchiveForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "L'archive a ete ajoutee.")
+            return redirect("admin_documents")
+    else:
+        form = ArchiveForm()
+    return render(
+        request,
+        "archive_form.html",
+        {
+            "form": form,
+            "archive": None,
+            "page_title": "Ajouter une archive",
+            "page_help": "Renseignez les informations du sujet puis validez l'ajout.",
+            "cancel_url_name": "admin_documents",
+            "submit_label": "Ajouter l'archive",
+        },
+    )
+
+
+@login_required
+def admin_modifier_archive(request, pk: int):
+    """Modification d'une archive depuis l'espace admin SIGAUD."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    archive = get_object_or_404(Archive, pk=pk)
+    if request.method == "POST":
+        form = ArchiveForm(request.POST, request.FILES, instance=archive)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "L'archive a ete mise a jour.")
+            return redirect("admin_documents")
+    else:
+        form = ArchiveForm(instance=archive)
+    return render(
+        request,
+        "archive_form.html",
+        {
+            "form": form,
+            "archive": archive,
+            "page_title": "Modifier l'archive",
+            "page_help": "Mettez a jour les informations du sujet puis enregistrez.",
+            "cancel_url_name": "admin_documents",
+            "submit_label": "Enregistrer les modifications",
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_archive(request, pk: int):
+    """Suppression d'une archive depuis l'espace admin SIGAUD."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    archive = get_object_or_404(Archive, pk=pk)
+    titre = archive.title
+    archive.delete()
+    messages.success(request, f"Archive supprimee : {titre}.")
+    return redirect("admin_documents")
 
 
 @login_required

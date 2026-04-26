@@ -143,6 +143,9 @@ LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS = int(
     os.environ.get("DJANGO_LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS", "900")
 )
 
+# URL de connexion utilisée par @login_required (évite /accounts/login/ par défaut).
+LOGIN_URL = "connexion"
+
 
 
 

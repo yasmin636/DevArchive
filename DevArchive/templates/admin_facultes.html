@@ -10,36 +10,40 @@
     :root { --primary:#5b21b6; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --radius:12px; }
     *{box-sizing:border-box;} body.admin-sigaud{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);}
     .main{flex:1;display:flex;flex-direction:column;min-width:0;}
-    .main-header{padding:24px 28px;border-bottom:1px solid var(--border);background:#fff;}
+    .main-header{padding:20px 24px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
     .main-header h1{margin:0;font-size:24px;font-weight:800;}
     .main-header .sub{margin:6px 0 0;font-size:14px;color:var(--muted);}
-    .main-content{flex:1;padding:24px 28px;}
-    .panel{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:20px 22px;}
+    .main-content{flex:1;padding:20px 24px;}
+    .btn-theme-inline{border-radius:12px;}
+    .panel{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:20px 22px;box-shadow:0 2px 12px rgba(15,23,42,.06);}
     .panel-title{margin:0 0 4px;font-size:16px;font-weight:800;}
     .panel-sub{margin:0 0 16px;font-size:13px;color:var(--muted);}
-    table{width:100%;border-collapse:collapse;font-size:14px;}
-    th,td{padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:left;}
-    th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#F9FAFB;}
-    tbody tr:hover td{background:#F9FAFB;}
+    .table thead th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#F8FAFC;}
+    .table td,.table th{padding:.65rem .75rem;vertical-align:middle;}
+    .table td:last-child,.table th:last-child{text-align:right;}
+    .table-empty{color:var(--muted);text-align:center;padding:1rem !important;}
+    @media (max-width: 991px){
+      body.admin-sigaud{flex-direction:column;}
+      body.admin-sigaud .sidebar{width:100%;}
+      .main-header{padding:16px 18px;}
+      .main-content{padding:16px;}
+    }
     .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
   </style>
 </head>
 <body class="admin-sigaud">
-  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
-    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
-  </button>
   <aside class="sidebar">
     {% include 'includes/admin_sidebar_brand.html' %}
     <nav class="sidebar-nav">
       <div class="sidebar-section">Principal</div>
-      <a href="{% url 'admin_dashboard' %}"><span class="icon">▦</span> Tableau de bord</a>
-      <a href="{% url 'admin_utilisateurs' %}"><span class="icon">👥</span> Utilisateurs</a>
-      <a href="{% url 'admin_documents' %}"><span class="icon">📄</span> Documents</a>
-      <a href="{% url 'admin_statistiques' %}"><span class="icon">📊</span> Statistiques</a>
-      <a href="{% url 'admin_facultes' %}" class="active"><span class="icon">🏛</span> Facultés & Dépts</a>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon"><i class="bi bi-speedometer2"></i></span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}"><span class="icon"><i class="bi bi-people-fill"></i></span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon"><i class="bi bi-file-earmark-text-fill"></i></span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon"><i class="bi bi-bar-chart-fill"></i></span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}" class="active"><span class="icon"><i class="bi bi-bank2"></i></span> Facultés & Dépts</a>
       <div class="sidebar-section">Système</div>
-      <a href="{% url 'admin_parametres' %}"><span class="icon">⚙</span> Paramètres</a>
-      <a href="{% url 'admin_audit_logs' %}"><span class="icon">🛡</span> Audit logs</a>
+      <a href="{% url 'admin_parametres' %}"><span class="icon"><i class="bi bi-gear-fill"></i></span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon"><i class="bi bi-shield-check"></i></span> Audit logs</a>
     </nav>
     <div class="sidebar-user">
       <div class="sidebar-avatar">
@@ -50,22 +54,27 @@
       <div>
         <p class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</p>
         <p class="sidebar-user-role">{% if user.is_superuser %}Super administrateur{% else %}Staff{% endif %}</p>
-        <a href="{% url 'logout' %}">↩ Déconnexion</a>
+        <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
       </div>
     </div>
   </aside>
 
   <main class="main">
     <header class="main-header">
-      <h1>Facultés & Départements</h1>
-      <p class="sub">Structures académiques utilisées dans SIGAUD.</p>
+      <div>
+        <h1>Facultés & Départements</h1>
+        <p class="sub">Structures académiques utilisées dans SIGAUD.</p>
+      </div>
+      <button type="button" class="theme-toggle-btn btn-theme-inline" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+        <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+      </button>
     </header>
-    <div class="main-content">
+    <div class="main-content container-fluid">
       <section class="panel">
         <h2 class="panel-title">Facultés</h2>
         <p class="panel-sub">Les mêmes facultés que dans votre interface Django administration.</p>
-        <div style="overflow-x:auto;">
-          <table>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
             <thead>
               <tr>
                 <th>Code</th>
@@ -81,7 +90,7 @@
                 <td>{{ f.nb_filieres }}</td>
               </tr>
               {% empty %}
-              <tr><td colspan="3">Aucune faculté.</td></tr>
+              <tr><td colspan="3" class="table-empty">Aucune faculté.</td></tr>
               {% endfor %}
             </tbody>
           </table>

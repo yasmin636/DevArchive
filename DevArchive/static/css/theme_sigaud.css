@@ -339,3 +339,66 @@ html[data-theme="dark"] body.admin-sigaud .role-pill.role-user {
   background: rgba(148, 163, 184, 0.15) !important;
   color: var(--sigaud-muted) !important;
 }
+
+/* Contraste renforcé en mode sombre (textes bleus/violets) */
+html[data-theme="dark"] .text-primary {
+  color: #c4b5fd !important;
+}
+
+html[data-theme="dark"] .btn-outline-primary {
+  color: #c4b5fd !important;
+  border-color: rgba(196, 181, 253, 0.55) !important;
+}
+
+html[data-theme="dark"] .btn-outline-primary:hover,
+html[data-theme="dark"] .btn-outline-primary:focus {
+  color: #0f172a !important;
+  background: #c4b5fd !important;
+  border-color: #c4b5fd !important;
+}
+
+html[data-theme="dark"] body.admin-sigaud .link,
+html[data-theme="dark"] body.admin-sigaud .link-all-users,
+html[data-theme="dark"] body.admin-sigaud .sidebar-brand-ud,
+html[data-theme="dark"] body.etudiant-layout .sidebar-etudiant-brand__text small,
+html[data-theme="dark"] body.etudiant-layout .header-profile-pill__sub,
+html[data-theme="dark"] body.etudiant-layout .subject-card-v2__rating-hint,
+html[data-theme="dark"] body.etudiant-layout .link-all {
+  color: #c4b5fd !important;
+}
+
+/* Texte noir => clair en mode sombre (pages étudiant) */
+html[data-theme="dark"] body.etudiant-layout,
+html[data-theme="dark"] body.etudiant-layout .main-content,
+html[data-theme="dark"] body.etudiant-layout .collection-page {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] body.etudiant-layout .text-dark,
+html[data-theme="dark"] body.etudiant-layout .text-black,
+html[data-theme="dark"] body.etudiant-layout .text-body,
+html[data-theme="dark"] body.etudiant-layout .text-body-emphasis {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] body.etudiant-layout .page-title,
+html[data-theme="dark"] body.etudiant-layout .page-desc,
+html[data-theme="dark"] body.etudiant-layout .create-title,
+html[data-theme="dark"] body.etudiant-layout .section-title,
+html[data-theme="dark"] body.etudiant-layout .collection-name,
+html[data-theme="dark"] body.etudiant-layout .collection-meta,
+html[data-theme="dark"] body.etudiant-layout .empty-title,
+html[data-theme="dark"] body.etudiant-layout .empty-desc,
+html[data-theme="dark"] body.etudiant-layout .subject-title,
+html[data-theme="dark"] body.etudiant-layout .subject-meta,
+html[data-theme="dark"] body.etudiant-layout .form-label {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] body.etudiant-layout .text-muted,
+html[data-theme="dark"] body.etudiant-layout .page-desc,
+html[data-theme="dark"] body.etudiant-layout .collection-meta,
+html[data-theme="dark"] body.etudiant-layout .empty-desc,
+html[data-theme="dark"] body.etudiant-layout .subject-meta {
+  color: #cbd5e1 !important;
+}

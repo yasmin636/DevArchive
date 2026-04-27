@@ -46,11 +46,28 @@
       gap: 8px;
       font-weight: 700;
       font-size: 13px;
+      color: var(--text);
+    }
+    .role-picker label input[type="radio"] {
+      accent-color: #2563eb;
+      flex-shrink: 0;
     }
     .role-picker label:has(input:checked) {
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
       background: #eff6ff;
+      color: #1d4ed8;
+    }
+    html[data-theme="dark"] body.admin-sigaud .role-picker label {
+      background: #1f2937;
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    html[data-theme="dark"] body.admin-sigaud .role-picker label:has(input:checked) {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+      color: #dbeafe;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
     }
     .role-section[hidden] { display: none !important; }
     .errors { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-size: 13px; }

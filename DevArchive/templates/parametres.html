@@ -27,13 +27,21 @@
     </div>
   </div>
 
-  <ul class="sidebar-nav">
+  <ul class="sidebar-nav nav nav-pills flex-column mb-0">
     <li class="sidebar-section">Principal</li>
-    <li><a href="{% url 'personnel' %}"><i class="bi bi-grid-fill"></i> Tableau de bord</a></li>
+    <li><a href="{% url 'personnel' %}" class="sidebar-link"><i class="bi bi-grid-fill"></i> Tableau de bord</a></li>
 
     <li class="sidebar-section">Compte</li>
-    <li><a href="{% url 'profil' %}"><i class="bi bi-person-circle"></i> Mon profil</a></li>
-    <li><a href="{% url 'parametres_compte' %}" class="active"><i class="bi bi-gear"></i> Paramètres</a></li>
+    <li><a href="{% url 'profil' %}" class="sidebar-link"><i class="bi bi-person-circle"></i> Mon profil</a></li>
+    <li><a href="{% url 'parametres_compte' %}" class="sidebar-link active"><i class="bi bi-gear"></i> Paramètres</a></li>
+    <li>
+      <form action="{% url 'logout' %}" method="post" class="sidebar-logout">
+        {% csrf_token %}
+        <button type="submit" class="sidebar-link sidebar-link-logout border-0 bg-transparent text-start w-100">
+          <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </button>
+      </form>
+    </li>
   </ul>
 
   <div class="sidebar-footer">
@@ -54,12 +62,6 @@
         <div class="user-role">Assistant pédagogique</div>
       </div>
     </div>
-    <form action="{% url 'logout' %}" method="post" class="d-inline">
-      {% csrf_token %}
-      <button type="submit" class="logout-btn border-0 bg-transparent p-0">
-        <i class="bi bi-box-arrow-left"></i> Déconnexion
-      </button>
-    </form>
   </div>
 </aside>
 <div class="overlay" id="overlay"></div>

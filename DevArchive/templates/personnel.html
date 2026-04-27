@@ -17,42 +17,52 @@
 <body class="personnel-layout">
 
 <!-- SIDEBAR -->
-<aside id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-icon" style="background:none;padding:0;overflow:hidden;"><img src="{% static 'img/univ.jpg' %}" alt="Logo Université" style="width:40px;height:40px;object-fit:cover;border-radius:10px;"></div>
+<aside id="sidebar" class="d-flex flex-column">
+  <header class="sidebar-logo" aria-label="SIGAUD">
+    <div class="logo-icon">
+      <img src="{% static 'img/logo_universite_djibouti_sidebar.png' %}" alt="Logo Université de Djibouti">
+    </div>
     <div class="logo-text">
-      Université de Djibouti
+      <span class="welcome-brand-sigaud">SIGAUD</span>
       <small>Espace Personnel</small>
     </div>
-  </div>
+  </header>
 
-  <ul class="sidebar-nav">
+  <ul class="sidebar-nav nav nav-pills flex-column mb-0">
     <li class="sidebar-section">Principal</li>
-    <li><a href="#" class="active"><i class="bi bi-grid-fill"></i> Tableau de bord</a></li>
+    <li><a href="#" class="sidebar-link active"><i class="bi bi-grid-fill"></i> Tableau de bord</a></li>
 
     <li class="sidebar-section">Archives</li>
     <li>
-      <a href="#" id="navCC">
+      <a href="#" id="navCC" class="sidebar-link">
         <i class="bi bi-journal-text"></i> Contrôles Continus
         <span class="nav-badge purple" id="nav-cc-count">0</span>
       </a>
     </li>
     <li>
-      <a href="#" id="navExam">
+      <a href="#" id="navExam" class="sidebar-link">
         <i class="bi bi-file-earmark-text"></i> Examens Finaux
         <span class="nav-badge cyan" id="nav-exam-count">0</span>
       </a>
     </li>
     <li>
-      <a href="#" id="navAll">
+      <a href="#" id="navAll" class="sidebar-link">
         <i class="bi bi-archive"></i> Toutes les archives
         <span class="nav-badge gray" id="nav-total-count">0</span>
       </a>
     </li>
 
     <li class="sidebar-section">Compte</li>
-    <li><a href="{% url 'profil' %}"><i class="bi bi-person-circle"></i> Mon profil</a></li>
-    <li><a href="{% url 'parametres_compte' %}"><i class="bi bi-gear"></i> Paramètres</a></li>
+    <li><a href="{% url 'profil' %}" class="sidebar-link"><i class="bi bi-person-circle"></i> Mon profil</a></li>
+    <li><a href="{% url 'parametres_compte' %}" class="sidebar-link"><i class="bi bi-gear"></i> Paramètres</a></li>
+    <li>
+      <form action="{% url 'logout' %}" method="post" class="sidebar-logout">
+        {% csrf_token %}
+        <button type="submit" class="sidebar-link sidebar-link-logout border-0 bg-transparent text-start w-100">
+          <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </button>
+      </form>
+    </li>
   </ul>
 
   <div class="sidebar-footer">
@@ -74,12 +84,6 @@
         <div class="user-role">Assistant pédagogique</div>
       </div>
     </div>
-    <form action="{% url 'logout' %}" method="post" class="d-inline">
-      {% csrf_token %}
-      <button type="submit" class="logout-btn border-0 bg-transparent p-0">
-        <i class="bi bi-box-arrow-left"></i> Déconnexion
-      </button>
-    </form>
   </div>
 </aside>
 <div class="overlay" id="overlay"></div>

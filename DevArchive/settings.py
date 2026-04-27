@@ -102,7 +102,7 @@ DATABASES = {
         'ENGINE': os.environ.get('DJANGO_DB_ENGINE', 'django.db.backends.postgresql'),
         'NAME': os.environ.get('DJANGO_DB_NAME', 'base_devarchive'),
         'USER': os.environ.get('DJANGO_DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', '353671'),
+        'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', 'admin123'),
         'HOST': os.environ.get('DJANGO_DB_HOST', 'localhost'),
         'PORT': os.environ.get('DJANGO_DB_PORT', '5432'),
     }
@@ -142,6 +142,9 @@ LOGIN_ATTEMPT_LIMIT_MAX = int(os.environ.get("DJANGO_LOGIN_ATTEMPT_LIMIT_MAX", "
 LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS = int(
     os.environ.get("DJANGO_LOGIN_ATTEMPT_LIMIT_WINDOW_SECONDS", "900")
 )
+
+# URL de connexion utilisée par @login_required (évite /accounts/login/ par défaut).
+LOGIN_URL = "connexion"
 
 
 

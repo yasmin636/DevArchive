@@ -7,55 +7,84 @@ body.admin-sigaud {
   --sidebar-bg-active: #4c1d95;
   --sidebar-muted: #a78bfa;
   --sidebar-text: #f5f3ff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-focus: rgba(96, 165, 250, 0.3);
 }
 
 body.admin-sigaud .sidebar {
-  width: 260px;
+  width: 272px;
   flex-shrink: 0;
-  background: linear-gradient(195deg, #1a0528 0%, #1e0b3a 35%, #12051f 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(190deg, #1a062f 0%, #1e0b3a 45%, #12051f 100%);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 12px 28px rgba(8, 3, 20, 0.22);
 }
 
 body.admin-sigaud .sidebar-brand {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
   padding: 20px 18px;
   background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 body.admin-sigaud .sidebar-brand-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 body.admin-sigaud .sidebar-brand-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  padding: 0;
 }
 
 body.admin-sigaud .sidebar-brand-icon img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: center;
+}
+
+body.admin-sigaud .sidebar-brand-sigaud {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: #ffffff;
+}
+
+body.admin-sigaud .sidebar-brand-ud {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #a78bfa;
+}
+
+body.admin-sigaud .sidebar-brand-sub {
+  display: none;
 }
 
 body.admin-sigaud .sidebar-nav {
   flex: 1;
-  padding: 16px 0;
+  padding: 14px 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 181, 253, 0.55) transparent;
 }
 
 body.admin-sigaud .sidebar-section {
@@ -72,38 +101,50 @@ body.admin-sigaud .sidebar-nav a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 18px;
+  padding: 11px 14px;
   margin: 0 10px;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
   color: var(--sidebar-text);
   text-decoration: none;
   font-weight: 600;
-  font-size: 14px;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
+  font-size: 0.97rem;
+  line-height: 1.2;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 body.admin-sigaud .sidebar-nav a:hover {
-  background: var(--sidebar-bg-active);
+  background: var(--sidebar-hover);
   color: #fff;
   transform: translateX(2px);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 body.admin-sigaud .sidebar-nav a.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(90deg, rgba(96, 165, 250, 0.24), rgba(167, 139, 250, 0.2));
   color: #fff;
-  border-radius: 10px 0 0 10px;
-  margin-right: 0;
-  padding-right: 22px;
-  box-shadow: inset 3px 0 0 #60a5fa;
+  border-color: rgba(196, 181, 253, 0.35);
+  box-shadow: inset 3px 0 0 #60a5fa, 0 8px 18px rgba(10, 5, 20, 0.3);
+}
+
+body.admin-sigaud .sidebar-nav a:focus-visible {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.55);
+  box-shadow: 0 0 0 0.2rem var(--sidebar-focus);
 }
 
 body.admin-sigaud .sidebar-nav .icon {
-  font-size: 18px;
-  opacity: 0.9;
+  font-size: 1rem;
+  opacity: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e9ddff;
+  flex-shrink: 0;
 }
 
 body.admin-sigaud .sidebar-nav .icon .bi {
@@ -111,19 +152,22 @@ body.admin-sigaud .sidebar-nav .icon .bi {
 }
 
 body.admin-sigaud .sidebar-user {
-  padding: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px;
+  margin: 10px 10px 52px;
+  border-top: 1px solid var(--sidebar-border);
   display: flex;
   align-items: center;
   gap: 12px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }
 
 body.admin-sigaud .sidebar-avatar {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--sidebar-bg-active);
+  background: linear-gradient(145deg, #6d28d9, #4c1d95);
   color: #fff;
   display: flex;
   align-items: center;
@@ -131,6 +175,7 @@ body.admin-sigaud .sidebar-avatar {
   font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(7, 3, 20, 0.34);
 }
 
 body.admin-sigaud .sidebar-user-name {
@@ -147,16 +192,19 @@ body.admin-sigaud .sidebar-user-role {
 }
 
 body.admin-sigaud .sidebar-user a {
-  color: #fff;
+  color: #e9ddff;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
   margin-top: 6px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: color 0.15s ease;
 }
 
+
 body.admin-sigaud .sidebar-user a:hover {
+  color: #fff;
   text-decoration: underline;
 }

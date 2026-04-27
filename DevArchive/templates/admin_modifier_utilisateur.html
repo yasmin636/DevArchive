@@ -228,11 +228,9 @@
               <div class="actions-left">
                 {% if target_user.pk != user.pk %}
                 <button
-                  type="submit"
+                  type="button"
                   class="btn btn-danger"
-                  formaction="{% url 'admin_supprimer_utilisateur' target_user.pk %}"
-                  formmethod="post"
-                  onclick="return confirm('Supprimer définitivement cet utilisateur ? Cette action est irréversible.');"
+                  onclick="if (confirm('Supprimer définitivement cet utilisateur ? Cette action est irréversible.')) { document.getElementById('delete-user-form').submit(); }"
                 >
                   Supprimer
                 </button>
@@ -245,6 +243,11 @@
               </div>
             </div>
           </form>
+          {% if target_user.pk != user.pk %}
+          <form id="delete-user-form" method="post" action="{% url 'admin_supprimer_utilisateur' target_user.pk %}" class="d-none">
+            {% csrf_token %}
+          </form>
+          {% endif %}
         </div>
       </section>
     </div>

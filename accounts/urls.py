@@ -22,6 +22,11 @@ urlpatterns = [
     path("connexion/", RedirectView.as_view(pattern_name="connexion_etudiant", permanent=False), name="connexion"),
     path("connexion/etudiant/", views.ConnexionEtudiantView.as_view(), name="connexion_etudiant"),
     path("connexion/personnel/", views.ConnexionPersonnelView.as_view(), name="connexion_personnel"),
+    # Alias convivial : /connexion/admin/ -> URL admin privée configurée
+    path(
+        "connexion/admin/",
+        RedirectView.as_view(pattern_name="connexion_admin", permanent=False),
+    ),
     path(f"{_admin_login_path}/", views.ConnexionAdminView.as_view(), name="connexion_admin"),
     # Ancienne URL /etudiant/ → redirection vers le nouvel espace étudiant
     path("etudiant/", RedirectView.as_view(pattern_name="espace_etudiant", permanent=False)),
@@ -129,6 +134,11 @@ urlpatterns = [
     ),
     # Tableau de bord admin Sigaud (staff/superuser)
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    # Compatibilite: ancien lien interne vers l'espace etudiant depuis admin.
+    path(
+        "admin-dashboard/espace-etudiant/",
+        RedirectView.as_view(pattern_name="espace_etudiant", permanent=False),
+    ),
     # Compatibilité : anciens liens "Modifier" de l'admin Django vers la page SIGAUD.
     path(
         "admin-dashboard/system/auth/user/<int:pk>/change/",
@@ -147,6 +157,17 @@ urlpatterns = [
         name="admin_supprimer_utilisateur",
     ),
     path("admin-dashboard/documents/", views.admin_documents, name="admin_documents"),
+    path("admin-dashboard/documents/ajouter/", views.admin_ajouter_archive, name="admin_ajouter_archive"),
+    path(
+        "admin-dashboard/documents/<int:pk>/modifier/",
+        views.admin_modifier_archive,
+        name="admin_modifier_archive",
+    ),
+    path(
+        "admin-dashboard/documents/<int:pk>/supprimer/",
+        views.admin_supprimer_archive,
+        name="admin_supprimer_archive",
+    ),
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),
     path("admin-dashboard/parametres/", views.admin_parametres, name="admin_parametres"),

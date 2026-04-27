@@ -33,6 +33,12 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+    .header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     .main-header h1 { margin: 0; font-size: 24px; font-weight: 800; }
     .main-header p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
     .btn-add {
@@ -47,6 +53,7 @@
       box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
     }
     .btn-add:hover { background: #1d4ed8; color: #fff; }
+    .btn-theme-inline { border-radius: 10px; }
     .main-content {
       flex: 1;
       width: 100%;
@@ -200,10 +207,6 @@
   </style>
 </head>
 <body class="admin-sigaud">
-  <button type="button" class="theme-toggle-btn theme-toggle-fixed" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
-    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
-  </button>
-
   <aside class="sidebar">
     {% include 'includes/admin_sidebar_brand.html' %}
     <nav class="sidebar-nav">
@@ -237,7 +240,12 @@
         <h1>Utilisateurs</h1>
         <p>Gestion des comptes SIGAUD, rôles et statuts.</p>
       </div>
-      <a href="{% url 'admin_add_user' %}" class="btn-add">+ Ajouter utilisateur</a>
+      <div class="header-actions">
+        <a href="{% url 'admin_add_user' %}" class="btn-add">+ Ajouter utilisateur</a>
+        <button type="button" class="theme-toggle-btn btn-theme-inline" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
+          <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+        </button>
+      </div>
     </header>
 
     <div class="main-content">

@@ -485,3 +485,60 @@
     max-width: 100%;
   }
 }
+
+/* Mode sombre : contraste renforcé pour "Mes collections" */
+html[data-theme="dark"] .collection-page {
+  --coll-primary: #93c5fd;
+  --coll-primary-hover: #bfdbfe;
+  --coll-primary-light: rgba(147, 197, 253, 0.16);
+  --coll-danger: #fca5a5;
+  --coll-danger-light: rgba(248, 113, 113, 0.14);
+  --coll-text: #f1f5f9;
+  --coll-text-muted: #cbd5e1;
+  --coll-border: #334155;
+  --coll-bg: #1e293b;
+  --coll-card: #1f2937;
+}
+
+html[data-theme="dark"] .collection-page .page-title,
+html[data-theme="dark"] .collection-page .create-title,
+html[data-theme="dark"] .collection-page .section-title,
+html[data-theme="dark"] .collection-page .collection-name,
+html[data-theme="dark"] .collection-page .empty-title,
+html[data-theme="dark"] .collection-page .subject-title {
+  color: #f8fafc;
+}
+
+html[data-theme="dark"] .collection-page .page-desc,
+html[data-theme="dark"] .collection-page .collection-meta,
+html[data-theme="dark"] .collection-page .empty-desc,
+html[data-theme="dark"] .collection-page .subject-meta,
+html[data-theme="dark"] .collection-page .section-desc,
+html[data-theme="dark"] .collection-page .add-item-meta,
+html[data-theme="dark"] .collection-page .no-more-subjects {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .collection-page .create-block,
+html[data-theme="dark"] .collection-page .collection-card,
+html[data-theme="dark"] .collection-page .collection-empty,
+html[data-theme="dark"] .collection-page .subject-card,
+html[data-theme="dark"] .collection-page .subjects-empty,
+html[data-theme="dark"] .collection-page .add-item {
+  background: #1f2937;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .collection-page .collection-icon-wrap,
+html[data-theme="dark"] .collection-page .empty-icon-wrap {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .collection-page .back-link {
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .collection-page .back-link:hover {
+  color: #bfdbfe;
+}

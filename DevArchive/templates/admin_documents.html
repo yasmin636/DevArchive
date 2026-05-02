@@ -127,6 +127,11 @@
                   <details class="manage-menu">
                     <summary><i class="bi bi-gear"></i> Gerer</summary>
                     <div class="manage-menu__popup">
+                      {% if d.fichier %}
+                      <a href="{% url 'voir_archive_pdf' d.pk %}" class="manage-menu__action" target="_blank" rel="noopener">
+                        <i class="bi bi-eye"></i> Voir le sujet
+                      </a>
+                      {% endif %}
                       <a href="{% url 'admin_modifier_archive' d.pk %}" class="manage-menu__action">
                         <i class="bi bi-pencil-square"></i> Modifier
                       </a>

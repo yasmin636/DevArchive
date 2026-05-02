@@ -15,12 +15,18 @@
     .main-header .sub{margin:6px 0 0;font-size:14px;color:var(--muted);}
     .main-content{flex:1;padding:24px 28px;}
     .panel{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:20px 22px;}
+    .panel + .panel { margin-top: 14px; }
     .panel-title{margin:0 0 4px;font-size:16px;font-weight:800;}
     .panel-sub{margin:0 0 16px;font-size:13px;color:var(--muted);}
     ul.notifications{list-style:none;padding:0;margin:0;}
     ul.notifications li{padding:10px 0;border-bottom:1px solid #e5e7eb;}
     .notif-title{font-weight:600;font-size:14px;margin-bottom:2px;}
     .notif-meta{font-size:12px;color:var(--muted);}
+    .req-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+    .req-btn{border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;}
+    .req-btn-approve{background:#16a34a;color:#fff;}
+    .req-btn-reject{background:#dc2626;color:#fff;}
+    .req-badge{display:inline-flex;align-items:center;gap:6px;background:#ede9fe;border:1px solid #ddd6fe;color:#5b21b6;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;}
     .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
   </style>
 </head>
@@ -61,6 +67,42 @@
       <p class="sub">Synthèse des dernières actions effectuées dans le système.</p>
     </header>
     <div class="main-content">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} py-2">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+      <section class="panel">
+        <h2 class="panel-title">Demandes d'abonnement étudiant</h2>
+        <p class="panel-sub">Demandes en attente de validation ou rejet.</p>
+        <ul class="notifications">
+          {% for ab in abonnements_en_attente %}
+          <li>
+            <div class="notif-title">
+              <span class="req-badge">En attente</span>
+              {{ ab.user.get_full_name|default:ab.user.username }}
+            </div>
+            <div class="notif-meta">
+              Demande du {{ ab.date_demande|date:"d/m/Y H:i" }}
+              · Niveau: {{ ab.niveau_activation.code|default:"-" }}
+              · Montant: {{ ab.montant_usd }}$
+            </div>
+            <div class="req-actions">
+              <form method="post" action="{% url 'admin_valider_abonnement_etudiant' ab.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="req-btn req-btn-approve">Valider</button>
+              </form>
+              <form method="post" action="{% url 'admin_rejeter_abonnement_etudiant' ab.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="req-btn req-btn-reject">Rejeter</button>
+              </form>
+            </div>
+          </li>
+          {% empty %}
+          <li class="notif-meta">Aucune demande d'abonnement en attente.</li>
+          {% endfor %}
+        </ul>
+      </section>
       <section class="panel">
         <h2 class="panel-title">Activité récente</h2>
         <p class="panel-sub">Les 20 dernières actions provenant de l’admin Django.</p>

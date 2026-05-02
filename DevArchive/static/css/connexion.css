@@ -38,6 +38,7 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  overflow-x: hidden;
 }
 
 /* ============================================================
@@ -46,6 +47,7 @@ body {
 .login-wrapper {
   width: 100%;
   max-width: 560px;
+  margin: 0 auto;
 }
 
 .login-card {
@@ -54,6 +56,7 @@ body {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  width: 100%;
 }
 
 /* ============================================================
@@ -244,5 +247,38 @@ body {
 
   .login-logo {
     width: 130px;
+  }
+
+  .options-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .btn-connexion {
+    min-height: 44px;
+  }
+}
+
+@media (max-height: 720px) {
+  body {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-body,
+  .login-header,
+  .login-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .login-title {
+    font-size: 1.3rem;
+  }
+
+  .login-subtitle {
+    font-size: 0.88rem;
   }
 }

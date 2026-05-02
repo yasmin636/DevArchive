@@ -495,6 +495,72 @@
       text-decoration: none;
     }
     .main-footer a:hover { text-decoration: underline; }
+    .dashboard-chart-panel {
+      margin-bottom: 1.35rem;
+    }
+    .dashboard-chart-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+    .dashboard-chart-sub {
+      margin: 0.3rem 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .dashboard-chart-stage {
+      margin-top: 0.9rem;
+      position: relative;
+      height: 320px;
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.04) 0%, rgba(14, 165, 233, 0.02) 100%);
+      padding: 12px;
+    }
+    .dashboard-chart-canvas-wrap {
+      position: relative;
+      height: 100%;
+      width: 100%;
+    }
+    .dashboard-chart-controls {
+      margin-top: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .chart-control-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+    }
+    .chart-control-btn:hover { background: #f8fafc; }
+    .dashboard-chart-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dashboard-chart-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+    .dashboard-chart-dot.active { background: var(--primary); }
     @media (max-width: 768px) {
       body {
         flex-direction: column;
@@ -628,6 +694,31 @@
         </div>
       </section>
 
+      {{ dashboard_charts|json_script:"dashboard-charts-data" }}
+      <section class="panel dashboard-chart-panel">
+        <div class="panel-header mb-2">
+          <div>
+            <h2 class="panel-title">Graphiques dynamiques</h2>
+            <p class="panel-sub">Un graphique apparait a la fois dans cette zone.</p>
+          </div>
+          <span class="pill">Auto</span>
+        </div>
+        <h3 id="dashboardChartTitle" class="dashboard-chart-title">Chargement...</h3>
+        <p id="dashboardChartSubtitle" class="dashboard-chart-sub mb-0"></p>
+        <div class="dashboard-chart-stage">
+          <div class="dashboard-chart-canvas-wrap">
+            <canvas id="dashboardDynamicChart" aria-label="Graphique dynamique du tableau de bord"></canvas>
+          </div>
+        </div>
+        <div class="dashboard-chart-controls">
+          <div class="d-flex gap-2">
+            <button id="dashboardChartPrev" class="chart-control-btn" type="button"><i class="bi bi-arrow-left"></i> Precedent</button>
+            <button id="dashboardChartNext" class="chart-control-btn" type="button">Suivant <i class="bi bi-arrow-right"></i></button>
+          </div>
+          <div id="dashboardChartDots" class="dashboard-chart-dots" aria-label="Selection de graphique"></div>
+        </div>
+      </section>
+
       <section class="panel-row row g-4 align-items-stretch">
         <article class="panel col-12 col-xl-8 d-flex flex-column">
           <div class="panel-header align-items-start">
@@ -712,6 +803,158 @@
     </footer>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var dataNode = document.getElementById('dashboard-charts-data');
+      var canvas = document.getElementById('dashboardDynamicChart');
+      if (!dataNode || !canvas || !window.Chart) return;
+
+      var chartItems = [];
+      try { chartItems = JSON.parse(dataNode.textContent || '[]'); } catch (e) { chartItems = []; }
+      if (!Array.isArray(chartItems) || !chartItems.length) return;
+
+      var titleNode = document.getElementById('dashboardChartTitle');
+      var subtitleNode = document.getElementById('dashboardChartSubtitle');
+      var dotsNode = document.getElementById('dashboardChartDots');
+      var prevBtn = document.getElementById('dashboardChartPrev');
+      var nextBtn = document.getElementById('dashboardChartNext');
+      var currentIdx = 0;
+      var currentChart = null;
+      var timer = null;
+      var delayMs = 4200;
+
+      function isDark() {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+      }
+      function tickColor() {
+        return isDark() ? '#94a3b8' : '#64748b';
+      }
+      function gridColor() {
+        return isDark() ? 'rgba(148,163,184,.15)' : 'rgba(15,23,42,.08)';
+      }
+      function numberFR(v) {
+        return Number(v || 0).toLocaleString('fr-FR');
+      }
+      function palette(i) {
+        var colors = ['#5b21b6', '#0d9488', '#2563eb', '#d97706', '#db2777', '#7c3aed', '#0891b2', '#16a34a', '#f59e0b'];
+        return colors[i % colors.length];
+      }
+
+      function buildOptions(item) {
+        if (item.type === 'line') {
+          return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function (ctx) { return numberFR(ctx.parsed.y); } } }
+            },
+            scales: {
+              x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+              y: { beginAtZero: true, ticks: { color: tickColor, precision: 0 }, grid: { color: gridColor } }
+            }
+          };
+        }
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: tickColor, usePointStyle: true, pointStyle: 'circle', boxWidth: 10 } },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var total = (ctx.dataset.data || []).reduce(function (s, x) { return s + x; }, 0);
+                  var pct = total ? ((ctx.parsed * 100) / total).toFixed(1) : '0.0';
+                  return ctx.label + ': ' + numberFR(ctx.parsed) + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        };
+      }
+
+      function buildDataset(item) {
+        if (item.type === 'line') {
+          var color = item.color || '#5b21b6';
+          return [{
+            label: item.title || 'Serie',
+            data: item.values || [],
+            borderColor: color,
+            backgroundColor: color + '22',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 4
+          }];
+        }
+        var bg = (item.values || []).map(function (_, idx) { return palette(idx); });
+        return [{
+          data: item.values || [],
+          backgroundColor: bg,
+          borderColor: isDark() ? '#1e293b' : '#ffffff',
+          borderWidth: 2
+        }];
+      }
+
+      function renderDots() {
+        dotsNode.innerHTML = '';
+        chartItems.forEach(function (item, idx) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dashboard-chart-dot' + (idx === currentIdx ? ' active' : '');
+          b.title = item.title || ('Graphique ' + (idx + 1));
+          b.addEventListener('click', function () {
+            currentIdx = idx;
+            renderChart();
+            restartTimer();
+          });
+          dotsNode.appendChild(b);
+        });
+      }
+
+      function renderChart() {
+        var item = chartItems[currentIdx] || {};
+        titleNode.textContent = item.title || 'Graphique';
+        subtitleNode.textContent = item.subtitle || '';
+
+        if (currentChart) currentChart.destroy();
+        currentChart = new Chart(canvas, {
+          type: item.type || 'line',
+          data: {
+            labels: item.labels || [],
+            datasets: buildDataset(item)
+          },
+          options: buildOptions(item)
+        });
+        renderDots();
+      }
+
+      function next() {
+        currentIdx = (currentIdx + 1) % chartItems.length;
+        renderChart();
+      }
+
+      function prev() {
+        currentIdx = (currentIdx - 1 + chartItems.length) % chartItems.length;
+        renderChart();
+      }
+
+      function restartTimer() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(next, delayMs);
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function () { prev(); restartTimer(); });
+      if (nextBtn) nextBtn.addEventListener('click', function () { next(); restartTimer(); });
+
+      renderChart();
+      restartTimer();
+    })();
+  </script>
 </body>
 </html>
 

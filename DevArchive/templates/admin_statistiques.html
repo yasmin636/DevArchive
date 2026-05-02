@@ -7,7 +7,17 @@
   <title>Statistiques – Admin Sigaud</title>
   {% include 'includes/sigaud_theme_head.html' %}
   <style>
-    :root { --primary:#5b21b6; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --radius:12px; }
+    :root {
+      --primary:#5b21b6;
+      --primary-2:#7c3aed;
+      --teal:#0d9488;
+      --card:#fff;
+      --border:#e5e7eb;
+      --text:#111827;
+      --muted:#6b7280;
+      --radius:14px;
+      --chart-grid:rgba(15,23,42,.07);
+    }
     *{box-sizing:border-box;} body.admin-sigaud{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);}
     .main{flex:1;display:flex;flex-direction:column;min-width:0;}
     .main-header{padding:20px 24px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
@@ -15,22 +25,38 @@
     .main-header .sub{margin:6px 0 0;font-size:14px;color:var(--muted);}
     .main-content{flex:1;padding:20px 24px;}
     .btn-theme-inline{border-radius:12px;}
-    .stat-card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 12px rgba(15, 23, 42, 0.06);}
+    .stat-card{
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      box-shadow:0 10px 30px rgba(2, 6, 23, 0.05), 0 2px 8px rgba(2, 6, 23, 0.04);
+      overflow:hidden;
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .stat-card:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(2, 6, 23, 0.08), 0 3px 10px rgba(2, 6, 23, 0.06);}
     .stat-card .card-body{padding:18px 20px;}
-    .stat-card h2{margin:0 0 4px;font-size:1rem;font-weight:800;}
-    .stat-card .card-subtitle{margin:0 0 12px;font-size:13px;color:var(--muted);}
-    .kpi-value{font-size:2rem;font-weight:800;line-height:1;}
-    .table thead th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#F8FAFC;}
-    .table td,.table th{padding:.55rem .7rem;}
-    .table td:last-child,.table th:last-child{text-align:right;}
-    .table-empty{color:var(--muted);text-align:center;padding:1rem !important;}
+    .stat-card h2{margin:0 0 4px;font-size:1rem;font-weight:800;letter-spacing:.01em;}
+    .stat-card .card-subtitle{margin:0 0 14px;font-size:13px;color:var(--muted);}
+    .chart-heading{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+    .chart-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--primary);}
+    .chart-dot.teal{background:var(--teal);}
+    .chart-dot.orange{background:#d97706;}
+    .kpi-row .kpi-value{font-size:1.9rem;font-weight:800;line-height:1;margin:0;}
+    .chart-wrap{position:relative;height:280px;width:100%;padding-top:6px;}
+    .chart-wrap.chart-wrap--tall{height:320px;}
+    .chart-wrap.chart-wrap--pie{height:300px;max-width:420px;margin:0 auto;}
+    html[data-theme="dark"] .stat-card{background:var(--card, #1e293b);border-color:var(--border, #334155);box-shadow:none;}
+    html[data-theme="dark"] .main-header{background:var(--card, #1e293b);border-color:var(--border, #334155);}
+    html[data-theme="dark"]{--chart-grid:rgba(148,163,184,.15);}
     @media (max-width: 991px){
       body.admin-sigaud{flex-direction:column;}
       body.admin-sigaud .sidebar{width:100%;}
       .main-header{padding:16px 18px;}
       .main-content{padding:16px;}
+      .chart-wrap{height:240px;}
     }
     .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
+    html[data-theme="dark"] .main-footer{background:var(--card, #1e293b);border-color:var(--border, #334155);}
   </style>
 </head>
 <body class="admin-sigaud">
@@ -65,81 +91,92 @@
     <header class="main-header">
       <div>
         <h1>Statistiques</h1>
-        <p class="sub">Vue synthétique des archives enregistrées.</p>
+        <p class="sub">Évolution des comptes et des archives, répartition par filière et par type.</p>
       </div>
       <button type="button" class="theme-toggle-btn btn-theme-inline" data-theme-toggle title="Thème clair ou sombre" aria-pressed="false">
         <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
       </button>
     </header>
     <div class="main-content container-fluid">
+      <div class="row g-3 mb-4 kpi-row">
+        <div class="col-6 col-md-3">
+          <div class="card stat-card h-100">
+            <div class="card-body">
+              <h2>Utilisateurs</h2>
+              <p class="card-subtitle mb-2">Comptes enregistrés</p>
+              <p class="kpi-value">{{ total_utilisateurs }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card stat-card h-100">
+            <div class="card-body">
+              <h2>Archives</h2>
+              <p class="card-subtitle mb-2">Sujets / documents</p>
+              <p class="kpi-value">{{ total_archives }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {{ chart_evolution_utilisateurs|json_script:"data-evolution-utilisateurs" }}
+      {{ chart_evolution_archives|json_script:"data-evolution-archives" }}
+      {{ chart_filiere|json_script:"data-filiere" }}
+      {{ chart_type|json_script:"data-type" }}
+      {{ chart_modules|json_script:"data-modules" }}
+
       <div class="row g-4">
-        <section class="col-12 col-md-6 col-xl-3">
-          <div class="card stat-card h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
-              <div>
-                <h2>Total des archives</h2>
-                <p class="card-subtitle">Nombre total de sujets et documents enregistrés.</p>
-              </div>
-              <p class="kpi-value mb-0">{{ total_archives }}</p>
-            </div>
-          </div>
-        </section>
-        <section class="col-12 col-md-6 col-xl-3">
+        <section class="col-12 col-xl-6">
           <div class="card stat-card h-100">
             <div class="card-body">
-              <h2>Par type</h2>
-              <p class="card-subtitle">Répartition CC / Examen final.</p>
-              <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle mb-0">
-                  <thead><tr><th>Type</th><th>Nombre</th></tr></thead>
-                  <tbody>
-                    {% for t in stats_par_type %}
-                    <tr><td>{{ t.type|default:"(non renseigné)" }}</td><td>{{ t.nb }}</td></tr>
-                    {% empty %}
-                    <tr><td colspan="2" class="table-empty">Aucune donnée.</td></tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+              <div class="chart-heading"><span class="chart-dot"></span><h2>Évolution des utilisateurs</h2></div>
+              <p class="card-subtitle">Nombre cumulé de comptes, mois par mois (selon la date d’inscription).</p>
+              <div class="chart-wrap chart-wrap--tall">
+                <canvas id="chartUsers" aria-label="Graphique évolution utilisateurs"></canvas>
               </div>
             </div>
           </div>
         </section>
-        <section class="col-12 col-md-6 col-xl-3">
+        <section class="col-12 col-xl-6">
           <div class="card stat-card h-100">
             <div class="card-body">
-              <h2>Par année</h2>
-              <p class="card-subtitle">Dernières années universitaires.</p>
-              <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle mb-0">
-                  <thead><tr><th>Année</th><th>Archives</th></tr></thead>
-                  <tbody>
-                    {% for a in stats_par_annee %}
-                    <tr><td>{{ a.annee|default:"—" }}</td><td>{{ a.nb }}</td></tr>
-                    {% empty %}
-                    <tr><td colspan="2" class="table-empty">Aucune donnée.</td></tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+              <div class="chart-heading"><span class="chart-dot teal"></span><h2>Évolution des sujets (archives)</h2></div>
+              <p class="card-subtitle">Nombre cumulé d’archives créées, selon la date d’archivage.</p>
+              <div class="chart-wrap chart-wrap--tall">
+                <canvas id="chartArchives" aria-label="Graphique évolution archives"></canvas>
               </div>
             </div>
           </div>
         </section>
-        <section class="col-12 col-md-6 col-xl-3">
+        <section class="col-12 col-lg-6 col-xl-4">
           <div class="card stat-card h-100">
             <div class="card-body">
-              <h2>Top filières</h2>
-              <p class="card-subtitle">Filières ayant le plus d’archives.</p>
-              <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle mb-0">
-                  <thead><tr><th>Filière</th><th>Archives</th></tr></thead>
-                  <tbody>
-                    {% for f in stats_par_filiere %}
-                    <tr><td>{{ f.filiere|default:"(non renseigné)" }}</td><td>{{ f.nb }}</td></tr>
-                    {% empty %}
-                    <tr><td colspan="2" class="table-empty">Aucune donnée.</td></tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+              <div class="chart-heading"><span class="chart-dot orange"></span><h2>Répartition par filière</h2></div>
+              <p class="card-subtitle">Part des archives par filière (top 12 + Autres si besoin).</p>
+              <div class="chart-wrap chart-wrap--pie">
+                <canvas id="chartFiliere" aria-label="Graphique filières"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="col-12 col-lg-6 col-xl-4">
+          <div class="card stat-card h-100">
+            <div class="card-body">
+              <h2>Type d’épreuve</h2>
+              <p class="card-subtitle">Contrôle continu vs examen final.</p>
+              <div class="chart-wrap chart-wrap--pie">
+                <canvas id="chartType" aria-label="Graphique types"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="col-12 col-xl-4">
+          <div class="card stat-card h-100">
+            <div class="card-body">
+              <h2>Modules les plus représentés</h2>
+              <p class="card-subtitle">Dix modules avec le plus d’archives.</p>
+              <div class="chart-wrap chart-wrap--tall">
+                <canvas id="chartModules" aria-label="Graphique modules"></canvas>
               </div>
             </div>
           </div>
@@ -148,6 +185,235 @@
     </div>
     <footer class="main-footer">© 2023 Sigaud – Statistiques.</footer>
   </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  <script>
+(function () {
+  function read(id) {
+    var el = document.getElementById(id);
+    if (!el || !el.textContent) return null;
+    try { return JSON.parse(el.textContent); } catch (e) { return null; }
+  }
+  function isDark() {
+    return document.documentElement.getAttribute('data-theme') === 'dark';
+  }
+  function tickColor() {
+    return isDark() ? '#94a3b8' : '#64748b';
+  }
+  function lineGridColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
+  }
+  function titleColor() {
+    return isDark() ? '#e2e8f0' : '#0f172a';
+  }
+  function numberFR(v) {
+    var n = Number(v || 0);
+    return n.toLocaleString('fr-FR');
+  }
+  var primary = '#5b21b6';
+  var primarySoft = 'rgba(91, 33, 182, 0.18)';
+  var teal = '#0d9488';
+  var pieColors = [
+    '#5b21b6', '#0d9488', '#d97706', '#dc2626', '#2563eb',
+    '#7c3aed', '#db2777', '#059669', '#ca8a04', '#4f46e5',
+    '#0891b2', '#ea580c', '#65a30d'
+  ];
+
+  var du = read('data-evolution-utilisateurs');
+  var da = read('data-evolution-archives');
+  var df = read('data-filiere');
+  var dt = read('data-type');
+  var dm = read('data-modules');
+
+  var commonLineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: isDark() ? 'rgba(15,23,42,.95)' : 'rgba(255,255,255,.98)',
+        titleColor: titleColor,
+        bodyColor: titleColor,
+        borderColor: isDark() ? 'rgba(148,163,184,.25)' : 'rgba(15,23,42,.12)',
+        borderWidth: 1,
+        padding: 10,
+        displayColors: false,
+        callbacks: { label: function (ctx) { return numberFR(ctx.parsed.y); } }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: tickColor, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
+        grid: { color: lineGridColor }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: tickColor, precision: 0 },
+        grid: { color: lineGridColor }
+      }
+    }
+  };
+
+  if (du && du.labels && du.labels.length) {
+    new Chart(document.getElementById('chartUsers'), {
+      type: 'line',
+      data: {
+        labels: du.labels,
+        datasets: [{
+          label: 'Utilisateurs (cumul)',
+          data: du.values,
+          borderColor: primary,
+          backgroundColor: primarySoft,
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 0,
+          pointHitRadius: 12,
+          pointHoverRadius: 4
+        }]
+      },
+      options: Object.assign({}, commonLineOptions, {
+        animation: { duration: 900, easing: 'easeOutQuart' }
+      })
+    });
+  }
+
+  if (da && da.labels && da.labels.length) {
+    new Chart(document.getElementById('chartArchives'), {
+      type: 'line',
+      data: {
+        labels: da.labels,
+        datasets: [{
+          label: 'Archives (cumul)',
+          data: da.values,
+          borderColor: teal,
+          backgroundColor: 'rgba(13, 148, 136, 0.14)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 0,
+          pointHitRadius: 12,
+          pointHoverRadius: 4
+        }]
+      },
+      options: Object.assign({}, commonLineOptions, {
+        animation: { duration: 900, easing: 'easeOutQuart' }
+      })
+    });
+  }
+
+  if (df && df.labels && df.labels.length) {
+    new Chart(document.getElementById('chartFiliere'), {
+      type: 'doughnut',
+      data: {
+        labels: df.labels,
+        datasets: [{
+          data: df.values,
+          backgroundColor: pieColors,
+          borderWidth: 2,
+          borderColor: isDark() ? '#1e293b' : '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: tickColor, boxWidth: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var total = (ctx.dataset.data || []).reduce(function (s, x) { return s + x; }, 0);
+                var pct = total ? ((ctx.parsed * 100) / total).toFixed(1) : 0;
+                return ctx.label + ': ' + numberFR(ctx.parsed) + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (dt && dt.labels && dt.labels.length) {
+    new Chart(document.getElementById('chartType'), {
+      type: 'doughnut',
+      data: {
+        labels: dt.labels,
+        datasets: [{
+          data: dt.values,
+          backgroundColor: [primary, teal, '#d97706', '#64748b'],
+          borderWidth: 2,
+          borderColor: isDark() ? '#1e293b' : '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: tickColor, boxWidth: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var total = (ctx.dataset.data || []).reduce(function (s, x) { return s + x; }, 0);
+                var pct = total ? ((ctx.parsed * 100) / total).toFixed(1) : 0;
+                return ctx.label + ': ' + numberFR(ctx.parsed) + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (dm && dm.labels && dm.labels.length) {
+    new Chart(document.getElementById('chartModules'), {
+      type: 'bar',
+      data: {
+        labels: dm.labels,
+        datasets: [{
+          label: 'Archives',
+          data: dm.values,
+          backgroundColor: 'rgba(91, 33, 182, 0.16)',
+          borderColor: primary,
+          borderWidth: 1.2,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: function (ctx) { return numberFR(ctx.parsed.x); } }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: tickColor, precision: 0 },
+            grid: { color: lineGridColor }
+          },
+          y: {
+            ticks: { color: tickColor, font: { size: 11 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+})();
+  </script>
 </body>
 </html>
-

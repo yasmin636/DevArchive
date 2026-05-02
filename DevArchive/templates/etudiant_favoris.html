@@ -52,36 +52,53 @@
   </div>
   {% endif %}
 
-  <div class="favoris-list">
+  <div class="subject-cards subject-cards--v2">
     {% for item in favoris %}
-    <article class="favori-card">
-      <div class="card-inner">
-        <div class="favori-icon-wrap">
-          <i class="bi bi-file-earmark-text"></i>
-        </div>
-        <div class="favori-content">
-          <h2 class="favori-title">{{ item.titre }}</h2>
+    <article class="subject-card-v2">
+      <div class="subject-card-v2__hero">
+        <div class="subject-card-v2__icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="subject-card-v2__intro">
+          <h4 class="subject-card-v2__title">{{ item.titre }}</h4>
           {% if item.archive %}
-          <p class="favori-meta">{{ item.archive.session }} {{ item.archive.annee }} — {{ item.archive.get_type_display }}{% if item.archive.semestre %} · {{ item.archive.semestre }}{% endif %}</p>
+          <p class="subject-card-v2__subtitle">{{ item.archive.session }} {{ item.archive.annee }} - {{ item.archive.get_type_display }}</p>
+          <div class="subject-card-v2__tags-row">
+            <span class="subject-card-v2__badge-sem {% if item.archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ item.archive.semestre|default:"S1" }}</span>
+          </div>
+          <div class="subject-card-v2__meta-line">
+            <span><i class="bi bi-mortarboard"></i> {{ item.archive.filiere|truncatechars:24 }}</span>
+            <span><i class="bi bi-calendar3"></i> {{ item.archive.annee }}</span>
+            <span><i class="bi bi-journal-text"></i> {{ item.archive.module|truncatechars:20 }}</span>
+          </div>
           {% else %}
-          <p class="favori-meta">Aucune archive disponible pour votre filière.</p>
+          <p class="subject-card-v2__subtitle">Aucune archive disponible pour votre filière.</p>
           {% endif %}
         </div>
-        <div class="favori-actions">
-          {% if item.archive and item.archive.fichier %}
-          <a href="{% url 'voir_archive_pdf_etudiant' item.archive.pk %}" class="btn-consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
-          <a href="{% url 'telecharger_archive_etudiant' item.archive.pk %}" class="btn-download"><i class="bi bi-download"></i> Télécharger</a>
-          {% endif %}
-          {% if item.archive %}
-          <form method="post" action="{% url 'toggle_favori_etudiant' item.archive.pk %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn-retirer" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</button>
-          </form>
-          {% else %}
-          <a href="{% url 'retirer_favori_etudiant' item.favori.examen_id %}?next={{ request.get_full_path|urlencode }}" class="btn-retirer" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</a>
-          {% endif %}
+        <div class="subject-card-v2__brand" aria-hidden="true">
+          <img src="{% static 'img/logo_site.png' %}" alt="" class="subject-card-v2__logo">
         </div>
+      </div>
+
+      <div class="subject-card-v2__actions">
+        {% if item.archive and item.archive.fichier %}
+        <a href="{% url 'voir_archive_pdf_etudiant' item.archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+        {% if item.archive.fichier_corrige %}
+          {% if item.archive.pk in corrige_archives_accessibles %}
+        <a href="{% url 'consulter_corrige_etudiant' item.archive.pk %}" class="subject-btn subject-btn--corrige"><i class="bi bi-clipboard-check"></i> Correction</a>
+          {% else %}
+        <a href="{% url 'etudiant_abonnement' %}" class="subject-btn subject-btn--corrige"><i class="bi bi-lock"></i> S'abonner ({{ abonnement_etudiant_prix_usd }}$)</a>
+          {% endif %}
+        {% endif %}
+        <a href="{% url 'telecharger_archive_etudiant' item.archive.pk %}" class="subject-btn subject-btn--download"><i class="bi bi-download"></i> Télécharger</a>
+        {% endif %}
+        {% if item.archive %}
+        <form method="post" action="{% url 'toggle_favori_etudiant' item.archive.pk %}" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button type="submit" class="subject-btn subject-btn--corrige" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</button>
+        </form>
+        {% else %}
+        <a href="{% url 'retirer_favori_etudiant' item.favori.examen_id %}?next={{ request.get_full_path|urlencode }}" class="subject-btn subject-btn--corrige" title="Retirer des favoris"><i class="bi bi-heart-fill"></i> Retirer</a>
+        {% endif %}
       </div>
     </article>
     {% empty %}

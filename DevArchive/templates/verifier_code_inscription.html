@@ -41,19 +41,23 @@
 
             <form method="post" novalidate>
                 {% csrf_token %}
-                <label for="id_code" class="form-label">Code de vérification</label>
-                <input
-                    type="text"
-                    id="id_code"
-                    name="code"
-                    maxlength="6"
-                    inputmode="numeric"
-                    pattern="[0-9]{6}"
-                    class="form-control otp-input"
-                    value="{{ code_value|default:'' }}"
-                    placeholder="000000"
-                    required
-                >
+                <div class="row justify-content-center">
+                    <div class="col-12 col-sm-10 col-md-8">
+                        <label for="id_code" class="form-label">Code de vérification</label>
+                        <input
+                            type="text"
+                            id="id_code"
+                            name="code"
+                            maxlength="6"
+                            inputmode="numeric"
+                            pattern="[0-9]{6}"
+                            class="form-control otp-input"
+                            value="{{ code_value|default:'' }}"
+                            placeholder="000000"
+                            required
+                        >
+                    </div>
+                </div>
 
                 <div class="d-grid mt-4">
                     <button type="submit" class="btn btn-primary btn-lg rounded-4">

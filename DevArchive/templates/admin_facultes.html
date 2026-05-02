@@ -18,6 +18,13 @@
     .panel{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:20px 22px;box-shadow:0 2px 12px rgba(15,23,42,.06);}
     .panel-title{margin:0 0 4px;font-size:16px;font-weight:800;}
     .panel-sub{margin:0 0 16px;font-size:13px;color:var(--muted);}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+    .panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .btn-sm-action{border-radius:10px;font-weight:700;}
+    .actions-col{min-width:180px;}
+    .actions-wrap{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;}
+    .btn-row{padding:5px 10px;font-size:12px;border-radius:8px;}
+    .section-gap{margin-top:18px;}
     .table thead th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#F8FAFC;}
     .table td,.table th{padding:.65rem .75rem;vertical-align:middle;}
     .table td:last-child,.table th:last-child{text-align:right;}
@@ -71,8 +78,17 @@
     </header>
     <div class="main-content container-fluid">
       <section class="panel">
-        <h2 class="panel-title">Facultés</h2>
-        <p class="panel-sub">Les mêmes facultés que dans votre interface Django administration.</p>
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Facultés</h2>
+            <p class="panel-sub">Gestion rapide des facultés : ajouter, modifier ou supprimer.</p>
+          </div>
+          <div class="panel-actions">
+            <a href="{% url 'admin_ajouter_faculte' %}" class="btn btn-primary btn-sm-action">
+              <i class="bi bi-plus-circle me-1"></i>Ajouter une faculté
+            </a>
+          </div>
+        </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead>
@@ -80,6 +96,7 @@
                 <th>Code</th>
                 <th>Libellé</th>
                 <th>Nombre de filières</th>
+                <th class="actions-col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -88,9 +105,71 @@
                 <td>{{ f.code }}</td>
                 <td>{{ f.libelle }}</td>
                 <td>{{ f.nb_filieres }}</td>
+                <td>
+                  <div class="actions-wrap">
+                    <a href="{% url 'admin_modifier_faculte' f.pk %}" class="btn btn-outline-primary btn-row">
+                      <i class="bi bi-pencil-square me-1"></i>Modifier
+                    </a>
+                    <form method="post" action="{% url 'admin_supprimer_faculte' f.pk %}" onsubmit="return confirm('Supprimer cette faculte ?');" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-danger btn-row">
+                        <i class="bi bi-trash3 me-1"></i>Supprimer
+                      </button>
+                    </form>
+                  </div>
+                </td>
               </tr>
               {% empty %}
-              <tr><td colspan="3" class="table-empty">Aucune faculté.</td></tr>
+              <tr><td colspan="4" class="table-empty">Aucune faculté.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-gap">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Départements / Filières</h2>
+              <p class="panel-sub">Liste des filières associées aux facultés.</p>
+            </div>
+            <div class="panel-actions">
+              <a href="{% url 'admin_ajouter_filiere' %}" class="btn btn-primary btn-sm-action">
+                <i class="bi bi-plus-circle me-1"></i>Ajouter une filière
+              </a>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Libellé</th>
+                  <th>Faculté</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for fil in filieres %}
+                <tr>
+                  <td>{{ fil.code }}</td>
+                  <td>{{ fil.libelle }}</td>
+                  <td>{{ fil.faculte.libelle }}</td>
+                  <td>
+                    <div class="actions-wrap">
+                      <a href="{% url 'admin_modifier_filiere' fil.pk %}" class="btn btn-outline-primary btn-row">
+                        <i class="bi bi-pencil-square me-1"></i>Modifier
+                      </a>
+                      <form method="post" action="{% url 'admin_supprimer_filiere' fil.pk %}" onsubmit="return confirm('Supprimer cette filiere ?');" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-row">
+                          <i class="bi bi-trash3 me-1"></i>Supprimer
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="table-empty">Aucune filière.</td></tr>
               {% endfor %}
             </tbody>
           </table>

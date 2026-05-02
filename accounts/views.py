@@ -26,11 +26,15 @@ from .forms import (
     ConnexionForm,
     EmailChangeForm,
     EtudiantRegistrationForm,
+    FaculteForm,
+    FiliereForm,
     PasswordChangeFormStyled,
     ProfilEtudiantForm,
 )
 from .constants import CORRIGE_GRATUITS_MAX
+from .constants import ABONNEMENT_ETUDIANT_PRIX_USD
 from .models import (
+    AbonnementEtudiant,
     Archive,
     AssistantPedagogique,
     Collection,
@@ -513,8 +517,15 @@ def deconnexion(request):
     """
     from django.contrib.auth import logout as auth_logout
 
+    if user_est_admin_sigaud(request.user):
+        redirect_url_name = "connexion_admin"
+    elif user_est_assistant(request.user):
+        redirect_url_name = "connexion_personnel"
+    else:
+        redirect_url_name = "connexion_etudiant"
+
     auth_logout(request)
-    return redirect("connexion_etudiant")
+    return redirect(redirect_url_name)
 
 
 class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
@@ -649,7 +660,7 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
             favori_archive_ids = set()
         ctx["favori_examen_ids"] = favori_examen_ids
         ctx["favori_archive_ids"] = favori_archive_ids
-        ctx.update(_context_quota_corrige(self.request.user))
+        ctx.update(_context_quota_corrige(self.request.user, archives))
         return ctx
 
 
@@ -690,15 +701,13 @@ def etudiant_favoris(request):
     except ProgrammingError:
         pass
     items.sort(key=lambda x: x["date_ajout"], reverse=True)
-    return render(
-        request,
-        "etudiant_favoris.html",
-        {
-            "etudiant": etudiant,
-            "faculte": etudiant.filiere.faculte,
-            "favoris": items,
-        },
-    )
+    ctx = {
+        "etudiant": etudiant,
+        "faculte": etudiant.filiere.faculte,
+        "favoris": items,
+    }
+    ctx.update(_context_quota_corrige(request.user, archives))
+    return render(request, "etudiant_favoris.html", ctx)
 
 
 @login_required
@@ -747,17 +756,15 @@ def etudiant_collection_detail(request, pk: int):
     if matiere_choisie:
         archives_disponibles_qs = archives_disponibles_qs.filter(module__iexact=matiere_choisie)
     archives_disponibles = list(archives_disponibles_qs)
-    return render(
-        request,
-        "etudiant_collection_detail.html",
-        {
-            "collection": collection,
-            "archives_in_collection": archives_in_collection,
-            "archives_disponibles": archives_disponibles,
-            "matieres_list": matieres_list,
-            "matiere_choisie": matiere_choisie,
-        },
-    )
+    ctx = {
+        "collection": collection,
+        "archives_in_collection": archives_in_collection,
+        "archives_disponibles": archives_disponibles,
+        "matieres_list": matieres_list,
+        "matiere_choisie": matiere_choisie,
+    }
+    ctx.update(_context_quota_corrige(request.user, archives))
+    return render(request, "etudiant_collection_detail.html", ctx)
 
 
 @login_required
@@ -904,7 +911,10 @@ def creer_archive(request):
 @login_required
 def voir_archive_pdf(request, pk: int):
     assistant = getattr(request.user, "assistant_pedagogique", None)
-    if not assistant and not (request.user.is_superuser or request.user.is_staff):
+    is_admin_sigaud = user_est_admin_sigaud(request.user)
+    if not assistant and not is_admin_sigaud and not (
+        request.user.is_superuser or request.user.is_staff
+    ):
         raise Http404()
     qs = Archive.objects.all()
     if assistant:
@@ -958,6 +968,27 @@ def voir_archive_pdf_etudiant(request, pk: int):
 
 
 @login_required
+def consulter_corrige_etudiant(request, pk: int):
+    """Affiche le corrigé dans une page interne SIGAUD (sans téléchargement étudiant)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    request.session["corrige_embed_allowed_pk"] = archive.pk
+    request.session.modified = True
+    return render(
+        request,
+        "etudiant_corrige_consultation.html",
+        {"archive": archive, "etudiant": request.user.etudiant},
+    )
+
+
+@login_required
 def voir_corrige_pdf_etudiant(request, pk: int):
     """Consultation du corrigé PDF (sans incrémenter les vues du sujet)."""
     if not user_est_etudiant(request.user):
@@ -966,6 +997,13 @@ def voir_corrige_pdf_etudiant(request, pk: int):
     archive = get_object_or_404(qs, pk=pk)
     if not archive.fichier_corrige:
         raise Http404("Aucun corrigé associé.")
+    allowed_pk = request.session.get("corrige_embed_allowed_pk")
+    if allowed_pk != archive.pk:
+        messages.info(
+            request,
+            "Veuillez ouvrir le corrigé depuis la page de consultation interne.",
+        )
+        return redirect("consulter_corrige_etudiant", pk=archive.pk)
     denied = _reserver_accès_corrige_gratuit(request, archive)
     if denied is not None:
         return denied
@@ -976,19 +1014,12 @@ def voir_corrige_pdf_etudiant(request, pk: int):
 
 @login_required
 def telecharger_corrige_etudiant(request, pk: int):
-    """Téléchargement du corrigé PDF (même quota que la consultation)."""
-    if not user_est_etudiant(request.user):
-        raise Http404()
-    qs = _archives_queryset_for_etudiant(request)
-    archive = get_object_or_404(qs, pk=pk)
-    if not archive.fichier_corrige:
-        raise Http404("Aucun corrigé associé.")
-    denied = _reserver_accès_corrige_gratuit(request, archive)
-    if denied is not None:
-        return denied
-    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename*=UTF-8''" + _safe_filename_corrige(archive)
-    return response
+    """Le téléchargement des corrigés est désactivé côté étudiant."""
+    messages.warning(
+        request,
+        "Le téléchargement du corrigé n'est pas autorisé. Consultation uniquement dans l'espace étudiant.",
+    )
+    return redirect("consulter_corrige_etudiant", pk=pk)
 
 
 @login_required
@@ -1116,18 +1147,68 @@ def _safe_filename_corrige(archive) -> str:
     return quote(base + "_corrige.pdf", safe="")
 
 
-def _context_quota_corrige(user):
-    """IDs d'archives dont le corrigé a déjà été « débloqué » + places restantes."""
+def _abonnement_etudiant_actif_pour_niveau(user):
+    """
+    Abonnement valide uniquement pour le niveau actuel de l'étudiant.
+    Si le niveau a changé, l'abonnement actif est automatiquement désactivé.
+    """
+    abonnement = AbonnementEtudiant.objects.filter(user=user).first()
+    etudiant = getattr(user, "etudiant", None)
+    if (
+        not abonnement
+        or not abonnement.actif
+        or abonnement.statut_demande != "approuvee"
+        or not etudiant
+    ):
+        return False
+    if abonnement.niveau_activation_id != etudiant.niveau_id:
+        abonnement.actif = False
+        abonnement.statut_demande = "aucune"
+        abonnement.save(update_fields=["actif", "statut_demande", "date_mise_a_jour"])
+        return False
+    return True
+
+
+def _context_quota_corrige(user, archives_qs=None):
+    """
+    Contexte d'accès corrigés :
+    - 5 corrigés gratuits sur 5 matières différentes
+    - ou abonnement actif (accès illimité au niveau de l'étudiant)
+    """
     ids = list(
-        ConsultationCorrigeGratuite.objects.filter(user=user).values_list(
-            "archive_id", flat=True
-        )
+        ConsultationCorrigeGratuite.objects.filter(user=user).values_list("archive_id", flat=True)
+    )
+    modules_utilises = list(
+        ConsultationCorrigeGratuite.objects.filter(user=user)
+        .values_list("archive__module", flat=True)
+        .distinct()
     )
     n = len(ids)
+    abonnement_actif = _abonnement_etudiant_actif_pour_niveau(user)
+    archives_accessibles = set(ids)
+    if archives_qs is not None:
+        for a in archives_qs:
+            if not getattr(a, "fichier_corrige", None):
+                continue
+            if abonnement_actif:
+                archives_accessibles.add(a.pk)
+                continue
+            if a.pk in archives_accessibles:
+                continue
+            if len(archives_accessibles) >= CORRIGE_GRATUITS_MAX:
+                continue
+            if a.module in modules_utilises:
+                continue
+            archives_accessibles.add(a.pk)
+
     return {
         "corrige_archives_debloques": ids,
+        "corrige_archives_accessibles": list(archives_accessibles),
+        "corrige_modules_utilises": modules_utilises,
         "corrige_gratuits_restants": max(0, CORRIGE_GRATUITS_MAX - n),
         "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+        "abonnement_etudiant_actif": abonnement_actif,
+        "abonnement_etudiant_prix_usd": ABONNEMENT_ETUDIANT_PRIX_USD,
     }
 
 
@@ -1138,17 +1219,95 @@ def _reserver_accès_corrige_gratuit(request, archive):
     Retourne une HttpResponse 403 si quota dépassé, sinon None.
     """
     user = request.user
+    if _abonnement_etudiant_actif_pour_niveau(user):
+        return None
     if ConsultationCorrigeGratuite.objects.filter(user=user, archive=archive).exists():
         return None
-    if ConsultationCorrigeGratuite.objects.filter(user=user).count() >= CORRIGE_GRATUITS_MAX:
-        return render(
+    consultations = ConsultationCorrigeGratuite.objects.filter(user=user).select_related("archive")
+    if consultations.count() >= CORRIGE_GRATUITS_MAX:
+        messages.warning(
             request,
-            "corrige_quota_depasse.html",
-            {"max_corrige": CORRIGE_GRATUITS_MAX},
-            status=403,
+            "Vos 5 corrigés gratuits sont épuisés. Abonnez-vous pour continuer.",
         )
+        return redirect("etudiant_abonnement")
+    modules_deja_utilises = set(
+        consultations.values_list("archive__module", flat=True)
+    )
+    if archive.module in modules_deja_utilises:
+        messages.info(
+            request,
+            "Les 5 corrigés gratuits doivent provenir de 5 matières différentes. "
+            "Abonnez-vous pour débloquer ce corrigé.",
+        )
+        return redirect("etudiant_abonnement")
     ConsultationCorrigeGratuite.objects.create(user=user, archive=archive)
     return None
+
+
+@login_required
+def etudiant_abonnement(request):
+    """Page abonnement étudiant."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    abonnement, _ = AbonnementEtudiant.objects.get_or_create(
+        user=request.user,
+        defaults={"montant_usd": ABONNEMENT_ETUDIANT_PRIX_USD},
+    )
+    etudiant = request.user.etudiant
+    if request.method == "POST" and "activer_abonnement" in request.POST:
+        if abonnement.statut_demande == "en_attente":
+            messages.info(
+                request,
+                "Votre demande d'abonnement est déjà en attente de validation par l'administrateur.",
+            )
+            return redirect("etudiant_abonnement")
+        if _abonnement_etudiant_actif_pour_niveau(request.user):
+            messages.info(request, "Votre abonnement est déjà actif pour votre niveau actuel.")
+            return redirect("etudiant_abonnement")
+
+        abonnement.actif = False
+        abonnement.statut_demande = "en_attente"
+        abonnement.montant_usd = ABONNEMENT_ETUDIANT_PRIX_USD
+        abonnement.niveau_activation = etudiant.niveau
+        abonnement.date_demande = timezone.now()
+        abonnement.date_traitement = None
+        abonnement.save(
+            update_fields=[
+                "actif",
+                "statut_demande",
+                "montant_usd",
+                "niveau_activation",
+                "date_demande",
+                "date_traitement",
+                "date_mise_a_jour",
+            ]
+        )
+        messages.success(
+            request,
+            "Votre demande d'abonnement a été envoyée. Elle sera validée ou rejetée par un administrateur.",
+        )
+        return redirect("etudiant_abonnement")
+
+    abonnement_actif_niveau = _abonnement_etudiant_actif_pour_niveau(request.user)
+    if abonnement.actif and not abonnement_actif_niveau:
+        messages.info(
+            request,
+            "Votre niveau a changé : l'abonnement précédent est clôturé. "
+            "Vous disposez du quota gratuit puis vous pouvez reprendre l'abonnement pour ce nouveau niveau.",
+        )
+    quota_ctx = _context_quota_corrige(request.user)
+    return render(
+        request,
+        "etudiant_abonnement.html",
+        {
+            "etudiant": etudiant,
+            "abonnement": abonnement,
+            "abonnement_prix_usd": ABONNEMENT_ETUDIANT_PRIX_USD,
+            "demande_abonnement_en_attente": abonnement.statut_demande == "en_attente",
+            "demande_abonnement_rejetee": abonnement.statut_demande == "rejetee",
+            **quota_ctx,
+        },
+    )
 
 
 @login_required
@@ -1297,8 +1456,11 @@ def admin_dashboard(request):
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
+    from datetime import date
+
     from django.contrib.auth import get_user_model
     from django.db.models import Count
+    from django.db.models.functions import TruncMonth
     from django.contrib.admin.models import LogEntry
 
     User = get_user_model()
@@ -1339,9 +1501,122 @@ def admin_dashboard(request):
         .order_by("libelle")[:12]
     )
 
-    notification_count = LogEntry.objects.filter(
+    log_notifications_count = LogEntry.objects.filter(
         action_time__gte=timezone.now() - timedelta(days=7)
     ).count()
+    demandes_abonnement_en_attente = AbonnementEtudiant.objects.filter(
+        statut_demande="en_attente"
+    ).count()
+    notification_count = log_notifications_count + demandes_abonnement_en_attente
+
+    # Donnees graphiques dynamiques (un graphe a la fois dans le dashboard)
+    user_monthly = {}
+    for row in (
+        User.objects.annotate(m=TruncMonth("date_joined"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            key = (row["m"].year, row["m"].month)
+            user_monthly[key] = user_monthly.get(key, 0) + row["c"]
+
+    archive_monthly = {}
+    for row in (
+        Archive.objects.annotate(m=TruncMonth("date_archive"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            key = (row["m"].year, row["m"].month)
+            archive_monthly[key] = archive_monthly.get(key, 0) + row["c"]
+
+    today_local = timezone.localdate()
+    end_ym = (today_local.year, today_local.month)
+    all_keys = list(user_monthly.keys()) + list(archive_monthly.keys())
+    start_ym = min(all_keys) if all_keys else end_ym
+    months = _sigaud_months_range(start_ym, end_ym)
+    if len(months) > 48:
+        months = months[-48:]
+        start_ym = months[0]
+
+    def first_day(ym):
+        return date(ym[0], ym[1], 1)
+
+    base_users = User.objects.filter(date_joined__lt=first_day(start_ym)).count()
+    base_archives = Archive.objects.filter(date_archive__lt=first_day(start_ym)).count()
+
+    labels_time = []
+    users_cumul = []
+    archives_cumul = []
+    cu, ca = base_users, base_archives
+    for ym in months:
+        cu += user_monthly.get(ym, 0)
+        ca += archive_monthly.get(ym, 0)
+        labels_time.append(_sigaud_label_mois_fr(*ym))
+        users_cumul.append(cu)
+        archives_cumul.append(ca)
+
+    fil_rows = list(
+        Archive.objects.values("filiere").annotate(nb=Count("id")).order_by("-nb")
+    )
+    top_fil = 8
+    fil_labels = [
+        (r["filiere"] or "(Non renseigne)").strip() or "(Non renseigne)"
+        for r in fil_rows[:top_fil]
+    ]
+    fil_values = [r["nb"] for r in fil_rows[:top_fil]]
+    if len(fil_rows) > top_fil:
+        autres = sum(r["nb"] for r in fil_rows[top_fil:])
+        if autres:
+            fil_labels.append("Autres")
+            fil_values.append(autres)
+
+    type_rows = list(
+        Archive.objects.values("type").annotate(nb=Count("id")).order_by("-nb")
+    )
+    type_labels = [
+        (r["type"] or "(Non renseigne)").strip() or "(Non renseigne)" for r in type_rows
+    ]
+    type_values = [r["nb"] for r in type_rows]
+
+    dashboard_charts = [
+        {
+            "key": "users_growth",
+            "title": "Evolution des utilisateurs",
+            "subtitle": "Nombre cumule de comptes par mois",
+            "type": "line",
+            "labels": labels_time,
+            "values": users_cumul,
+            "color": "#5b21b6",
+        },
+        {
+            "key": "archives_growth",
+            "title": "Evolution des sujets archives",
+            "subtitle": "Nombre cumule d'archives par mois",
+            "type": "line",
+            "labels": labels_time,
+            "values": archives_cumul,
+            "color": "#0d9488",
+        },
+        {
+            "key": "filiere_share",
+            "title": "Repartition des sujets par filiere",
+            "subtitle": "Top filieres + autres",
+            "type": "doughnut",
+            "labels": fil_labels,
+            "values": fil_values,
+        },
+        {
+            "key": "type_share",
+            "title": "Repartition par type d'epreuve",
+            "subtitle": "CC versus Examen final",
+            "type": "doughnut",
+            "labels": type_labels,
+            "values": type_values,
+        },
+    ]
 
     return render(
         request,
@@ -1357,6 +1632,8 @@ def admin_dashboard(request):
             "dashboard_user_rows": dashboard_user_rows,
             "facultes_avec_filieres": facultes_avec_filieres,
             "notification_count": notification_count,
+            "demandes_abonnement_en_attente": demandes_abonnement_en_attente,
+            "dashboard_charts": dashboard_charts,
         },
     )
 
@@ -1411,6 +1688,16 @@ def admin_utilisateurs(request):
         qs = qs.filter(groups__name=group_name).distinct()
 
     users = qs
+    user_rows = []
+    for u in users:
+        role_kind, role_label = _dashboard_user_role(u)
+        user_rows.append(
+            {
+                "user": u,
+                "role_kind": role_kind,
+                "role_label": role_label,
+            }
+        )
     groups = Group.objects.all().order_by("name")
 
     return render(
@@ -1418,6 +1705,7 @@ def admin_utilisateurs(request):
         "admin_utilisateurs.html",
         {
             "users": users,
+            "user_rows": user_rows,
             "groups": groups,
             "total_count": users.count(),
             "query": q,
@@ -1479,7 +1767,9 @@ def admin_modifier_utilisateur(request, pk: int):
     form = AdminEditUserForm(target_user)
     if request.method == "POST":
         form = AdminEditUserForm(target_user, request.POST)
-        if form.is_valid():
+        if request.POST.get("_reload_form") == "1":
+            pass
+        elif form.is_valid():
             updated_user = form.save()
             messages.success(
                 request,
@@ -1493,7 +1783,11 @@ def admin_modifier_utilisateur(request, pk: int):
     return render(
         request,
         "admin_modifier_utilisateur.html",
-        {"form": form, "target_user": target_user},
+        {
+            "form": form,
+            "target_user": target_user,
+            "role_utilisateur": form.user_role,
+        },
     )
 
 
@@ -1610,36 +1904,171 @@ def admin_supprimer_archive(request, pk: int):
     return redirect("admin_documents")
 
 
+def _sigaud_months_range(start_ym, end_ym):
+    """start_ym / end_ym: (year, month) avec start <= end."""
+    y, m = start_ym
+    ye, me = end_ym
+    out = []
+    while (y, m) <= (ye, me):
+        out.append((y, m))
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return out
+
+
+def _sigaud_label_mois_fr(y, m):
+    mois = (
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc.",
+    )
+    return f"{mois[m - 1]} {y}"
+
+
 @login_required
 def admin_statistiques(request):
-    """Statistiques sur les archives (agrégats)."""
+    """Statistiques : graphiques (évolution, répartitions)."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
-    from django.db.models import Count
+    from datetime import date
 
+    from django.db.models import Count
+    from django.db.models.functions import TruncMonth
+
+    User = get_user_model()
     total_archives = Archive.objects.count()
-    stats_par_annee = (
-        Archive.objects.values("annee")
+    total_utilisateurs = User.objects.count()
+
+    user_monthly = {}
+    for row in (
+        User.objects.annotate(m=TruncMonth("date_joined"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            dk = (row["m"].year, row["m"].month)
+            user_monthly[dk] = user_monthly.get(dk, 0) + row["c"]
+
+    archive_monthly = {}
+    for row in (
+        Archive.objects.annotate(m=TruncMonth("date_archive"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            dk = (row["m"].year, row["m"].month)
+            archive_monthly[dk] = archive_monthly.get(dk, 0) + row["c"]
+
+    today = timezone.localdate()
+    end_ym = (today.year, today.month)
+    all_keys = list(user_monthly.keys()) + list(archive_monthly.keys())
+    if all_keys:
+        start_ym = min(all_keys)
+    else:
+        start_ym = end_ym
+
+    months = _sigaud_months_range(start_ym, end_ym)
+    max_span = 72
+    if len(months) > max_span:
+        months = months[-max_span:]
+        start_ym = months[0]
+
+    def first_day(ym):
+        return date(ym[0], ym[1], 1)
+
+    base_users = User.objects.filter(date_joined__lt=first_day(start_ym)).count()
+    base_archives = Archive.objects.filter(date_archive__lt=first_day(start_ym)).count()
+
+    labels_temps = []
+    serie_utilisateurs_cumul = []
+    serie_archives_cumul = []
+    cu, ca = base_users, base_archives
+    for ym in months:
+        cu += user_monthly.get(ym, 0)
+        ca += archive_monthly.get(ym, 0)
+        labels_temps.append(_sigaud_label_mois_fr(*ym))
+        serie_utilisateurs_cumul.append(cu)
+        serie_archives_cumul.append(ca)
+
+    chart_evolution_utilisateurs = {
+        "labels": labels_temps,
+        "values": serie_utilisateurs_cumul,
+    }
+    chart_evolution_archives = {
+        "labels": labels_temps,
+        "values": serie_archives_cumul,
+    }
+
+    fil_rows = list(
+        Archive.objects.values("filiere")
         .annotate(nb=Count("id"))
-        .order_by("-annee")[:10]
+        .order_by("-nb")
     )
-    stats_par_type = (
+    top_fil = 12
+    if len(fil_rows) > top_fil:
+        head = fil_rows[:top_fil]
+        autres = sum(r["nb"] for r in fil_rows[top_fil:])
+        labels_fil = [(r["filiere"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in head]
+        data_fil = [r["nb"] for r in head]
+        if autres > 0:
+            labels_fil.append("Autres")
+            data_fil.append(autres)
+    else:
+        labels_fil = [
+            (r["filiere"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in fil_rows
+        ]
+        data_fil = [r["nb"] for r in fil_rows]
+
+    chart_filiere = {"labels": labels_fil, "values": data_fil}
+
+    type_rows = list(
         Archive.objects.values("type").annotate(nb=Count("id")).order_by("-nb")
     )
-    stats_par_filiere = (
-        Archive.objects.values("filiere")
+    chart_type = {
+        "labels": [
+            (r["type"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in type_rows
+        ],
+        "values": [r["nb"] for r in type_rows],
+    }
+
+    mod_rows = list(
+        Archive.objects.values("module")
         .annotate(nb=Count("id"))
         .order_by("-nb")[:10]
     )
+    mod_labels = []
+    for r in mod_rows:
+        lab = (r["module"] or "(Non renseigné)").strip() or "(Non renseigné)"
+        if len(lab) > 42:
+            lab = lab[:39] + "…"
+        mod_labels.append(lab)
+    chart_modules = {"labels": mod_labels, "values": [r["nb"] for r in mod_rows]}
+
     return render(
         request,
         "admin_statistiques.html",
         {
             "total_archives": total_archives,
-            "stats_par_annee": stats_par_annee,
-            "stats_par_type": stats_par_type,
-            "stats_par_filiere": stats_par_filiere,
+            "total_utilisateurs": total_utilisateurs,
+            "chart_evolution_utilisateurs": chart_evolution_utilisateurs,
+            "chart_evolution_archives": chart_evolution_archives,
+            "chart_filiere": chart_filiere,
+            "chart_type": chart_type,
+            "chart_modules": chart_modules,
         },
     )
 
@@ -1653,7 +2082,154 @@ def admin_facultes(request):
     from django.db.models import Count
 
     facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
-    return render(request, "admin_facultes.html", {"facultes": facultes})
+    filieres = Filiere.objects.select_related("faculte").order_by("faculte__code", "code")
+    return render(
+        request,
+        "admin_facultes.html",
+        {"facultes": facultes, "filieres": filieres},
+    )
+
+
+@login_required
+def admin_ajouter_faculte(request):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        form = FaculteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Faculte ajoutee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FaculteForm()
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Ajouter une faculte",
+            "page_help": "Creer une nouvelle faculte academique.",
+            "submit_label": "Ajouter",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+def admin_modifier_faculte(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    faculte = get_object_or_404(Faculte, pk=pk)
+    if request.method == "POST":
+        form = FaculteForm(request.POST, instance=faculte)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Faculte modifiee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FaculteForm(instance=faculte)
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Modifier la faculte",
+            "page_help": "Mettez a jour les informations de la faculte.",
+            "submit_label": "Enregistrer",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_faculte(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    faculte = get_object_or_404(Faculte, pk=pk)
+    try:
+        faculte.delete()
+        messages.success(request, "Faculte supprimee avec succes.")
+    except (ProtectedError, RestrictedError, IntegrityError, DatabaseError):
+        messages.error(
+            request,
+            "Suppression impossible: des filieres ou niveaux sont lies a cette faculte.",
+        )
+    return redirect("admin_facultes")
+
+
+@login_required
+def admin_ajouter_filiere(request):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        form = FiliereForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Filiere ajoutee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FiliereForm()
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Ajouter une filiere",
+            "page_help": "Creer une nouvelle filiere/departement.",
+            "submit_label": "Ajouter",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+def admin_modifier_filiere(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    filiere = get_object_or_404(Filiere, pk=pk)
+    if request.method == "POST":
+        form = FiliereForm(request.POST, instance=filiere)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Filiere modifiee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FiliereForm(instance=filiere)
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Modifier la filiere",
+            "page_help": "Mettez a jour les informations de la filiere.",
+            "submit_label": "Enregistrer",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_filiere(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    filiere = get_object_or_404(Filiere, pk=pk)
+    try:
+        filiere.delete()
+        messages.success(request, "Filiere supprimee avec succes.")
+    except (ProtectedError, RestrictedError, IntegrityError, DatabaseError):
+        messages.error(
+            request,
+            "Suppression impossible: des elements sont lies a cette filiere.",
+        )
+    return redirect("admin_facultes")
 
 
 @login_required
@@ -1717,4 +2293,70 @@ def admin_notifications(request):
         LogEntry.objects.select_related("user", "content_type")
         .order_by("-action_time")[:20]
     )
-    return render(request, "admin_notifications.html", {"notifications": notifications})
+    abonnements_en_attente = (
+        AbonnementEtudiant.objects.filter(statut_demande="en_attente")
+        .select_related("user", "niveau_activation")
+        .order_by("-date_demande")
+    )
+    return render(
+        request,
+        "admin_notifications.html",
+        {
+            "notifications": notifications,
+            "abonnements_en_attente": abonnements_en_attente,
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_valider_abonnement_etudiant(request, pk: int):
+    """Valide une demande d'abonnement étudiant en attente."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    abonnement = get_object_or_404(AbonnementEtudiant, pk=pk)
+    if abonnement.statut_demande != "en_attente":
+        messages.info(request, "Cette demande a déjà été traitée.")
+        return redirect("admin_notifications")
+    abonnement.actif = True
+    abonnement.statut_demande = "approuvee"
+    abonnement.date_activation = timezone.now()
+    abonnement.date_traitement = timezone.now()
+    abonnement.save(
+        update_fields=[
+            "actif",
+            "statut_demande",
+            "date_activation",
+            "date_traitement",
+            "date_mise_a_jour",
+        ]
+    )
+    messages.success(request, f"Demande validée pour {abonnement.user.username}.")
+    return redirect("admin_notifications")
+
+
+@login_required
+@require_POST
+def admin_rejeter_abonnement_etudiant(request, pk: int):
+    """Rejette une demande d'abonnement étudiant en attente."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    abonnement = get_object_or_404(AbonnementEtudiant, pk=pk)
+    if abonnement.statut_demande != "en_attente":
+        messages.info(request, "Cette demande a déjà été traitée.")
+        return redirect("admin_notifications")
+    abonnement.actif = False
+    abonnement.statut_demande = "rejetee"
+    abonnement.date_traitement = timezone.now()
+    abonnement.save(
+        update_fields=[
+            "actif",
+            "statut_demande",
+            "date_traitement",
+            "date_mise_a_jour",
+        ]
+    )
+    messages.warning(request, f"Demande rejetée pour {abonnement.user.username}.")
+    return redirect("admin_notifications")

@@ -49,6 +49,7 @@
         <li><a class="dropdown-item" href="{% url 'etudiant_favoris' %}"><i class="bi bi-heart me-2"></i>Favoris</a></li>
         <li><a class="dropdown-item" href="{% url 'etudiant_profil' %}"><i class="bi bi-gear me-2"></i>Gérer mon profil</a></li>
         <li><a class="dropdown-item" href="{% url 'etudiant_telechargements' %}"><i class="bi bi-download me-2"></i>Historique des téléchargements</a></li>
+        <li><a class="dropdown-item" href="{% url 'etudiant_abonnement' %}"><i class="bi bi-credit-card me-2"></i>Mon abonnement</a></li>
         <li><hr class="dropdown-divider"></li>
         <li>
           <form action="{% url 'logout' %}" method="post" class="d-inline">
@@ -81,15 +82,14 @@
     <nav class="sidebar-nav" aria-label="Navigation principale">
       <span class="sidebar-nav-label">Navigation</span>
       <a class="sidebar-link active" href="{% url 'espace_etudiant' %}"><i class="bi bi-collection"></i> Tableau de bord</a>
-      <a class="sidebar-link" href="#sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets les plus visités</a>
-      <a class="sidebar-link" href="#matieres-title"><i class="bi bi-journal-bookmark"></i> Matières</a>
-      <a class="sidebar-link" href="#recherche"><i class="bi bi-search"></i> Recherche d'examens</a>
+      <a class="sidebar-link" href="#sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets disponibles</a>
       <a class="sidebar-link" href="#historique-title"><i class="bi bi-clock-history"></i> Mon historique</a>
       <span class="sidebar-nav-label">Mon compte</span>
       <a class="sidebar-link" href="{% url 'etudiant_collection' %}"><i class="bi bi-collection"></i> Collection</a>
       <a class="sidebar-link" href="{% url 'etudiant_favoris' %}"><i class="bi bi-heart"></i> Favoris</a>
       <a class="sidebar-link" href="{% url 'etudiant_profil' %}"><i class="bi bi-gear"></i> Gérer mon profil</a>
       <a class="sidebar-link" href="{% url 'etudiant_telechargements' %}"><i class="bi bi-download"></i> Téléchargements</a>
+      <a class="sidebar-link" href="{% url 'etudiant_abonnement' %}"><i class="bi bi-credit-card"></i> Abonnement</a>
       <hr class="sidebar-divider">
       <form action="{% url 'logout' %}" method="post" class="sidebar-logout">
         {% csrf_token %}
@@ -130,13 +130,38 @@
   <div class="dashboard-primary-col">
   <section class="mb-4" aria-labelledby="sujets-title">
     <div class="section-title section-title--pill">
-      <h3 id="sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets les plus visités</h3>
-      <a href="#recherche" class="link-all">Voir tout</a>
+      <h3 id="sujets-title"><i class="bi bi-graph-up-arrow"></i> Sujets disponibles</h3>
+      <span class="link-all">Filtre rapide</span>
     </div>
+  <div class="subject-filters-bar" aria-label="Recherche et filtres des sujets">
+    <div class="subject-search-wrap">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        id="subjectSearchInput"
+        class="form-control subject-search-input"
+        placeholder="Rechercher par matière ou mot-clé..."
+        aria-label="Rechercher les sujets par matière"
+      >
+    </div>
+    <div class="subject-type-filters" role="group" aria-label="Filtrer par type de sujet">
+      <button type="button" class="btn btn-outline-primary btn-sm active" data-subject-type-filter="all">Tous</button>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-subject-type-filter="continu">Continu</button>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-subject-type-filter="final">Final</button>
+    </div>
+  </div>
+  <p class="subject-filter-empty text-muted mb-3" id="subjectFilterEmpty" hidden>Aucun sujet ne correspond à votre recherche.</p>
   <div class="subject-cards subject-cards--v2">
     {% for item in sujets_cartes %}
     {% with archive=item.archive %}
-    <article class="subject-card-v2" data-archive-id="{{ archive.pk }}">
+    <article
+      class="subject-card-v2"
+      data-archive-id="{{ archive.pk }}"
+      data-search-title="{{ archive.title|lower }}"
+      data-search-module="{{ archive.module|default:''|lower }}"
+      data-search-filiere="{{ archive.filiere|default:''|lower }}"
+      data-subject-type="{% if archive.type == 'Examen Final' %}final{% else %}continu{% endif %}"
+    >
       <div class="subject-card-v2__hero">
         <div class="subject-card-v2__icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
         <div class="subject-card-v2__intro">
@@ -183,10 +208,10 @@
       <div class="subject-card-v2__actions">
         <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
         {% if archive.fichier_corrige %}
-          {% if archive.pk in corrige_archives_debloques or corrige_gratuits_restants > 0 %}
-        <a href="{% url 'voir_corrige_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige" target="_blank" rel="noopener" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}"><i class="bi bi-clipboard-check"></i> Consulter correction</a>
+          {% if archive.pk in corrige_archives_accessibles %}
+        <a href="{% url 'consulter_corrige_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}"><i class="bi bi-clipboard-check"></i> Consulter correction</a>
           {% else %}
-        <span class="subject-btn subject-btn--corrige subject-btn--disabled" role="button" tabindex="0" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}" title="Vous avez atteint la limite de {{ corrige_gratuits_max }} corrigés gratuits (différents). Les corrigés déjà ouverts restent accessibles depuis l’historique ou en rouvrant le même lien."><i class="bi bi-lock"></i> Correction (quota gratuit atteint)</span>
+        <a href="{% url 'etudiant_abonnement' %}" class="subject-btn subject-btn--corrige"><i class="bi bi-lock"></i> S'abonner ({{ abonnement_etudiant_prix_usd }}$)</a>
           {% endif %}
         {% else %}
         <span class="subject-btn subject-btn--corrige subject-btn--disabled" title="Aucun corrigé déposé pour ce sujet"><i class="bi bi-clipboard-x"></i> Correction indisponible</span>
@@ -202,8 +227,11 @@
       {% if archive.fichier_corrige %}
       <p class="corrige-quota-banner corrige-quota-banner--reveal mb-0 mt-2" id="corrige-quota-msg-{{ archive.pk }}" hidden>
         <i class="bi bi-info-circle"></i>
-        Corrigés gratuits : <strong>{{ corrige_gratuits_restants }}</strong> / {{ corrige_gratuits_max }} corrigés <em>différents</em> encore disponibles.
-        Rouvrir un corrigé déjà consulté reste gratuit.
+        {% if abonnement_etudiant_actif %}
+        Abonnement actif : accès illimité aux corrigés de votre niveau.
+        {% else %}
+        Offre gratuite : <strong>{{ corrige_gratuits_restants }}</strong> / {{ corrige_gratuits_max }} corrigés restants (matières différentes), puis abonnement à {{ abonnement_etudiant_prix_usd }}$.
+        {% endif %}
       </p>
       {% endif %}
       {% else %}
@@ -236,7 +264,11 @@
         </div>
         {% if archive.fichier_corrige %}
         <p class="subject-card-v2__corrige-note" data-show-corrige-quota="corrige-quota-msg-{{ archive.pk }}">
-          Le corrigé peut être consulté ou téléchargé. Chaque <strong>nouveau</strong> corrigé compte dans votre quota gratuit ({{ corrige_gratuits_max }} corrigés <em>différents</em>) ; rouvrir le même corrigé reste gratuit.
+          {% if abonnement_etudiant_actif %}
+          Votre abonnement est actif : vous pouvez consulter tous les corrigés de votre niveau.
+          {% else %}
+          Vous avez droit à {{ corrige_gratuits_max }} corrigés gratuits sur des matières différentes. Ensuite, abonnement unique {{ abonnement_etudiant_prix_usd }}$.
+          {% endif %}
         </p>
         {% endif %}
       </div>
@@ -248,95 +280,10 @@
   </div>
   </section>
 
-  <section class="matieres-section" aria-labelledby="matieres-title">
-    <h3 class="matieres-title" id="matieres-title"><i class="bi bi-journal-bookmark-fill matieres-icon"></i> Matières</h3>
-    <p class="matieres-desc">Sélectionnez votre matière pour voir les documents associés.</p>
-    <div class="matiere-chooser">
-      <form method="get" action="{% url 'espace_etudiant' %}" class="matiere-form" id="formMatiere">
-        <span class="matiere-label-pill"><i class="bi bi-book"></i> Choisir la matière</span>
-        <select name="matiere" id="selectMatiere" class="form-select matiere-select">
-          <option value="">Toutes les matières</option>
-          {% for mat in matieres_list %}
-          <option value="{{ mat }}" {% if matiere_choisie == mat %}selected{% endif %}>{{ mat }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary btn-matiere">
-          <i class="bi bi-funnel"></i> Afficher
-        </button>
-      </form>
-    </div>
-  </section>
-
-  <section id="recherche" aria-labelledby="recherche-title">
-    <div class="section-title">
-      <h3 id="recherche-title"><i class="bi bi-search"></i> Recherche d'examens</h3>
-    </div>
-  <div class="search-section">
-    <div class="search-filters">
-      <select class="form-select form-select-sm" id="filterSemestre" style="max-width:180px;">
-        <option value="">Tous les semestres</option>
-        <option value="S1">S1</option>
-        <option value="S2">S2</option>
-      </select>
-      <select class="form-select form-select-sm" id="filterAnnee" style="max-width:180px;">
-        <option value="">Toutes les années</option>
-      </select>
-      <select class="form-select form-select-sm" id="filterType" style="max-width:180px;">
-        <option value="">Tous les types</option>
-        <option value="CC">Contrôle Continu</option>
-        <option value="Examen Final">Examen Final</option>
-      </select>
-      <button type="button" class="btn btn-primary btn-sm btn-filter" id="btnFilter">
-        <i class="bi bi-funnel"></i> Filtrer
-      </button>
-    </div>
-    <div class="table-responsive">
-      <table class="exam-table" id="examTable">
-        <thead>
-          <tr>
-            <th>MATIÈRE / INTITULÉ</th>
-            <th>ANNÉE</th>
-            <th>SESSION</th>
-            <th>TYPE</th>
-            <th>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for archive in archives %}
-          <tr data-semestre="{{ archive.semestre|default:'' }}" data-annee="{{ archive.annee }}" data-type="{{ archive.type }}">
-            <td>{{ archive.title }}</td>
-            <td>{{ archive.annee }}</td>
-            <td>
-              {% if archive.session == "Rattrapage" %}
-              <span class="badge-session-rattrapage">RATTRAPAGE</span>
-              {% else %}
-              <span class="badge-session-normale">NORMALE</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if archive.type == "Examen Final" %}<span class="badge-final">FINAL</span>{% else %}<span class="badge-controle">CONTRÔLE</span>{% endif %}
-            </td>
-            <td>
-              {% if archive.fichier %}
-              <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="link-consulter" target="_blank">Consulter</a>
-              <span class="mx-1">·</span>
-              <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="link-consulter">Télécharger</a>
-              {% else %}—{% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5" class="text-muted text-center py-3">Aucune archive pour votre filière.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  </section>
-
   <section aria-labelledby="historique-title">
     <div class="section-title">
       <h3 id="historique-title"><i class="bi bi-clock-history"></i> Mon Historique</h3>
-      <a href="#recherche" class="link-all">Voir les archives</a>
+      <a href="#sujets-title" class="link-all">Voir les sujets</a>
     </div>
   <div class="history-section">
     <ul class="history-list">
@@ -360,7 +307,7 @@
       {% endfor %}
     </ul>
     <div class="history-access">
-      <a href="#recherche"><i class="bi bi-search"></i> Rechercher des examens</a>
+      <a href="#sujets-title"><i class="bi bi-search"></i> Rechercher des sujets</a>
     </div>
   </div>
   </section>
@@ -375,49 +322,58 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function() {
-  var formMatiere = document.getElementById('formMatiere');
-  var selectMatiere = document.getElementById('selectMatiere');
-  if (formMatiere && selectMatiere) {
-    selectMatiere.addEventListener('change', function() { formMatiere.submit(); });
+  var searchInput = document.getElementById('subjectSearchInput');
+  var filterButtons = document.querySelectorAll('[data-subject-type-filter]');
+  var cards = document.querySelectorAll('.subject-card-v2[data-archive-id]');
+  var emptyState = document.getElementById('subjectFilterEmpty');
+  var activeType = 'all';
+
+  function normalize(value) {
+    return (value || '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
   }
 
-  var table = document.getElementById('examTable');
-  var tbody = table && table.querySelector('tbody');
-  var rows = tbody ? tbody.querySelectorAll('tr[data-annee]') : [];
-  var filterSemestre = document.getElementById('filterSemestre');
-  var filterAnnee = document.getElementById('filterAnnee');
-  var filterType = document.getElementById('filterType');
-  var btnFilter = document.getElementById('btnFilter');
+  function applySubjectFilters() {
+    var query = normalize(searchInput && searchInput.value);
+    var visibleCount = 0;
 
-  function getAnneeOptions() {
-    var set = new Set();
-    rows.forEach(function(r) { set.add(r.getAttribute('data-annee')); });
-    return Array.from(set).sort().reverse();
-  }
+    cards.forEach(function(card) {
+      var title = normalize(card.getAttribute('data-search-title'));
+      var module = normalize(card.getAttribute('data-search-module'));
+      var filiere = normalize(card.getAttribute('data-search-filiere'));
+      var haystack = [title, module, filiere].join(' ');
+      var cardType = card.getAttribute('data-subject-type') || '';
 
-  function applyFilters() {
-    var sem = (filterSemestre && filterSemestre.value) || '';
-    var an = (filterAnnee && filterAnnee.value) || '';
-    var typ = (filterType && filterType.value) || '';
-    rows.forEach(function(tr) {
-      var show = true;
-      if (sem && tr.getAttribute('data-semestre') !== sem) show = false;
-      if (an && tr.getAttribute('data-annee') !== an) show = false;
-      if (typ && tr.getAttribute('data-type') !== typ) show = false;
-      tr.style.display = show ? '' : 'none';
+      var matchesText = !query || haystack.indexOf(query) !== -1;
+      var matchesType = activeType === 'all' || cardType === activeType;
+      var isVisible = matchesText && matchesType;
+
+      card.style.display = isVisible ? '' : 'none';
+      if (isVisible) visibleCount += 1;
     });
+
+    if (emptyState) {
+      emptyState.hidden = visibleCount !== 0;
+    }
   }
 
-  if (filterAnnee && rows.length) {
-    var annees = getAnneeOptions();
-    annees.forEach(function(a) {
-      var opt = document.createElement('option');
-      opt.value = a;
-      opt.textContent = a;
-      filterAnnee.appendChild(opt);
-    });
+  if (searchInput) {
+    searchInput.addEventListener('input', applySubjectFilters);
   }
-  if (btnFilter) btnFilter.addEventListener('click', applyFilters);
+
+  filterButtons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      activeType = btn.getAttribute('data-subject-type-filter') || 'all';
+      filterButtons.forEach(function(other) {
+        other.classList.toggle('active', other === btn);
+      });
+      applySubjectFilters();
+    });
+  });
 })();
 </script>
 <script>

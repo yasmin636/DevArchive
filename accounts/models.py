@@ -409,6 +409,53 @@ class ConsultationCorrigeGratuite(models.Model):
         return f"{self.user_id} → archive {self.archive_id}"
 
 
+class AbonnementEtudiant(models.Model):
+    """
+    Abonnement premium étudiant (simulation de paiement).
+    Un abonnement actif donne accès à tous les corrigés du niveau de l'étudiant.
+    """
+
+    STATUT_DEMANDE_CHOICES = [
+        ("aucune", "Aucune"),
+        ("en_attente", "En attente"),
+        ("approuvee", "Approuvée"),
+        ("rejetee", "Rejetée"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="abonnement_etudiant",
+    )
+    actif = models.BooleanField(default=False)
+    statut_demande = models.CharField(
+        max_length=20,
+        choices=STATUT_DEMANDE_CHOICES,
+        default="aucune",
+    )
+    montant_usd = models.DecimalField(max_digits=8, decimal_places=2, default=15.00)
+    niveau_activation = models.ForeignKey(
+        Niveau,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="abonnements_etudiants",
+        help_text="Niveau de l'étudiant au moment de l'activation de l'abonnement.",
+    )
+    date_demande = models.DateTimeField(null=True, blank=True)
+    date_activation = models.DateTimeField(null=True, blank=True)
+    date_traitement = models.DateTimeField(null=True, blank=True)
+    date_mise_a_jour = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Abonnement étudiant"
+        verbose_name_plural = "Abonnements étudiants"
+
+    def __str__(self) -> str:
+        etat = "actif" if self.actif else "inactif"
+        return f"{self.user_id} ({etat})"
+
+
 class Commentaire(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

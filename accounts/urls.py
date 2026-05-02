@@ -40,6 +40,11 @@ urlpatterns = [
         name="voir_archive_pdf_etudiant",
     ),
     path(
+        "espace-etudiant/archive/<int:pk>/corrige/",
+        views.consulter_corrige_etudiant,
+        name="consulter_corrige_etudiant",
+    ),
+    path(
         "espace-etudiant/archive/<int:pk>/corrige/pdf/",
         views.voir_corrige_pdf_etudiant,
         name="voir_corrige_pdf_etudiant",
@@ -103,6 +108,11 @@ urlpatterns = [
         "espace-etudiant/telechargements/",
         views.etudiant_telechargements,
         name="etudiant_telechargements",
+    ),
+    path(
+        "espace-etudiant/abonnement/",
+        views.etudiant_abonnement,
+        name="etudiant_abonnement",
     ),
     path(
         "espace-etudiant/archive/<int:pk>/favori/",
@@ -170,6 +180,36 @@ urlpatterns = [
     ),
     path("admin-dashboard/statistiques/", views.admin_statistiques, name="admin_statistiques"),
     path("admin-dashboard/facultes/", views.admin_facultes, name="admin_facultes"),
+    path(
+        "admin-dashboard/facultes/ajouter/",
+        views.admin_ajouter_faculte,
+        name="admin_ajouter_faculte",
+    ),
+    path(
+        "admin-dashboard/facultes/<int:pk>/modifier/",
+        views.admin_modifier_faculte,
+        name="admin_modifier_faculte",
+    ),
+    path(
+        "admin-dashboard/facultes/<int:pk>/supprimer/",
+        views.admin_supprimer_faculte,
+        name="admin_supprimer_faculte",
+    ),
+    path(
+        "admin-dashboard/filieres/ajouter/",
+        views.admin_ajouter_filiere,
+        name="admin_ajouter_filiere",
+    ),
+    path(
+        "admin-dashboard/filieres/<int:pk>/modifier/",
+        views.admin_modifier_filiere,
+        name="admin_modifier_filiere",
+    ),
+    path(
+        "admin-dashboard/filieres/<int:pk>/supprimer/",
+        views.admin_supprimer_filiere,
+        name="admin_supprimer_filiere",
+    ),
     path("admin-dashboard/parametres/", views.admin_parametres, name="admin_parametres"),
     path(
         "admin-dashboard/administration-systeme/",
@@ -178,6 +218,16 @@ urlpatterns = [
     ),
     path("admin-dashboard/audit-logs/", views.admin_audit_logs, name="admin_audit_logs"),
     path("admin-dashboard/notifications/", views.admin_notifications, name="admin_notifications"),
+    path(
+        "admin-dashboard/abonnements/<int:pk>/valider/",
+        views.admin_valider_abonnement_etudiant,
+        name="admin_valider_abonnement_etudiant",
+    ),
+    path(
+        "admin-dashboard/abonnements/<int:pk>/rejeter/",
+        views.admin_rejeter_abonnement_etudiant,
+        name="admin_rejeter_abonnement_etudiant",
+    ),
     # Déconnexion (GET/POST) : compatible avec les pages utilisant un lien simple.
     path("deconnexion/", views.deconnexion, name="logout"),
     # Mot de passe oublié / réinitialisation

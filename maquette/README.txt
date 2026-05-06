@@ -1,4 +1,4 @@
-Maquette SIGAUD — Frontend uniquement
+Maquette SIGAEUD — Frontend uniquement
 =========================================
 
 Ce dossier contient des copies des pages du projet en HTML/CSS/JS statiques,

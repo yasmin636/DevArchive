@@ -3,8 +3,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SIGAUD – Université de Djibouti</title>
+    <title>SIGAEUD – Université de Djibouti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     {% include 'includes/sigaud_theme_head.html' %}
     <link rel="stylesheet" href="{% static 'css/accueil.css' %}">
 </head>
@@ -21,10 +22,10 @@
             <div class="header-inner">
                 <div class="brand">
                     <div class="header-logo-small">
-                        <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD - Université de Djibouti">
+                        <img src="{% static 'img/logo_site.png' %}" alt="SIGAEUD - Université de Djibouti">
                     </div>
                     <div>
-                        <div class="brand-title">SIGAUD</div>
+                        <div class="brand-title">SIGAEUD</div>
                         <div class="brand-sub">Université de Djibouti</div>
                     </div>
                 </div>
@@ -55,26 +56,28 @@
                     <div>
                         <span class="hero-tag">Patrimoine académique de Djibouti</span>
                         <h1 class="hero-title">Une solution moderne pour préserver le patrimoine académique</h1>
-                        <p class="hero-desc">SIGAUD simplifie l'accès aux ressources pédagogiques tout en garantissant la pérennité et la sécurité des documents officiels de l'Université de Djibouti.</p>
+                        <p class="hero-desc">SIGAEUD centralise l'archivage des sujets d'examen et facilite leur consultation pour la communauté universitaire de Djibouti.</p>
                         <div class="hero-img-wrap" style="display:none;">
                             <img src="#" alt="">
                         </div>
                     </div>
                     <div class="hero-img-wrap">
-                        <img src="{% static 'img/image_accueil_v2.png' %}?v=2" alt="Université de Djibouti">
+                        <img src="{% static 'img/image_accueil_v2.png' %}?v=2" alt="Université de Djibouti" class="hero-img hero-img--primary">
+                        <img src="{% static 'img/image_accueil3.jpeg' %}" alt="Université de Djibouti - vue alternative" class="hero-img hero-img--secondary">
                     </div>
                 </div>
             </div>
         </section>
 
+
         <section class="features" id="facultes">
             <div class="container">
-                <h2 class="section-title">Les avantages de SIGAUD</h2>
+                <h2 class="section-title">Les avantages de SIGAEUD</h2>
                 <div class="features-grid">
                     <div class="feature-card">
                         <div class="feature-icon">💬</div>
                         <h3>Consultation publique</h3>
-                        <p>Accès libre aux archives pour tous les étudiants inscrits.</p>
+                        <p>Accès aux sujets d'examen archivés pour les étudiants inscrits.</p>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">🔍</div>
@@ -106,7 +109,7 @@
                     <div class="stat-card">
                         <div class="stat-number">9</div>
                         <div class="stat-label">Facultés actives</div>
-                        <p class="stat-desc">Toutes les composantes de l'université sont numérisées et accessibles.</p>
+                        <p class="stat-desc">Les examens de chaque faculté sont centralisés et accessibles selon les droits.</p>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number">2 500+</div>
@@ -120,8 +123,8 @@
         <section class="cta">
             <div class="container">
                 <div class="cta-box">
-                    <h2 class="cta-title">Prêt à explorer les archives ?</h2>
-                    <p class="cta-desc">Inscrivez-vous dès maintenant pour accéder instantanément à la base de données de votre faculté et optimiser vos révisions.</p>
+                    <h2 class="cta-title">Prêt à explorer les sujets d'examen ?</h2>
+                    <p class="cta-desc">Inscrivez-vous pour accéder aux épreuves archivées de votre filière et faciliter vos révisions.</p>
                     <div class="cta-btns">
                         <a href="{% url 'inscription' %}" class="btn btn-solid">S'inscrire maintenant</a>
                     </div>
@@ -135,7 +138,7 @@
         <div class="container">
             <div class="footer-inner">
                 <div>
-                    <div class="footer-brand">SIGAUD</div>
+                    <div class="footer-brand">SIGAEUD</div>
                     <p class="footer-desc">Le système centralisé d'archivage des examens de l'Université de Djibouti. Développé pour soutenir la réussite des étudiants et l'excellence académique.</p>
                 </div>
                 <div class="footer-col">
@@ -162,6 +165,7 @@
             </div>
         </div>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% include 'includes/accueil_network_inline.html' %}
 </body>
 </html>

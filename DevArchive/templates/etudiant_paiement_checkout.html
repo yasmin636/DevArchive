@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paiement abonnement — SIGAEUD</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body class="py-4">
+  <div class="container" style="max-width:760px;">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Paiement de l'abonnement</h1>
+        {% if not is_local_mode %}
+          <p class="mb-2">Redirection vers Mastercard Hosted Checkout...</p>
+          <div class="alert alert-secondary">
+            Si la redirection ne démarre pas, utilisez le bouton ci-dessous.
+          </div>
+          <button id="payNowBtn" class="btn btn-primary">Continuer vers le paiement</button>
+          <a class="btn btn-outline-secondary ms-2" href="{% url 'etudiant_paiement_retour' %}?tx={{ paiement.reference }}&status=cancelled">Annuler</a>
+        {% else %}
+          <div class="alert alert-info mb-3">
+            Paiement local pris en compte. Votre demande d'abonnement est en attente de validation administrateur.
+          </div>
+          <a class="btn btn-primary" href="{% url 'etudiant_abonnement' %}">Retour à l'abonnement</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if not is_local_mode %}
+    <script src="{{ gateway_url }}/checkout/version/{{ gateway_api_version }}/checkout.js"
+            data-error="errorCallback"
+            data-cancel="{{ cancel_url }}"></script>
+    <script>
+      function errorCallback(error) {
+        window.location.href = "{% url 'etudiant_abonnement' %}";
+      }
+      Checkout.configure({
+        merchant: "{{ merchant_id|escapejs }}",
+        order: {
+          id: "{{ paiement.gateway_order_id|escapejs }}",
+          amount: "{{ paiement.montant_usd }}",
+          currency: "{{ paiement.devise|escapejs }}",
+          description: "Déblocage corrections SIGAEUD"
+        },
+        session: {
+          id: "{{ paiement.gateway_session_id|escapejs }}"
+        },
+        interaction: {
+          operation: "PURCHASE",
+          returnUrl: "{{ return_url|escapejs }}",
+          cancelUrl: "{{ cancel_url|escapejs }}"
+        }
+      });
+      const payNowBtn = document.getElementById("payNowBtn");
+      if (payNowBtn) {
+        payNowBtn.addEventListener("click", function () {
+          Checkout.showPaymentPage();
+        });
+      }
+      setTimeout(function () {
+        Checkout.showPaymentPage();
+      }, 400);
+    </script>
+  {% endif %}
+</body>
+</html>

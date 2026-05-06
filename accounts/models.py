@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import uuid
 
 
 class Faculte(models.Model):
@@ -407,6 +408,100 @@ class ConsultationCorrigeGratuite(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} → archive {self.archive_id}"
+
+
+class AbonnementEtudiant(models.Model):
+    """
+    Abonnement premium étudiant (simulation de paiement).
+    Un abonnement actif donne accès à tous les corrigés du niveau de l'étudiant.
+    """
+
+    STATUT_DEMANDE_CHOICES = [
+        ("aucune", "Aucune"),
+        ("en_attente", "En attente"),
+        ("approuvee", "Approuvée"),
+        ("rejetee", "Rejetée"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="abonnement_etudiant",
+    )
+    actif = models.BooleanField(default=False)
+    statut_demande = models.CharField(
+        max_length=20,
+        choices=STATUT_DEMANDE_CHOICES,
+        default="aucune",
+    )
+    montant_usd = models.DecimalField(max_digits=8, decimal_places=2, default=15.00)
+    niveau_activation = models.ForeignKey(
+        Niveau,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="abonnements_etudiants",
+        help_text="Niveau de l'étudiant au moment de l'activation de l'abonnement.",
+    )
+    date_demande = models.DateTimeField(null=True, blank=True)
+    date_activation = models.DateTimeField(null=True, blank=True)
+    date_traitement = models.DateTimeField(null=True, blank=True)
+    date_mise_a_jour = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Abonnement étudiant"
+        verbose_name_plural = "Abonnements étudiants"
+
+    def __str__(self) -> str:
+        etat = "actif" if self.actif else "inactif"
+        return f"{self.user_id} ({etat})"
+
+
+class PaiementAbonnement(models.Model):
+    """Historique des paiements d'abonnement (sandbox/simulation)."""
+
+    STATUT_CHOICES = [
+        ("initie", "Initié"),
+        ("en_attente", "En attente"),
+        ("reussi", "Réussi"),
+        ("echoue", "Échoué"),
+        ("annule", "Annulé"),
+        ("erreur", "Erreur"),
+    ]
+
+    reference = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="paiements_abonnement",
+    )
+    abonnement = models.ForeignKey(
+        AbonnementEtudiant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="paiements",
+    )
+    provider = models.CharField(max_length=40, default="mastercard")
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="initie")
+    montant_usd = models.DecimalField(max_digits=8, decimal_places=2, default=15.00)
+    devise = models.CharField(max_length=10, default="USD")
+    gateway_order_id = models.CharField(max_length=120, blank=True, default="")
+    gateway_session_id = models.CharField(max_length=120, blank=True, default="")
+    gateway_success_indicator = models.CharField(max_length=255, blank=True, default="")
+    payload_gateway = models.JSONField(blank=True, null=True)
+    message = models.TextField(blank=True, default="")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_mise_a_jour = models.DateTimeField(auto_now=True)
+    date_validation = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Paiement abonnement"
+        verbose_name_plural = "Paiements abonnement"
+        ordering = ["-date_creation"]
+
+    def __str__(self) -> str:
+        return f"{self.reference} ({self.statut})"
 
 
 class Commentaire(models.Model):

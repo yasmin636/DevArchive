@@ -1,6 +1,6 @@
 /**
  * Fond type constellation / réseau : points reliés, mouvement fluide.
- * Page d'accueil SIGAUD uniquement.
+ * Page d'accueil SIGAEUD uniquement.
  */
 (function () {
   var canvas = document.getElementById("accueil-network-canvas");

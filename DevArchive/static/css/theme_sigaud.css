@@ -1,5 +1,5 @@
 /**
- * SIGAUD — palette unifiée (référence : espace personnel)
+ * SIGAEUD — palette unifiée (référence : espace personnel)
  * Couleurs primaires indigo / violet, arrière-plans slate clairs.
  * Mode sombre : surfaces slate, texte clair.
  */
@@ -95,7 +95,7 @@ body.sigaud-themed {
   box-shadow: var(--sigaud-shadow);
 }
 
-/* Pages admin (styles inline) — mode sombre cohérent avec Sigaud */
+/* Pages admin (styles inline) — mode sombre cohérent avec Sigaeud */
 html[data-theme="dark"] body.admin-sigaud {
   background: var(--sigaud-page) !important;
   color: var(--sigaud-text) !important;
@@ -188,7 +188,7 @@ html[data-theme="dark"] body.admin-sigaud .sys-admin-actions {
   border-color: var(--sigaud-border) !important;
 }
 
-/* Admin Sigaud — mode clair : arrière-plan à ronds (points + halos) */
+/* Admin Sigaeud — mode clair : arrière-plan à ronds (points + halos) */
 html[data-theme="light"] body.admin-sigaud {
   background-color: #ede9fe;
   background-image:
@@ -201,7 +201,7 @@ html[data-theme="light"] body.admin-sigaud {
   background-position: 0 0, 0 0, 0 0, 0 0, 13px 13px;
 }
 
-/* Marque SIGAUD — barre latérale admin (tous les templates) */
+/* Marque SIGAEUD — barre latérale admin (tous les templates) */
 body.admin-sigaud .sidebar-brand-titles {
   display: flex;
   flex-direction: column;

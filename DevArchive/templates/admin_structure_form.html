@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }} – Admin Sigaeud</title>
+  {% include 'includes/sigaud_theme_head.html' %}
+  <style>
+    :root { --primary:#5b21b6; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
+    *{box-sizing:border-box;} body.admin-sigaud{margin:0;min-height:100vh;display:flex;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);}
+    .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .main-header{padding:20px 24px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+    .main-header h1{margin:0;font-size:24px;font-weight:800;}
+    .main-header .sub{margin:6px 0 0;font-size:14px;color:var(--muted);}
+    .main-content{flex:1;padding:20px 24px;}
+    .panel{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:20px 22px;box-shadow:0 2px 12px rgba(15,23,42,.06);max-width:820px;}
+    .field{margin-bottom:14px;}
+    .field label{display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;}
+    .field .helptext{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
+    .errorlist{margin:6px 0 0;padding-left:18px;color:#b91c1c;font-size:12px;}
+    .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px;}
+    .main-footer{margin-top:auto;padding:18px 28px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);background:#fff;text-align:center;}
+    @media (max-width: 991px){ body.admin-sigaud{flex-direction:column;} body.admin-sigaud .sidebar{width:100%;} .main-header{padding:16px 18px;} .main-content{padding:16px;} }
+  </style>
+</head>
+<body class="admin-sigaud">
+  <aside class="sidebar">
+    {% include 'includes/admin_sidebar_brand.html' %}
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="{% url 'admin_dashboard' %}"><span class="icon"><i class="bi bi-speedometer2"></i></span> Tableau de bord</a>
+      <a href="{% url 'admin_utilisateurs' %}"><span class="icon"><i class="bi bi-people-fill"></i></span> Utilisateurs</a>
+      <a href="{% url 'admin_documents' %}"><span class="icon"><i class="bi bi-file-earmark-text-fill"></i></span> Documents</a>
+      <a href="{% url 'admin_statistiques' %}"><span class="icon"><i class="bi bi-bar-chart-fill"></i></span> Statistiques</a>
+      <a href="{% url 'admin_facultes' %}" class="active"><span class="icon"><i class="bi bi-bank2"></i></span> Facultés & Dépts</a>
+      <div class="sidebar-section">Système</div>
+      <a href="{% url 'admin_parametres' %}"><span class="icon"><i class="bi bi-gear-fill"></i></span> Paramètres</a>
+      <a href="{% url 'admin_audit_logs' %}"><span class="icon"><i class="bi bi-shield-check"></i></span> Audit logs</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="main-header">
+      <div>
+        <h1>{{ page_title }}</h1>
+        <p class="sub">{{ page_help }}</p>
+      </div>
+    </header>
+    <div class="main-content container-fluid">
+      <section class="panel">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+          {% for field in form %}
+          <div class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="helptext">{{ field.help_text }}</small>{% endif %}
+            {{ field.errors }}
+          </div>
+          {% endfor %}
+          <div class="actions">
+            <a href="{% url cancel_url_name %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <footer class="main-footer">© 2023 Sigaeud – Structures académiques.</footer>
+  </main>
+</body>
+</html>

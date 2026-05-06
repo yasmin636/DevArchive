@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Utilisateurs — Admin Sigaud</title>
+  <title>Utilisateurs — Admin Sigaeud</title>
   {% include 'includes/sigaud_theme_head.html' %}
   <style>
     :root {
@@ -142,6 +142,7 @@
     }
     .chip-active { color: var(--success); background: #ecfdf3; border: 1px solid #bbf7d0; }
     .chip-inactive { color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; }
+    .chip-role { background: #ede9fe; border: 1px solid #ddd6fe; color: #5b21b6; }
     .chip-dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: currentColor;
@@ -238,7 +239,7 @@
     <header class="main-header">
       <div>
         <h1>Utilisateurs</h1>
-        <p>Gestion des comptes SIGAUD, rôles et statuts.</p>
+        <p>Gestion des comptes SIGAEUD, rôles et statuts.</p>
       </div>
       <div class="header-actions">
         <a href="{% url 'admin_add_user' %}" class="btn-add">+ Ajouter utilisateur</a>
@@ -274,12 +275,14 @@
                     <th>Adresse e-mail</th>
                     <th>Prénom</th>
                     <th>Nom</th>
+                    <th>Rôle</th>
                     <th>Statut</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for u in users %}
+                  {% for row in user_rows %}
+                  {% with u=row.user %}
                   <tr>
                     <td>
                       <a href="{% url 'admin_modifier_utilisateur' u.pk %}" class="user-link">{{ u.username }}</a>
@@ -289,6 +292,7 @@
                     </td>
                     <td>{{ u.first_name|default:"—" }}</td>
                     <td>{{ u.last_name|default:"—" }}</td>
+                    <td><span class="chip chip-role">{{ row.role_label }}</span></td>
                     <td>
                       {% if u.is_active %}
                       <span class="chip chip-active"><span class="chip-dot"></span>Actif</span>
@@ -300,9 +304,10 @@
                       <a href="{% url 'admin_modifier_utilisateur' u.pk %}" class="btn-edit">Modifier</a>
                     </td>
                   </tr>
+                  {% endwith %}
                   {% empty %}
                   <tr>
-                    <td colspan="6" class="text-muted">Aucun utilisateur trouvé.</td>
+                    <td colspan="7" class="text-muted">Aucun utilisateur trouvé.</td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -352,7 +357,7 @@
       </div>
     </div>
 
-    <footer class="main-footer">© 2026 SIGAUD — Utilisateurs</footer>
+    <footer class="main-footer">© 2026 SIGAEUD — Utilisateurs</footer>
   </main>
 </body>
 </html>

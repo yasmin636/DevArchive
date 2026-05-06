@@ -6,18 +6,21 @@ body {
     justify-content: center;
     background-size: cover;
     background-position: center;
+    overflow-x: hidden;
 }
 
 .register-wrapper {
     width: 100%;
     max-width: 900px;
     padding: 2rem 1rem;
+    margin: 0 auto;
 }
 
 .register-card {
     border-radius: 1.25rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     background-color: #ffffff;
+    width: 100%;
 }
 
 .register-header {
@@ -81,11 +84,53 @@ body {
 }
 
 @media (max-width: 576px) {
+    body {
+        align-items: flex-start;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .register-wrapper {
+        padding: 1rem 0.65rem;
+    }
+
     .register-body,
     .register-header,
     .register-footer {
         padding-left: 1.25rem;
         padding-right: 1.25rem;
+    }
+
+    .register-header {
+        padding-top: 1.5rem;
+    }
+
+    .register-title {
+        font-size: 1.35rem;
+    }
+
+    .register-subtitle {
+        font-size: 0.88rem;
+    }
+
+    .btn.btn-lg {
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .register-body,
+    .register-header,
+    .register-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+@media (max-height: 760px) {
+    body {
+        align-items: flex-start;
     }
 }
 

@@ -199,6 +199,32 @@ class ArchiveForm(forms.ModelForm):
         return f
 
 
+class FaculteForm(forms.ModelForm):
+    class Meta:
+        model = Faculte
+        fields = ["code", "libelle"]
+        widgets = {
+            "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: FS"}),
+            "libelle": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ex: Faculté des Sciences"}
+            ),
+        }
+
+
+class FiliereForm(forms.ModelForm):
+    class Meta:
+        model = Filiere
+        fields = ["code", "libelle", "faculte", "parent"]
+        widgets = {
+            "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: INFO"}),
+            "libelle": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ex: Informatique"}
+            ),
+            "faculte": forms.Select(attrs={"class": "form-select"}),
+            "parent": forms.Select(attrs={"class": "form-select"}),
+        }
+
+
 class PasswordChangeFormStyled(PasswordChangeForm):
     """Changement de mot de passe avec styles Bootstrap."""
 
@@ -555,7 +581,7 @@ class AdminAddUserForm(forms.Form):
 
 
 class AdminEditUserForm(forms.Form):
-    """Edition d'un utilisateur depuis le tableau de bord admin SIGAUD."""
+    """Edition d'un utilisateur depuis le tableau de bord admin SIGAEUD."""
 
     username = forms.CharField(
         max_length=150,
@@ -606,10 +632,38 @@ class AdminEditUserForm(forms.Form):
         label="Filière assistant pédagogique",
         widget=forms.Select(attrs={"class": "admin-select"}),
     )
+    etudiant_faculte = forms.ModelChoiceField(
+        queryset=Faculte.objects.all().order_by("libelle"),
+        required=False,
+        label="Faculté (étudiant)",
+        widget=forms.Select(attrs={"class": "admin-select"}),
+    )
+    etudiant_filiere = forms.ModelChoiceField(
+        queryset=Filiere.objects.none(),
+        required=False,
+        label="Filière (étudiant)",
+        widget=forms.Select(attrs={"class": "admin-select"}),
+    )
+    etudiant_niveau = forms.ModelChoiceField(
+        queryset=Niveau.objects.none(),
+        required=False,
+        label="Niveau (étudiant)",
+        widget=forms.Select(attrs={"class": "admin-select"}),
+    )
+
+    def _compute_user_role(self):
+        if getattr(self.user_instance, "is_superuser", False):
+            return "admin"
+        if hasattr(self.user_instance, "etudiant") and self.user_instance.etudiant is not None:
+            return "etudiant"
+        if hasattr(self.user_instance, "assistant_pedagogique") and self.user_instance.assistant_pedagogique is not None:
+            return "assistant"
+        return "autre"
 
     def __init__(self, user_instance, *args, **kwargs):
         self.user_instance = user_instance
         super().__init__(*args, **kwargs)
+        self.user_role = self._compute_user_role()
         self.fields["username"].initial = user_instance.username
         self.fields["first_name"].initial = user_instance.first_name
         self.fields["last_name"].initial = user_instance.last_name
@@ -621,6 +675,39 @@ class AdminEditUserForm(forms.Form):
         assistant = getattr(user_instance, "assistant_pedagogique", None)
         if assistant:
             self.fields["assistant_filiere"].initial = assistant.filiere_id
+        etudiant = getattr(user_instance, "etudiant", None)
+        faculte_id = None
+        if etudiant:
+            faculte_id = etudiant.filiere.faculte_id
+            self.fields["etudiant_faculte"].initial = faculte_id
+            self.fields["etudiant_filiere"].initial = etudiant.filiere_id
+            self.fields["etudiant_niveau"].initial = etudiant.niveau_id
+        posted_faculte = None
+        if self.data and self.data.get("etudiant_faculte"):
+            try:
+                posted_faculte = int(self.data.get("etudiant_faculte"))
+            except (TypeError, ValueError):
+                posted_faculte = None
+        faculte_for_qs = posted_faculte or faculte_id
+        if faculte_for_qs:
+            self.fields["etudiant_filiere"].queryset = Filiere.objects.filter(
+                faculte_id=faculte_for_qs
+            ).order_by("libelle")
+            self.fields["etudiant_niveau"].queryset = Niveau.objects.filter(
+                faculte_id=faculte_for_qs
+            ).order_by("libelle")
+
+    @property
+    def is_etudiant_role(self):
+        return self.user_role == "etudiant"
+
+    @property
+    def is_assistant_role(self):
+        return self.user_role == "assistant"
+
+    @property
+    def is_admin_role(self):
+        return self.user_role == "admin"
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -644,13 +731,35 @@ class AdminEditUserForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        role = self._compute_user_role()
         if cleaned.get("is_superuser"):
             cleaned["is_staff"] = True
             self.cleaned_data["is_staff"] = True
+        if role == "assistant":
+            if not cleaned.get("assistant_filiere"):
+                self.add_error(
+                    "assistant_filiere",
+                    "Veuillez sélectionner la filière de l'assistant pédagogique.",
+                )
+        if role == "etudiant":
+            faculte = cleaned.get("etudiant_faculte")
+            filiere = cleaned.get("etudiant_filiere")
+            niveau = cleaned.get("etudiant_niveau")
+            if not faculte:
+                self.add_error("etudiant_faculte", "Veuillez sélectionner la faculté de l'étudiant.")
+            if not filiere:
+                self.add_error("etudiant_filiere", "Veuillez sélectionner la filière de l'étudiant.")
+            if not niveau:
+                self.add_error("etudiant_niveau", "Veuillez sélectionner le niveau de l'étudiant.")
+            if faculte and filiere and filiere.faculte_id != faculte.id:
+                self.add_error("etudiant_filiere", "La filière doit appartenir à la faculté sélectionnée.")
+            if faculte and niveau and niveau.faculte_id != faculte.id:
+                self.add_error("etudiant_niveau", "Le niveau doit appartenir à la faculté sélectionnée.")
         return cleaned
 
     def save(self):
         u = self.user_instance
+        role = self._compute_user_role()
         u.username = self.cleaned_data["username"].strip()
         u.first_name = self.cleaned_data.get("first_name", "").strip()
         u.last_name = self.cleaned_data.get("last_name", "").strip()
@@ -678,5 +787,20 @@ class AdminEditUserForm(forms.Form):
             if assistant:
                 assistant.delete()
             u.groups.remove(assistant_group)
+
+        if role == "etudiant":
+            etudiant = getattr(u, "etudiant", None)
+            filiere_etudiant = self.cleaned_data.get("etudiant_filiere")
+            niveau_etudiant = self.cleaned_data.get("etudiant_niveau")
+            if etudiant:
+                etudiant.filiere = filiere_etudiant
+                etudiant.niveau = niveau_etudiant
+                etudiant.save(update_fields=["filiere", "niveau"])
+            elif filiere_etudiant and niveau_etudiant:
+                Etudiant.objects.create(
+                    user=u,
+                    filiere=filiere_etudiant,
+                    niveau=niveau_etudiant,
+                )
 
         return u

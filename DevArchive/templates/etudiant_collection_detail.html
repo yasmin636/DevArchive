@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ collection.nom }} — Mes collections — SIGAUD</title>
+  <title>{{ collection.nom }} — Mes collections — SIGAEUD</title>
   {% include 'includes/sigaud_theme_head.html' %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,11 +17,11 @@
 <nav class="top-nav">
   <a href="{% url 'espace_etudiant' %}" class="brand">
     <div class="brand-logo-wrap">
-      <img src="{% static 'img/logo_site.png' %}" alt="SIGAUD" class="brand-logo">
+      <img src="{% static 'img/logo_site.png' %}" alt="SIGAEUD" class="brand-logo">
     </div>
     <div class="brand-text">
-      <span class="brand-name">SIGAUD</span>
-      <span class="brand-sub">Système Intégré de Gestion des Archives de l'Université de Djibouti</span>
+      <span class="brand-name">SIGAEUD</span>
+      <span class="brand-sub">Système intégré de gestion des archives d'examens — Université de Djibouti</span>
     </div>
   </a>
   <div class="user-area">
@@ -53,16 +53,43 @@
   {% endif %}
 
   <h2 class="section-title">Sujets dans la collection</h2>
+  <div class="subject-cards subject-cards--v2">
   {% for archive, ca in archives_in_collection %}
-  <article class="subject-card">
-    <h3 class="subject-title">{{ archive.title }}</h3>
-    <p class="subject-meta">{{ archive.session }} {{ archive.annee }} — {{ archive.get_type_display }}{% if archive.semestre %} · {{ archive.semestre }}{% endif %}</p>
-    <div class="subject-actions">
+  <article class="subject-card-v2">
+    <div class="subject-card-v2__hero">
+      <div class="subject-card-v2__icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="subject-card-v2__intro">
+        <h4 class="subject-card-v2__title">{{ archive.title }}</h4>
+        <p class="subject-card-v2__subtitle">{{ archive.session }} {{ archive.annee }} - {{ archive.get_type_display }}</p>
+        <div class="subject-card-v2__tags-row">
+          <span class="subject-card-v2__badge-sem {% if archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
+        </div>
+        <div class="subject-card-v2__meta-line">
+          <span><i class="bi bi-mortarboard"></i> {{ archive.filiere|truncatechars:24 }}</span>
+          <span><i class="bi bi-calendar3"></i> {{ archive.annee }}</span>
+          <span><i class="bi bi-journal-text"></i> {{ archive.module|truncatechars:20 }}</span>
+        </div>
+      </div>
+      <div class="subject-card-v2__brand" aria-hidden="true">
+        <img src="{% static 'img/logo_site.png' %}" alt="" class="subject-card-v2__logo">
+      </div>
+    </div>
+
+    <div class="subject-card-v2__actions">
       {% if archive.fichier %}
-      <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="btn-consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
-      <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="btn-download"><i class="bi bi-download"></i> Télécharger</a>
+      <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+      {% if archive.fichier_corrige %}
+        {% if archive.pk in corrige_archives_accessibles %}
+      <a href="{% url 'consulter_corrige_etudiant' archive.pk %}" class="subject-btn subject-btn--corrige"><i class="bi bi-clipboard-check"></i> Correction</a>
+        {% else %}
+      <a href="{% url 'etudiant_abonnement' %}" class="subject-btn subject-btn--corrige"><i class="bi bi-lock"></i> S'abonner ({{ abonnement_etudiant_prix_usd }}$)</a>
+        {% endif %}
       {% endif %}
-      <a href="{% url 'etudiant_collection_retirer_archive' collection.pk archive.pk %}" class="btn-remove" onclick="return confirm('Retirer ce sujet de la collection ?');"><i class="bi bi-dash-circle"></i> Retirer</a>
+      <a href="{% url 'telecharger_archive_etudiant' archive.pk %}" class="subject-btn subject-btn--download"><i class="bi bi-download"></i> Télécharger</a>
+      {% else %}
+      <span class="subject-btn subject-btn--disabled"><i class="bi bi-file-earmark-x"></i> PDF indisponible</span>
+      {% endif %}
+      <a href="{% url 'etudiant_collection_retirer_archive' collection.pk archive.pk %}" class="subject-btn subject-btn--corrige" onclick="return confirm('Retirer ce sujet de la collection ?');"><i class="bi bi-dash-circle"></i> Retirer</a>
     </div>
   </article>
   {% empty %}
@@ -72,6 +99,7 @@
     <p class="empty-desc">Ajoutez des sujets avec la liste ci-dessous.</p>
   </div>
   {% endfor %}
+  </div>
 
   <section class="add-section" id="ajouter-section" aria-labelledby="ajouter-title">
     <h2 class="section-title" id="ajouter-title">Ajouter des sujets</h2>
@@ -100,6 +128,16 @@
       <div class="section-title">
         <h3 id="recherche-collection-title"><i class="bi bi-search"></i> Recherche d'examens</h3>
       </div>
+      <div class="subject-search-wrap mb-3">
+        <i class="bi bi-search"></i>
+        <input
+          type="search"
+          id="addSubjectSearchInput"
+          class="form-control subject-search-input"
+          placeholder="Rechercher un sujet par titre, module ou filière..."
+          aria-label="Rechercher un sujet à ajouter"
+        >
+      </div>
       <div class="search-filters">
         <select class="form-select form-select-sm" id="filterSemestreCollection" style="max-width:180px;">
           <option value="">Tous les semestres</option>
@@ -118,40 +156,57 @@
           <i class="bi bi-funnel"></i> Filtrer
         </button>
       </div>
-      <div class="table-responsive">
-        <table class="exam-table" id="examTableCollection">
-          <thead>
-            <tr>
-              <th>MATIÈRE / INTITULÉ</th>
-              <th>ANNÉE</th>
-              <th>TYPE</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for archive in archives_disponibles %}
-            <tr data-semestre="{{ archive.semestre|default:'' }}" data-annee="{{ archive.annee }}" data-type="{{ archive.type }}">
-              <td>{{ archive.title }}</td>
-              <td>{{ archive.annee }}</td>
-              <td>
-                {% if archive.type == "Examen Final" %}<span class="badge-final">FINAL</span>{% else %}<span class="badge-controle">CONTRÔLE</span>{% endif %}
-              </td>
-              <td>
-                <a href="{% url 'etudiant_collection_ajouter_archive' collection.pk archive.pk %}" class="link-consulter link-ajouter"><i class="bi bi-plus-lg me-1"></i>Ajouter</a>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" class="text-muted text-center py-3">{% if matieres_list %}Aucun sujet à ajouter pour cette sélection.{% else %}Tous les sujets de votre filière sont déjà dans cette collection.{% endif %}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <p class="subject-filter-empty text-muted mb-3" id="addCollectionEmpty" hidden>Aucun sujet ne correspond à votre recherche.</p>
+      <div class="subject-cards subject-cards--v2" id="addCollectionCards">
+        {% for archive in archives_disponibles %}
+        <article
+          class="subject-card-v2"
+          data-add-card
+          data-semestre="{{ archive.semestre|default:'' }}"
+          data-annee="{{ archive.annee }}"
+          data-type="{{ archive.type }}"
+          data-search-title="{{ archive.title|lower }}"
+          data-search-module="{{ archive.module|default:''|lower }}"
+          data-search-filiere="{{ archive.filiere|default:''|lower }}"
+        >
+          <div class="subject-card-v2__hero">
+            <div class="subject-card-v2__icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="subject-card-v2__intro">
+              <h4 class="subject-card-v2__title">{{ archive.title }}</h4>
+              <p class="subject-card-v2__subtitle">{{ archive.session }} {{ archive.annee }} - {{ archive.get_type_display }}</p>
+              <div class="subject-card-v2__tags-row">
+                <span class="subject-card-v2__badge-sem {% if archive.semestre == 'S1' %}is-s1{% else %}is-s2{% endif %}">{{ archive.semestre|default:"S1" }}</span>
+              </div>
+              <div class="subject-card-v2__meta-line">
+                <span><i class="bi bi-mortarboard"></i> {{ archive.filiere|truncatechars:24 }}</span>
+                <span><i class="bi bi-calendar3"></i> {{ archive.annee }}</span>
+                <span><i class="bi bi-journal-text"></i> {{ archive.module|truncatechars:20 }}</span>
+              </div>
+            </div>
+            <div class="subject-card-v2__brand" aria-hidden="true">
+              <img src="{% static 'img/logo_site.png' %}" alt="" class="subject-card-v2__logo">
+            </div>
+          </div>
+          <div class="subject-card-v2__actions">
+            {% if archive.fichier %}
+            <a href="{% url 'voir_archive_pdf_etudiant' archive.pk %}" class="subject-btn subject-btn--consulter" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Consulter</a>
+            {% endif %}
+            <a href="{% url 'etudiant_collection_ajouter_archive' collection.pk archive.pk %}" class="subject-btn subject-btn--download"><i class="bi bi-plus-lg"></i> Ajouter</a>
+          </div>
+        </article>
+        {% empty %}
+        <div class="subjects-empty">
+          <div class="empty-icon-wrap"><i class="bi bi-check2-circle"></i></div>
+          <p class="empty-title">{% if matieres_list %}Aucun sujet à ajouter pour cette sélection{% else %}Tous les sujets de votre filière sont déjà dans cette collection{% endif %}</p>
+        </div>
+        {% endfor %}
       </div>
     </div>
   </section>
 </main>
 
 <footer class="page-footer mt-auto">
-  © {% now "Y" %} SIGAUD - Plateforme d'archives académiques. Université de Djibouti.
+  © {% now "Y" %} SIGAEUD — Archivage et consultation des examens. Université de Djibouti.
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -163,17 +218,26 @@
     selectMatiere.addEventListener('change', function() { formMatiere.submit(); });
   }
 
-  var table = document.getElementById('examTableCollection');
-  var tbody = table && table.querySelector('tbody');
-  var rows = tbody ? tbody.querySelectorAll('tr[data-annee]') : [];
+  var cards = document.querySelectorAll('[data-add-card]');
   var filterSemestre = document.getElementById('filterSemestreCollection');
   var filterAnnee = document.getElementById('filterAnneeCollection');
   var filterType = document.getElementById('filterTypeCollection');
+  var searchInput = document.getElementById('addSubjectSearchInput');
+  var emptyState = document.getElementById('addCollectionEmpty');
   var btnFilter = document.getElementById('btnFilterCollection');
+
+  function normalize(value) {
+    return (value || '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
 
   function getAnneeOptions() {
     var set = new Set();
-    rows.forEach(function(r) { set.add(r.getAttribute('data-annee')); });
+    cards.forEach(function(c) { set.add(c.getAttribute('data-annee')); });
     return Array.from(set).sort().reverse();
   }
 
@@ -181,16 +245,26 @@
     var sem = (filterSemestre && filterSemestre.value) || '';
     var an = (filterAnnee && filterAnnee.value) || '';
     var typ = (filterType && filterType.value) || '';
-    rows.forEach(function(tr) {
+    var query = normalize(searchInput && searchInput.value);
+    var visibleCount = 0;
+    cards.forEach(function(card) {
       var show = true;
-      if (sem && tr.getAttribute('data-semestre') !== sem) show = false;
-      if (an && tr.getAttribute('data-annee') !== an) show = false;
-      if (typ && tr.getAttribute('data-type') !== typ) show = false;
-      tr.style.display = show ? '' : 'none';
+      if (sem && card.getAttribute('data-semestre') !== sem) show = false;
+      if (an && card.getAttribute('data-annee') !== an) show = false;
+      if (typ && card.getAttribute('data-type') !== typ) show = false;
+      if (query) {
+        var haystack = normalize(card.getAttribute('data-search-title')) + ' ' +
+          normalize(card.getAttribute('data-search-module')) + ' ' +
+          normalize(card.getAttribute('data-search-filiere'));
+        if (haystack.indexOf(query) === -1) show = false;
+      }
+      card.style.display = show ? '' : 'none';
+      if (show) visibleCount += 1;
     });
+    if (emptyState) emptyState.hidden = visibleCount !== 0;
   }
 
-  if (filterAnnee && rows.length) {
+  if (filterAnnee && cards.length) {
     var annees = getAnneeOptions();
     annees.forEach(function(a) {
       var opt = document.createElement('option');
@@ -200,6 +274,7 @@
     });
   }
   if (btnFilter) btnFilter.addEventListener('click', applyFilters);
+  if (searchInput) searchInput.addEventListener('input', applyFilters);
 })();
 </script>
 </body>

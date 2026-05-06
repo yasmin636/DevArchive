@@ -2,11 +2,12 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-admin.site.site_header = "SIGAUD — Administration système"
-admin.site.site_title = "SIGAUD"
+admin.site.site_header = "SIGAEUD — Administration système"
+admin.site.site_title = "SIGAEUD"
 admin.site.index_title = "Administration système"
 
 from .models import (
+    AbonnementEtudiant,
     AssistantPedagogique,
     ConsultationCorrigeGratuite,
     Faculte,
@@ -62,6 +63,14 @@ class ConsultationCorrigeGratuiteAdmin(admin.ModelAdmin):
     list_filter = ("date_premier_acces",)
     search_fields = ("user__username", "archive__title")
     raw_id_fields = ("user", "archive")
+
+
+@admin.register(AbonnementEtudiant)
+class AbonnementEtudiantAdmin(admin.ModelAdmin):
+    list_display = ("user", "actif", "montant_usd", "date_activation", "date_mise_a_jour")
+    list_filter = ("actif", "date_activation")
+    search_fields = ("user__username", "user__email")
+    raw_id_fields = ("user",)
 
 
 @admin.register(AssistantPedagogique)

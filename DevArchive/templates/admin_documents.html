@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Documents – Admin Sigaud</title>
+  <title>Documents – Admin Sigaeud</title>
   {% include 'includes/sigaud_theme_head.html' %}
   <style>
     :root { --primary:#5b21b6; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --radius:12px; }
@@ -127,6 +127,11 @@
                   <details class="manage-menu">
                     <summary><i class="bi bi-gear"></i> Gerer</summary>
                     <div class="manage-menu__popup">
+                      {% if d.fichier %}
+                      <a href="{% url 'voir_archive_pdf' d.pk %}" class="manage-menu__action" target="_blank" rel="noopener">
+                        <i class="bi bi-eye"></i> Voir le sujet
+                      </a>
+                      {% endif %}
                       <a href="{% url 'admin_modifier_archive' d.pk %}" class="manage-menu__action">
                         <i class="bi bi-pencil-square"></i> Modifier
                       </a>
@@ -148,7 +153,7 @@
         </div>
       </section>
     </div>
-    <footer class="main-footer">© 2023 Sigaud – Documents.</footer>
+    <footer class="main-footer">© 2023 Sigaeud – Documents.</footer>
   </main>
 </body>
 </html>

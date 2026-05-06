@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Modifier utilisateur — Admin Sigaud</title>
+  <title>Modifier utilisateur — Admin Sigaeud</title>
   {% include 'includes/sigaud_theme_head.html' %}
   <style>
     :root {
@@ -149,7 +149,7 @@
       <header class="content-header">
         <div>
           <h1>Modifier utilisateur</h1>
-          <p>Gestion du compte « {{ target_user.username }} » dans l'interface SIGAUD.</p>
+          <p>Gestion du compte « {{ target_user.username }} » dans l'interface SIGAEUD.</p>
         </div>
         <a href="{% url 'admin_utilisateurs' %}" class="btn-back">← Retour à la liste</a>
       </header>
@@ -169,6 +169,13 @@
         <div class="card-body">
           <div class="meta-row">
             ID utilisateur : <strong>{{ target_user.pk }}</strong> · Date d'inscription : <strong>{{ target_user.date_joined|date:"d/m/Y H:i" }}</strong>
+            {% if role_utilisateur == "etudiant" %}
+              · Profil : <strong>Étudiant</strong>
+            {% elif role_utilisateur == "assistant" %}
+              · Profil : <strong>Assistant pédagogique</strong>
+            {% elif role_utilisateur == "admin" %}
+              · Profil : <strong>Administrateur</strong>
+            {% endif %}
           </div>
 
           {% if form.non_field_errors %}
@@ -216,13 +223,37 @@
               </div>
             </div>
 
-            <div class="field field-full" style="margin-top: 14px;">
-              <label for="{{ form.assistant_filiere.id_for_label }}">{{ form.assistant_filiere.label }}</label>
-              {{ form.assistant_filiere }}
-              <div style="font-size:12px;color:var(--muted);margin-top:6px;">
-                Choisir une filière crée/met à jour le profil assistant pédagogique. Laisser vide pour retirer ce profil.
+            {% if role_utilisateur == "assistant" %}
+              <div class="field field-full" style="margin-top: 14px;">
+                <label for="{{ form.assistant_filiere.id_for_label }}">{{ form.assistant_filiere.label }}</label>
+                {{ form.assistant_filiere }}
+                {% for err in form.assistant_filiere.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+                <div style="font-size:12px;color:var(--muted);margin-top:6px;">
+                  Ce compte est assistant pédagogique : la filière est obligatoire.
+                </div>
               </div>
-            </div>
+            {% elif role_utilisateur == "etudiant" %}
+              <div class="grid" style="margin-top: 14px;">
+                <div class="field">
+                  <label for="{{ form.etudiant_faculte.id_for_label }}">{{ form.etudiant_faculte.label }}</label>
+                  {{ form.etudiant_faculte }}
+                  {% for err in form.etudiant_faculte.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+                </div>
+                <div class="field">
+                  <label for="{{ form.etudiant_filiere.id_for_label }}">{{ form.etudiant_filiere.label }}</label>
+                  {{ form.etudiant_filiere }}
+                  {% for err in form.etudiant_filiere.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+                </div>
+                <div class="field">
+                  <label for="{{ form.etudiant_niveau.id_for_label }}">{{ form.etudiant_niveau.label }}</label>
+                  {{ form.etudiant_niveau }}
+                  {% for err in form.etudiant_niveau.errors %}<div class="error-text">{{ err }}</div>{% endfor %}
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:6px;">
+                Ce compte est étudiant : faculté, filière et niveau sont requis.
+              </div>
+            {% endif %}
 
             <div class="actions">
               <div class="actions-left">
@@ -252,5 +283,27 @@
       </section>
     </div>
   </main>
+  {% if role_utilisateur == "etudiant" %}
+  <script>
+  (function() {
+    var faculteSelect = document.getElementById('{{ form.etudiant_faculte.auto_id }}');
+    var filiereSelect = document.getElementById('{{ form.etudiant_filiere.auto_id }}');
+    var niveauSelect = document.getElementById('{{ form.etudiant_niveau.auto_id }}');
+    if (!faculteSelect || !filiereSelect || !niveauSelect) return;
+    faculteSelect.addEventListener('change', function() {
+      var formEl = faculteSelect.closest('form');
+      if (!formEl) return;
+      if (!formEl.querySelector('input[name="_reload_form"]')) {
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = '_reload_form';
+        hidden.value = '1';
+        formEl.appendChild(hidden);
+      }
+      formEl.submit();
+    });
+  })();
+  </script>
+  {% endif %}
 </body>
 </html>

@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    # /admin/ → redirection vers le tableau de bord admin Sigaud
+    # /admin/ → redirection vers le tableau de bord admin Sigaeud
     path("admin/", RedirectView.as_view(pattern_name="admin_dashboard", permanent=False)),
     path("", include("accounts.urls")),
 ]

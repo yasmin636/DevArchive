@@ -12,6 +12,8 @@ from django.db.utils import ProgrammingError
 from django.db.models import Avg, Count
 from django.http import FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from datetime import timedelta
 
 from django.shortcuts import get_object_or_404, redirect, render
@@ -19,6 +21,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import TemplateView
 import random
+import logging
 
 from .forms import (
     AdminEditUserForm,
@@ -26,11 +29,15 @@ from .forms import (
     ConnexionForm,
     EmailChangeForm,
     EtudiantRegistrationForm,
+    FaculteForm,
+    FiliereForm,
     PasswordChangeFormStyled,
     ProfilEtudiantForm,
 )
 from .constants import CORRIGE_GRATUITS_MAX
+from .constants import ABONNEMENT_ETUDIANT_PRIX_USD
 from .models import (
+    AbonnementEtudiant,
     Archive,
     AssistantPedagogique,
     Collection,
@@ -48,7 +55,11 @@ from .models import (
     NoteArchive,
     ConsultationCorrigeGratuite,
     TelechargementEtudiant,
+    PaiementAbonnement,
 )
+from .services.mastercard_checkout import MastercardCheckoutService
+
+logger = logging.getLogger(__name__)
 
 GROUPE_ETUDIANT = "Étudiant"
 GROUPE_ASSISTANT = "Assistant pédagogique"
@@ -57,7 +68,7 @@ GROUPE_ADMIN_SYSTEME = "Administrateur système"
 
 def user_est_admin_sigaud(user):
     """
-    Accès au tableau de bord admin Sigaud (/admin-dashboard/) :
+    Accès au tableau de bord admin Sigaeud (/admin-dashboard/) :
     superuser Django, ou membre du groupe « Administrateur système ».
 
     Le simple « Staff » (personnel administratif) n’ouvre pas cet espace :
@@ -125,7 +136,7 @@ class EtudiantRequiredMixin(UserPassesTestMixin):
 
 def accueil(request):
     """
-    Page d'accueil publique de SIGAUD.
+    Page d'accueil publique de SIGAEUD.
     """
     return render(request, "accueil.html")
 
@@ -166,16 +177,16 @@ def inscription(request):
             }
             request.session.modified = True
 
-            sujet = "Code de vérification - SIGAUD"
+            sujet = "Code de vérification - SIGAEUD"
             message = (
                 "Bonjour,\n\n"
-                "Vous venez de créer un compte sur SIGAUD avec cette adresse email.\n"
+                "Vous venez de créer un compte sur SIGAEUD avec cette adresse email.\n"
                 "Saisissez ce code de vérification pour activer votre compte :\n\n"
                 f"{code}\n\n"
                 "Ce code expire dans 15 minutes.\n\n"
                 "Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.\n\n"
                 "Cordialement,\n"
-                "L'équipe SIGAUD"
+                "L'équipe SIGAEUD"
             )
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
             try:
@@ -242,14 +253,14 @@ def verifier_code_inscription(request):
             request.session["inscription_verification"] = payload
             request.session.modified = True
 
-            sujet = "Nouveau code de vérification - SIGAUD"
+            sujet = "Nouveau code de vérification - SIGAEUD"
             message = (
                 "Bonjour,\n\n"
-                "Voici votre nouveau code de vérification SIGAUD :\n\n"
+                "Voici votre nouveau code de vérification SIGAEUD :\n\n"
                 f"{new_code}\n\n"
                 "Ce code expire dans 15 minutes.\n\n"
                 "Cordialement,\n"
-                "L'équipe SIGAUD"
+                "L'équipe SIGAEUD"
             )
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
             try:
@@ -352,6 +363,7 @@ def parametres_compte(request):
     )
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class ConnexionView(LoginView):
     """
     Page de connexion (email + mot de passe).
@@ -384,6 +396,7 @@ class ConnexionView(LoginView):
         return reverse_lazy("inscription")
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class ConnexionParRoleView(LoginView):
     """
     Vue de connexion générique restreinte à un rôle.
@@ -392,7 +405,7 @@ class ConnexionParRoleView(LoginView):
     template_name = "Connexion.html"
     authentication_form = ConnexionForm
     redirect_authenticated_user = False
-    login_space_label = "SIGAUD"
+    login_space_label = "SIGAEUD"
     show_signup_link = False
     default_success_url_name = "accueil"
     enable_login_attempt_limit = False
@@ -513,8 +526,15 @@ def deconnexion(request):
     """
     from django.contrib.auth import logout as auth_logout
 
+    if user_est_admin_sigaud(request.user):
+        redirect_url_name = "connexion_admin"
+    elif user_est_assistant(request.user):
+        redirect_url_name = "connexion_personnel"
+    else:
+        redirect_url_name = "connexion_etudiant"
+
     auth_logout(request)
-    return redirect("connexion_etudiant")
+    return redirect(redirect_url_name)
 
 
 class PersonnelView(PersonnelRequiredMixin, LoginRequiredMixin, TemplateView):
@@ -649,7 +669,7 @@ class EspaceEtudiantView(EtudiantRequiredMixin, LoginRequiredMixin, TemplateView
             favori_archive_ids = set()
         ctx["favori_examen_ids"] = favori_examen_ids
         ctx["favori_archive_ids"] = favori_archive_ids
-        ctx.update(_context_quota_corrige(self.request.user))
+        ctx.update(_context_quota_corrige(self.request.user, archives))
         return ctx
 
 
@@ -690,15 +710,13 @@ def etudiant_favoris(request):
     except ProgrammingError:
         pass
     items.sort(key=lambda x: x["date_ajout"], reverse=True)
-    return render(
-        request,
-        "etudiant_favoris.html",
-        {
-            "etudiant": etudiant,
-            "faculte": etudiant.filiere.faculte,
-            "favoris": items,
-        },
-    )
+    ctx = {
+        "etudiant": etudiant,
+        "faculte": etudiant.filiere.faculte,
+        "favoris": items,
+    }
+    ctx.update(_context_quota_corrige(request.user, archives))
+    return render(request, "etudiant_favoris.html", ctx)
 
 
 @login_required
@@ -747,17 +765,15 @@ def etudiant_collection_detail(request, pk: int):
     if matiere_choisie:
         archives_disponibles_qs = archives_disponibles_qs.filter(module__iexact=matiere_choisie)
     archives_disponibles = list(archives_disponibles_qs)
-    return render(
-        request,
-        "etudiant_collection_detail.html",
-        {
-            "collection": collection,
-            "archives_in_collection": archives_in_collection,
-            "archives_disponibles": archives_disponibles,
-            "matieres_list": matieres_list,
-            "matiere_choisie": matiere_choisie,
-        },
-    )
+    ctx = {
+        "collection": collection,
+        "archives_in_collection": archives_in_collection,
+        "archives_disponibles": archives_disponibles,
+        "matieres_list": matieres_list,
+        "matiere_choisie": matiere_choisie,
+    }
+    ctx.update(_context_quota_corrige(request.user, archives))
+    return render(request, "etudiant_collection_detail.html", ctx)
 
 
 @login_required
@@ -904,7 +920,10 @@ def creer_archive(request):
 @login_required
 def voir_archive_pdf(request, pk: int):
     assistant = getattr(request.user, "assistant_pedagogique", None)
-    if not assistant and not (request.user.is_superuser or request.user.is_staff):
+    is_admin_sigaud = user_est_admin_sigaud(request.user)
+    if not assistant and not is_admin_sigaud and not (
+        request.user.is_superuser or request.user.is_staff
+    ):
         raise Http404()
     qs = Archive.objects.all()
     if assistant:
@@ -958,6 +977,27 @@ def voir_archive_pdf_etudiant(request, pk: int):
 
 
 @login_required
+def consulter_corrige_etudiant(request, pk: int):
+    """Affiche le corrigé dans une page interne SIGAEUD (sans téléchargement étudiant)."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    qs = _archives_queryset_for_etudiant(request)
+    archive = get_object_or_404(qs, pk=pk)
+    if not archive.fichier_corrige:
+        raise Http404("Aucun corrigé associé.")
+    denied = _reserver_accès_corrige_gratuit(request, archive)
+    if denied is not None:
+        return denied
+    request.session["corrige_embed_allowed_pk"] = archive.pk
+    request.session.modified = True
+    return render(
+        request,
+        "etudiant_corrige_consultation.html",
+        {"archive": archive, "etudiant": request.user.etudiant},
+    )
+
+
+@login_required
 def voir_corrige_pdf_etudiant(request, pk: int):
     """Consultation du corrigé PDF (sans incrémenter les vues du sujet)."""
     if not user_est_etudiant(request.user):
@@ -966,6 +1006,13 @@ def voir_corrige_pdf_etudiant(request, pk: int):
     archive = get_object_or_404(qs, pk=pk)
     if not archive.fichier_corrige:
         raise Http404("Aucun corrigé associé.")
+    allowed_pk = request.session.get("corrige_embed_allowed_pk")
+    if allowed_pk != archive.pk:
+        messages.info(
+            request,
+            "Veuillez ouvrir le corrigé depuis la page de consultation interne.",
+        )
+        return redirect("consulter_corrige_etudiant", pk=archive.pk)
     denied = _reserver_accès_corrige_gratuit(request, archive)
     if denied is not None:
         return denied
@@ -976,19 +1023,12 @@ def voir_corrige_pdf_etudiant(request, pk: int):
 
 @login_required
 def telecharger_corrige_etudiant(request, pk: int):
-    """Téléchargement du corrigé PDF (même quota que la consultation)."""
-    if not user_est_etudiant(request.user):
-        raise Http404()
-    qs = _archives_queryset_for_etudiant(request)
-    archive = get_object_or_404(qs, pk=pk)
-    if not archive.fichier_corrige:
-        raise Http404("Aucun corrigé associé.")
-    denied = _reserver_accès_corrige_gratuit(request, archive)
-    if denied is not None:
-        return denied
-    response = FileResponse(archive.fichier_corrige.open("rb"), content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename*=UTF-8''" + _safe_filename_corrige(archive)
-    return response
+    """Le téléchargement des corrigés est désactivé côté étudiant."""
+    messages.warning(
+        request,
+        "Le téléchargement du corrigé n'est pas autorisé. Consultation uniquement dans l'espace étudiant.",
+    )
+    return redirect("consulter_corrige_etudiant", pk=pk)
 
 
 @login_required
@@ -1116,18 +1156,68 @@ def _safe_filename_corrige(archive) -> str:
     return quote(base + "_corrige.pdf", safe="")
 
 
-def _context_quota_corrige(user):
-    """IDs d'archives dont le corrigé a déjà été « débloqué » + places restantes."""
+def _abonnement_etudiant_actif_pour_niveau(user):
+    """
+    Abonnement valide uniquement pour le niveau actuel de l'étudiant.
+    Si le niveau a changé, l'abonnement actif est automatiquement désactivé.
+    """
+    abonnement = AbonnementEtudiant.objects.filter(user=user).first()
+    etudiant = getattr(user, "etudiant", None)
+    if (
+        not abonnement
+        or not abonnement.actif
+        or abonnement.statut_demande != "approuvee"
+        or not etudiant
+    ):
+        return False
+    if abonnement.niveau_activation_id != etudiant.niveau_id:
+        abonnement.actif = False
+        abonnement.statut_demande = "aucune"
+        abonnement.save(update_fields=["actif", "statut_demande", "date_mise_a_jour"])
+        return False
+    return True
+
+
+def _context_quota_corrige(user, archives_qs=None):
+    """
+    Contexte d'accès corrigés :
+    - 5 corrigés gratuits sur 5 matières différentes
+    - ou abonnement actif (accès illimité au niveau de l'étudiant)
+    """
     ids = list(
-        ConsultationCorrigeGratuite.objects.filter(user=user).values_list(
-            "archive_id", flat=True
-        )
+        ConsultationCorrigeGratuite.objects.filter(user=user).values_list("archive_id", flat=True)
+    )
+    modules_utilises = list(
+        ConsultationCorrigeGratuite.objects.filter(user=user)
+        .values_list("archive__module", flat=True)
+        .distinct()
     )
     n = len(ids)
+    abonnement_actif = _abonnement_etudiant_actif_pour_niveau(user)
+    archives_accessibles = set(ids)
+    if archives_qs is not None:
+        for a in archives_qs:
+            if not getattr(a, "fichier_corrige", None):
+                continue
+            if abonnement_actif:
+                archives_accessibles.add(a.pk)
+                continue
+            if a.pk in archives_accessibles:
+                continue
+            if len(archives_accessibles) >= CORRIGE_GRATUITS_MAX:
+                continue
+            if a.module in modules_utilises:
+                continue
+            archives_accessibles.add(a.pk)
+
     return {
         "corrige_archives_debloques": ids,
+        "corrige_archives_accessibles": list(archives_accessibles),
+        "corrige_modules_utilises": modules_utilises,
         "corrige_gratuits_restants": max(0, CORRIGE_GRATUITS_MAX - n),
         "corrige_gratuits_max": CORRIGE_GRATUITS_MAX,
+        "abonnement_etudiant_actif": abonnement_actif,
+        "abonnement_etudiant_prix_usd": ABONNEMENT_ETUDIANT_PRIX_USD,
     }
 
 
@@ -1138,17 +1228,319 @@ def _reserver_accès_corrige_gratuit(request, archive):
     Retourne une HttpResponse 403 si quota dépassé, sinon None.
     """
     user = request.user
+    if _abonnement_etudiant_actif_pour_niveau(user):
+        return None
     if ConsultationCorrigeGratuite.objects.filter(user=user, archive=archive).exists():
         return None
-    if ConsultationCorrigeGratuite.objects.filter(user=user).count() >= CORRIGE_GRATUITS_MAX:
-        return render(
+    consultations = ConsultationCorrigeGratuite.objects.filter(user=user).select_related("archive")
+    if consultations.count() >= CORRIGE_GRATUITS_MAX:
+        messages.warning(
             request,
-            "corrige_quota_depasse.html",
-            {"max_corrige": CORRIGE_GRATUITS_MAX},
-            status=403,
+            "Vos 5 corrigés gratuits sont épuisés. Abonnez-vous pour continuer.",
         )
+        return redirect("etudiant_abonnement")
+    modules_deja_utilises = set(
+        consultations.values_list("archive__module", flat=True)
+    )
+    if archive.module in modules_deja_utilises:
+        messages.info(
+            request,
+            "Les 5 corrigés gratuits doivent provenir de 5 matières différentes. "
+            "Abonnez-vous pour débloquer ce corrigé.",
+        )
+        return redirect("etudiant_abonnement")
     ConsultationCorrigeGratuite.objects.create(user=user, archive=archive)
     return None
+
+
+def _normalize_card_number(raw: str) -> str:
+    return "".join(ch for ch in (raw or "") if ch.isdigit())
+
+
+def _is_demo_card_allowed(card_brand: str, card_number: str) -> bool:
+    demo_cards = {
+        "visa": {
+            "4242424242424242",
+            "4111111111111111",
+        },
+        "mastercard": {
+            "5555555555554444",
+            "2223003122003222",
+        },
+    }
+    return card_number in demo_cards.get(card_brand, set())
+
+
+@login_required
+def etudiant_abonnement(request):
+    """Page abonnement étudiant."""
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    abonnement, _ = AbonnementEtudiant.objects.get_or_create(
+        user=request.user,
+        defaults={"montant_usd": ABONNEMENT_ETUDIANT_PRIX_USD},
+    )
+    payment_provider = (getattr(settings, "PAYMENT_PROVIDER", "mastercard_demo") or "mastercard_demo").strip().lower()
+
+    abonnement_actif_niveau = _abonnement_etudiant_actif_pour_niveau(request.user)
+    if abonnement.actif and not abonnement_actif_niveau:
+        messages.info(
+            request,
+            "Votre niveau a changé : l'abonnement précédent est clôturé. "
+            "Vous disposez du quota gratuit puis vous pouvez reprendre l'abonnement pour ce nouveau niveau.",
+        )
+    quota_ctx = _context_quota_corrige(request.user)
+    return render(
+        request,
+        "etudiant_abonnement.html",
+        {
+            "etudiant": request.user.etudiant,
+            "abonnement": abonnement,
+            "abonnement_prix_usd": ABONNEMENT_ETUDIANT_PRIX_USD,
+            "payment_provider": payment_provider,
+            "demande_abonnement_en_attente": abonnement.statut_demande == "en_attente",
+            "demande_abonnement_rejetee": abonnement.statut_demande == "rejetee",
+            **quota_ctx,
+        },
+    )
+
+
+def _soumettre_demande_abonnement_apres_paiement(*, abonnement, etudiant):
+    """Après paiement validé: la demande reste en attente de validation admin."""
+    abonnement.actif = False
+    abonnement.statut_demande = "en_attente"
+    abonnement.montant_usd = ABONNEMENT_ETUDIANT_PRIX_USD
+    abonnement.niveau_activation = etudiant.niveau
+    abonnement.date_demande = abonnement.date_demande or timezone.now()
+    abonnement.date_activation = None
+    abonnement.date_traitement = None
+    abonnement.save(
+        update_fields=[
+            "actif",
+            "statut_demande",
+            "montant_usd",
+            "niveau_activation",
+            "date_demande",
+            "date_activation",
+            "date_traitement",
+            "date_mise_a_jour",
+        ]
+    )
+
+
+@login_required
+@require_POST
+def etudiant_creer_session_paiement(request):
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    abonnement, _ = AbonnementEtudiant.objects.get_or_create(
+        user=request.user,
+        defaults={"montant_usd": ABONNEMENT_ETUDIANT_PRIX_USD},
+    )
+    if _abonnement_etudiant_actif_pour_niveau(request.user):
+        messages.info(request, "Votre abonnement est déjà actif pour votre niveau actuel.")
+        return redirect("etudiant_abonnement")
+
+    card_brand = (request.POST.get("card_brand") or "").strip().lower()
+    card_number = _normalize_card_number(request.POST.get("card_number") or "")
+    card_expiry = (request.POST.get("card_expiry") or "").strip()
+    card_cvv = _normalize_card_number(request.POST.get("card_cvv") or "")
+    holder_name = (request.POST.get("holder_name") or "").strip()
+    if card_brand not in {"visa", "mastercard"}:
+        messages.error(request, "Choisissez Visa ou MasterCard.")
+        return redirect("etudiant_abonnement")
+    if len(card_number) < 13 or len(card_number) > 19:
+        messages.error(request, "Le numero de carte doit contenir entre 13 et 19 chiffres.")
+        return redirect("etudiant_abonnement")
+    if len(card_cvv) not in {3, 4} or not card_expiry or not holder_name:
+        messages.error(request, "Informations de paiement invalides. Verifiez le formulaire.")
+        return redirect("etudiant_abonnement")
+
+    payment_provider = (getattr(settings, "PAYMENT_PROVIDER", "mastercard_demo") or "mastercard_demo").strip().lower()
+    paiement = PaiementAbonnement.objects.create(
+        user=request.user,
+        abonnement=abonnement,
+        provider="mastercard",
+        statut="initie",
+        montant_usd=ABONNEMENT_ETUDIANT_PRIX_USD,
+        devise=getattr(settings, "MASTERCARD_CURRENCY", "USD"),
+    )
+    paiement.gateway_order_id = f"SIGAEUD-{paiement.reference.hex[:20]}"
+    paiement.save(update_fields=["gateway_order_id", "date_mise_a_jour"])
+
+    service = MastercardCheckoutService(settings)
+    local_mode = (payment_provider == "mastercard_demo") or (payment_provider == "mastercard_sandbox" and not service.is_configured())
+    checkout_url = reverse_lazy("etudiant_paiement_checkout", kwargs={"tx_ref": paiement.reference})
+
+    if local_mode:
+        if not _is_demo_card_allowed(card_brand, card_number):
+            paiement.statut = "echoue"
+            paiement.message = "Carte de test non reconnue en mode local."
+            paiement.save(update_fields=["statut", "message", "date_mise_a_jour"])
+            messages.error(request, "Carte non reconnue. Utilisez une carte test fournie.")
+            return redirect("etudiant_abonnement")
+        _soumettre_demande_abonnement_apres_paiement(
+            abonnement=abonnement,
+            etudiant=request.user.etudiant,
+        )
+        paiement.statut = "reussi"
+        paiement.date_validation = timezone.now()
+        paiement.message = "Paiement local simulé validé. Demande envoyée à l'administrateur."
+        paiement.payload_gateway = {"mode": "local_simulation"}
+        paiement.save(
+            update_fields=[
+                "statut",
+                "date_validation",
+                "message",
+                "payload_gateway",
+                "date_mise_a_jour",
+            ]
+        )
+        messages.success(
+            request,
+            "Paiement validé. Votre demande d'abonnement est en attente de validation par l'administrateur.",
+        )
+        return redirect("etudiant_abonnement")
+
+    try:
+        app_base = (getattr(settings, "APP_BASE_URL", "") or "").rstrip("/")
+        return_url = f"{app_base}{reverse_lazy('etudiant_paiement_retour')}?tx={paiement.reference}"
+        cancel_url = f"{app_base}{reverse_lazy('etudiant_paiement_retour')}?tx={paiement.reference}&status=cancelled"
+        response = service.create_checkout_session(
+            order_id=paiement.gateway_order_id,
+            amount=ABONNEMENT_ETUDIANT_PRIX_USD,
+            currency=getattr(settings, "MASTERCARD_CURRENCY", "USD"),
+            return_url=return_url,
+            cancel_url=cancel_url,
+            customer_email=request.user.email,
+            customer_name=request.user.get_full_name() or request.user.username,
+        )
+    except Exception as exc:
+        logger.exception("Erreur creation session Mastercard: %s", exc)
+        paiement.statut = "erreur"
+        paiement.message = "Erreur reseau lors de la creation de session Mastercard."
+        paiement.save(update_fields=["statut", "message", "date_mise_a_jour"])
+        messages.error(request, "Impossible de contacter la passerelle de paiement. Réessayez.")
+        return redirect("etudiant_abonnement")
+
+    session_id = (response.get("session") or {}).get("id") if isinstance(response, dict) else None
+    success_indicator = response.get("successIndicator", "") if isinstance(response, dict) else ""
+    if not session_id:
+        paiement.statut = "erreur"
+        paiement.message = "Session Mastercard invalide."
+        paiement.payload_gateway = response
+        paiement.save(update_fields=["statut", "message", "payload_gateway", "date_mise_a_jour"])
+        messages.error(request, "La session de paiement n'a pas pu être créée.")
+        return redirect("etudiant_abonnement")
+
+    paiement.statut = "en_attente"
+    paiement.gateway_session_id = session_id
+    paiement.gateway_success_indicator = success_indicator or ""
+    paiement.payload_gateway = response
+    paiement.save(
+        update_fields=[
+            "statut",
+            "gateway_session_id",
+            "gateway_success_indicator",
+            "payload_gateway",
+            "date_mise_a_jour",
+        ]
+    )
+    return redirect(checkout_url)
+
+
+@login_required
+def etudiant_paiement_checkout(request, tx_ref):
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    paiement = get_object_or_404(PaiementAbonnement, reference=tx_ref, user=request.user)
+    payload = paiement.payload_gateway or {}
+    is_local_mode = ((payload.get("mode") == "local_simulation") if isinstance(payload, dict) else False) or not paiement.gateway_session_id
+    return render(
+        request,
+        "etudiant_paiement_checkout.html",
+        {
+            "paiement": paiement,
+            "is_local_mode": is_local_mode,
+            "gateway_url": getattr(settings, "MASTERCARD_GATEWAY_URL", "").rstrip("/"),
+            "gateway_api_version": getattr(settings, "MASTERCARD_API_VERSION", "100"),
+            "merchant_id": getattr(settings, "MASTERCARD_MERCHANT_ID", ""),
+            "return_url": f"{(getattr(settings, 'APP_BASE_URL', '') or '').rstrip('/')}{reverse_lazy('etudiant_paiement_retour')}?tx={paiement.reference}",
+            "cancel_url": f"{(getattr(settings, 'APP_BASE_URL', '') or '').rstrip('/')}{reverse_lazy('etudiant_paiement_retour')}?tx={paiement.reference}&status=cancelled",
+        },
+    )
+
+
+@login_required
+def etudiant_paiement_retour(request):
+    if not user_est_etudiant(request.user):
+        raise Http404()
+    tx = (request.GET.get("tx") or "").strip()
+    if not tx:
+        messages.error(request, "Retour de paiement invalide.")
+        return redirect("etudiant_abonnement")
+    paiement = get_object_or_404(PaiementAbonnement, reference=tx, user=request.user)
+
+    status_hint = (request.GET.get("status") or "").strip().lower()
+    if status_hint == "cancelled":
+        paiement.statut = "annule"
+        paiement.message = "Paiement annulé par l'utilisateur."
+        paiement.save(update_fields=["statut", "message", "date_mise_a_jour"])
+        messages.warning(request, "Paiement annulé. Aucun accès supplémentaire n'a été débloqué.")
+        return redirect("etudiant_abonnement")
+
+    payload = paiement.payload_gateway or {}
+    local_mode = (payload.get("mode") == "local_simulation") if isinstance(payload, dict) else False
+    if local_mode:
+        messages.info(
+            request,
+            "Votre paiement local est déjà pris en compte et envoyé en attente de validation administrateur.",
+        )
+        return redirect("etudiant_abonnement")
+
+    service = MastercardCheckoutService(settings)
+    if not service.is_configured():
+        paiement.statut = "erreur"
+        paiement.message = "Configuration sandbox Mastercard incomplète."
+        paiement.save(update_fields=["statut", "message", "date_mise_a_jour"])
+        messages.error(request, "Configuration paiement incomplète côté serveur.")
+        return redirect("etudiant_abonnement")
+    try:
+        order_data = service.retrieve_order(paiement.gateway_order_id)
+    except Exception as exc:
+        logger.exception("Erreur verification paiement Mastercard: %s", exc)
+        paiement.statut = "erreur"
+        paiement.message = "Erreur reseau lors de la verification du paiement."
+        paiement.save(update_fields=["statut", "message", "date_mise_a_jour"])
+        messages.error(request, "Vérification impossible pour le moment. Réessayez dans quelques instants.")
+        return redirect("etudiant_abonnement")
+
+    result = (order_data.get("result") or "").upper() if isinstance(order_data, dict) else ""
+    order_status = ((order_data.get("order") or {}).get("status") or "").upper() if isinstance(order_data, dict) else ""
+    if result == "SUCCESS" or order_status in {"CAPTURED", "PAID"}:
+        abonnement = paiement.abonnement or AbonnementEtudiant.objects.get(user=request.user)
+        _soumettre_demande_abonnement_apres_paiement(
+            abonnement=abonnement,
+            etudiant=request.user.etudiant,
+        )
+        paiement.statut = "reussi"
+        paiement.message = "Paiement Mastercard validé."
+        paiement.date_validation = timezone.now()
+        paiement.payload_gateway = order_data
+        paiement.save(
+            update_fields=["statut", "message", "date_validation", "payload_gateway", "date_mise_a_jour"]
+        )
+        messages.success(
+            request,
+            "Paiement réussi. Votre demande d'abonnement est maintenant en attente de validation par l'administrateur.",
+        )
+    else:
+        paiement.statut = "echoue"
+        paiement.message = f"Paiement non validé (result={result}, order_status={order_status})."
+        paiement.payload_gateway = order_data
+        paiement.save(update_fields=["statut", "message", "payload_gateway", "date_mise_a_jour"])
+        messages.error(request, "Paiement échoué ou non confirmé. Aucun accès n'a été débloqué.")
+    return redirect("etudiant_abonnement")
 
 
 @login_required
@@ -1284,7 +1676,7 @@ def _growth_pct(recent_count, prev_count):
 
 
 def _redirect_si_pas_admin_sigaud(request):
-    """Redirige vers l'accueil avec message si l'utilisateur n'a pas accès admin Sigaud."""
+    """Redirige vers l'accueil avec message si l'utilisateur n'a pas accès admin Sigaeud."""
     if user_est_admin_sigaud(request.user):
         return None
     messages.warning(request, "Accès réservé aux administrateurs.")
@@ -1293,12 +1685,15 @@ def _redirect_si_pas_admin_sigaud(request):
 
 @login_required
 def admin_dashboard(request):
-    """Tableau de bord Sigaud : staff, superuser ou groupe Administrateur système."""
+    """Tableau de bord Sigaeud : staff, superuser ou groupe Administrateur système."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
+    from datetime import date
+
     from django.contrib.auth import get_user_model
     from django.db.models import Count
+    from django.db.models.functions import TruncMonth
     from django.contrib.admin.models import LogEntry
 
     User = get_user_model()
@@ -1339,9 +1734,122 @@ def admin_dashboard(request):
         .order_by("libelle")[:12]
     )
 
-    notification_count = LogEntry.objects.filter(
+    log_notifications_count = LogEntry.objects.filter(
         action_time__gte=timezone.now() - timedelta(days=7)
     ).count()
+    demandes_abonnement_en_attente = AbonnementEtudiant.objects.filter(
+        statut_demande="en_attente"
+    ).count()
+    notification_count = log_notifications_count + demandes_abonnement_en_attente
+
+    # Donnees graphiques dynamiques (un graphe a la fois dans le dashboard)
+    user_monthly = {}
+    for row in (
+        User.objects.annotate(m=TruncMonth("date_joined"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            key = (row["m"].year, row["m"].month)
+            user_monthly[key] = user_monthly.get(key, 0) + row["c"]
+
+    archive_monthly = {}
+    for row in (
+        Archive.objects.annotate(m=TruncMonth("date_archive"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            key = (row["m"].year, row["m"].month)
+            archive_monthly[key] = archive_monthly.get(key, 0) + row["c"]
+
+    today_local = timezone.localdate()
+    end_ym = (today_local.year, today_local.month)
+    all_keys = list(user_monthly.keys()) + list(archive_monthly.keys())
+    start_ym = min(all_keys) if all_keys else end_ym
+    months = _sigaud_months_range(start_ym, end_ym)
+    if len(months) > 48:
+        months = months[-48:]
+        start_ym = months[0]
+
+    def first_day(ym):
+        return date(ym[0], ym[1], 1)
+
+    base_users = User.objects.filter(date_joined__lt=first_day(start_ym)).count()
+    base_archives = Archive.objects.filter(date_archive__lt=first_day(start_ym)).count()
+
+    labels_time = []
+    users_cumul = []
+    archives_cumul = []
+    cu, ca = base_users, base_archives
+    for ym in months:
+        cu += user_monthly.get(ym, 0)
+        ca += archive_monthly.get(ym, 0)
+        labels_time.append(_sigaud_label_mois_fr(*ym))
+        users_cumul.append(cu)
+        archives_cumul.append(ca)
+
+    fil_rows = list(
+        Archive.objects.values("filiere").annotate(nb=Count("id")).order_by("-nb")
+    )
+    top_fil = 8
+    fil_labels = [
+        (r["filiere"] or "(Non renseigne)").strip() or "(Non renseigne)"
+        for r in fil_rows[:top_fil]
+    ]
+    fil_values = [r["nb"] for r in fil_rows[:top_fil]]
+    if len(fil_rows) > top_fil:
+        autres = sum(r["nb"] for r in fil_rows[top_fil:])
+        if autres:
+            fil_labels.append("Autres")
+            fil_values.append(autres)
+
+    type_rows = list(
+        Archive.objects.values("type").annotate(nb=Count("id")).order_by("-nb")
+    )
+    type_labels = [
+        (r["type"] or "(Non renseigne)").strip() or "(Non renseigne)" for r in type_rows
+    ]
+    type_values = [r["nb"] for r in type_rows]
+
+    dashboard_charts = [
+        {
+            "key": "users_growth",
+            "title": "Evolution des utilisateurs",
+            "subtitle": "Nombre cumule de comptes par mois",
+            "type": "line",
+            "labels": labels_time,
+            "values": users_cumul,
+            "color": "#5b21b6",
+        },
+        {
+            "key": "archives_growth",
+            "title": "Evolution des sujets archives",
+            "subtitle": "Nombre cumule d'archives par mois",
+            "type": "line",
+            "labels": labels_time,
+            "values": archives_cumul,
+            "color": "#0d9488",
+        },
+        {
+            "key": "filiere_share",
+            "title": "Repartition des sujets par filiere",
+            "subtitle": "Top filieres + autres",
+            "type": "doughnut",
+            "labels": fil_labels,
+            "values": fil_values,
+        },
+        {
+            "key": "type_share",
+            "title": "Repartition par type d'epreuve",
+            "subtitle": "CC versus Examen final",
+            "type": "doughnut",
+            "labels": type_labels,
+            "values": type_values,
+        },
+    ]
 
     return render(
         request,
@@ -1357,6 +1865,8 @@ def admin_dashboard(request):
             "dashboard_user_rows": dashboard_user_rows,
             "facultes_avec_filieres": facultes_avec_filieres,
             "notification_count": notification_count,
+            "demandes_abonnement_en_attente": demandes_abonnement_en_attente,
+            "dashboard_charts": dashboard_charts,
         },
     )
 
@@ -1411,6 +1921,16 @@ def admin_utilisateurs(request):
         qs = qs.filter(groups__name=group_name).distinct()
 
     users = qs
+    user_rows = []
+    for u in users:
+        role_kind, role_label = _dashboard_user_role(u)
+        user_rows.append(
+            {
+                "user": u,
+                "role_kind": role_kind,
+                "role_label": role_label,
+            }
+        )
     groups = Group.objects.all().order_by("name")
 
     return render(
@@ -1418,6 +1938,7 @@ def admin_utilisateurs(request):
         "admin_utilisateurs.html",
         {
             "users": users,
+            "user_rows": user_rows,
             "groups": groups,
             "total_count": users.count(),
             "query": q,
@@ -1469,7 +1990,7 @@ def admin_add_user(request):
 
 @login_required
 def admin_modifier_utilisateur(request, pk: int):
-    """Edition d'un utilisateur dans l'UI admin SIGAUD (sans admin Django)."""
+    """Edition d'un utilisateur dans l'UI admin SIGAEUD (sans admin Django)."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1479,7 +2000,9 @@ def admin_modifier_utilisateur(request, pk: int):
     form = AdminEditUserForm(target_user)
     if request.method == "POST":
         form = AdminEditUserForm(target_user, request.POST)
-        if form.is_valid():
+        if request.POST.get("_reload_form") == "1":
+            pass
+        elif form.is_valid():
             updated_user = form.save()
             messages.success(
                 request,
@@ -1493,14 +2016,18 @@ def admin_modifier_utilisateur(request, pk: int):
     return render(
         request,
         "admin_modifier_utilisateur.html",
-        {"form": form, "target_user": target_user},
+        {
+            "form": form,
+            "target_user": target_user,
+            "role_utilisateur": form.user_role,
+        },
     )
 
 
 @login_required
 @require_POST
 def admin_supprimer_utilisateur(request, pk: int):
-    """Suppression d'un utilisateur depuis l'interface admin SIGAUD."""
+    """Suppression d'un utilisateur depuis l'interface admin SIGAEUD."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1541,7 +2068,7 @@ def admin_documents(request):
 
 @login_required
 def admin_ajouter_archive(request):
-    """Ajout d'une archive depuis l'espace admin SIGAUD."""
+    """Ajout d'une archive depuis l'espace admin SIGAEUD."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1569,7 +2096,7 @@ def admin_ajouter_archive(request):
 
 @login_required
 def admin_modifier_archive(request, pk: int):
-    """Modification d'une archive depuis l'espace admin SIGAUD."""
+    """Modification d'une archive depuis l'espace admin SIGAEUD."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1599,7 +2126,7 @@ def admin_modifier_archive(request, pk: int):
 @login_required
 @require_POST
 def admin_supprimer_archive(request, pk: int):
-    """Suppression d'une archive depuis l'espace admin SIGAUD."""
+    """Suppression d'une archive depuis l'espace admin SIGAEUD."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1610,36 +2137,171 @@ def admin_supprimer_archive(request, pk: int):
     return redirect("admin_documents")
 
 
+def _sigaud_months_range(start_ym, end_ym):
+    """start_ym / end_ym: (year, month) avec start <= end."""
+    y, m = start_ym
+    ye, me = end_ym
+    out = []
+    while (y, m) <= (ye, me):
+        out.append((y, m))
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return out
+
+
+def _sigaud_label_mois_fr(y, m):
+    mois = (
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc.",
+    )
+    return f"{mois[m - 1]} {y}"
+
+
 @login_required
 def admin_statistiques(request):
-    """Statistiques sur les archives (agrégats)."""
+    """Statistiques : graphiques (évolution, répartitions)."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
-    from django.db.models import Count
+    from datetime import date
 
+    from django.db.models import Count
+    from django.db.models.functions import TruncMonth
+
+    User = get_user_model()
     total_archives = Archive.objects.count()
-    stats_par_annee = (
-        Archive.objects.values("annee")
+    total_utilisateurs = User.objects.count()
+
+    user_monthly = {}
+    for row in (
+        User.objects.annotate(m=TruncMonth("date_joined"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            dk = (row["m"].year, row["m"].month)
+            user_monthly[dk] = user_monthly.get(dk, 0) + row["c"]
+
+    archive_monthly = {}
+    for row in (
+        Archive.objects.annotate(m=TruncMonth("date_archive"))
+        .values("m")
+        .annotate(c=Count("id"))
+        .order_by("m")
+    ):
+        if row["m"]:
+            dk = (row["m"].year, row["m"].month)
+            archive_monthly[dk] = archive_monthly.get(dk, 0) + row["c"]
+
+    today = timezone.localdate()
+    end_ym = (today.year, today.month)
+    all_keys = list(user_monthly.keys()) + list(archive_monthly.keys())
+    if all_keys:
+        start_ym = min(all_keys)
+    else:
+        start_ym = end_ym
+
+    months = _sigaud_months_range(start_ym, end_ym)
+    max_span = 72
+    if len(months) > max_span:
+        months = months[-max_span:]
+        start_ym = months[0]
+
+    def first_day(ym):
+        return date(ym[0], ym[1], 1)
+
+    base_users = User.objects.filter(date_joined__lt=first_day(start_ym)).count()
+    base_archives = Archive.objects.filter(date_archive__lt=first_day(start_ym)).count()
+
+    labels_temps = []
+    serie_utilisateurs_cumul = []
+    serie_archives_cumul = []
+    cu, ca = base_users, base_archives
+    for ym in months:
+        cu += user_monthly.get(ym, 0)
+        ca += archive_monthly.get(ym, 0)
+        labels_temps.append(_sigaud_label_mois_fr(*ym))
+        serie_utilisateurs_cumul.append(cu)
+        serie_archives_cumul.append(ca)
+
+    chart_evolution_utilisateurs = {
+        "labels": labels_temps,
+        "values": serie_utilisateurs_cumul,
+    }
+    chart_evolution_archives = {
+        "labels": labels_temps,
+        "values": serie_archives_cumul,
+    }
+
+    fil_rows = list(
+        Archive.objects.values("filiere")
         .annotate(nb=Count("id"))
-        .order_by("-annee")[:10]
+        .order_by("-nb")
     )
-    stats_par_type = (
+    top_fil = 12
+    if len(fil_rows) > top_fil:
+        head = fil_rows[:top_fil]
+        autres = sum(r["nb"] for r in fil_rows[top_fil:])
+        labels_fil = [(r["filiere"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in head]
+        data_fil = [r["nb"] for r in head]
+        if autres > 0:
+            labels_fil.append("Autres")
+            data_fil.append(autres)
+    else:
+        labels_fil = [
+            (r["filiere"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in fil_rows
+        ]
+        data_fil = [r["nb"] for r in fil_rows]
+
+    chart_filiere = {"labels": labels_fil, "values": data_fil}
+
+    type_rows = list(
         Archive.objects.values("type").annotate(nb=Count("id")).order_by("-nb")
     )
-    stats_par_filiere = (
-        Archive.objects.values("filiere")
+    chart_type = {
+        "labels": [
+            (r["type"] or "(Non renseigné)").strip() or "(Non renseigné)" for r in type_rows
+        ],
+        "values": [r["nb"] for r in type_rows],
+    }
+
+    mod_rows = list(
+        Archive.objects.values("module")
         .annotate(nb=Count("id"))
         .order_by("-nb")[:10]
     )
+    mod_labels = []
+    for r in mod_rows:
+        lab = (r["module"] or "(Non renseigné)").strip() or "(Non renseigné)"
+        if len(lab) > 42:
+            lab = lab[:39] + "…"
+        mod_labels.append(lab)
+    chart_modules = {"labels": mod_labels, "values": [r["nb"] for r in mod_rows]}
+
     return render(
         request,
         "admin_statistiques.html",
         {
             "total_archives": total_archives,
-            "stats_par_annee": stats_par_annee,
-            "stats_par_type": stats_par_type,
-            "stats_par_filiere": stats_par_filiere,
+            "total_utilisateurs": total_utilisateurs,
+            "chart_evolution_utilisateurs": chart_evolution_utilisateurs,
+            "chart_evolution_archives": chart_evolution_archives,
+            "chart_filiere": chart_filiere,
+            "chart_type": chart_type,
+            "chart_modules": chart_modules,
         },
     )
 
@@ -1653,7 +2315,154 @@ def admin_facultes(request):
     from django.db.models import Count
 
     facultes = Faculte.objects.annotate(nb_filieres=Count("filieres")).order_by("code")
-    return render(request, "admin_facultes.html", {"facultes": facultes})
+    filieres = Filiere.objects.select_related("faculte").order_by("faculte__code", "code")
+    return render(
+        request,
+        "admin_facultes.html",
+        {"facultes": facultes, "filieres": filieres},
+    )
+
+
+@login_required
+def admin_ajouter_faculte(request):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        form = FaculteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Faculte ajoutee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FaculteForm()
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Ajouter une faculte",
+            "page_help": "Creer une nouvelle faculte academique.",
+            "submit_label": "Ajouter",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+def admin_modifier_faculte(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    faculte = get_object_or_404(Faculte, pk=pk)
+    if request.method == "POST":
+        form = FaculteForm(request.POST, instance=faculte)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Faculte modifiee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FaculteForm(instance=faculte)
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Modifier la faculte",
+            "page_help": "Mettez a jour les informations de la faculte.",
+            "submit_label": "Enregistrer",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_faculte(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    faculte = get_object_or_404(Faculte, pk=pk)
+    try:
+        faculte.delete()
+        messages.success(request, "Faculte supprimee avec succes.")
+    except (ProtectedError, RestrictedError, IntegrityError, DatabaseError):
+        messages.error(
+            request,
+            "Suppression impossible: des filieres ou niveaux sont lies a cette faculte.",
+        )
+    return redirect("admin_facultes")
+
+
+@login_required
+def admin_ajouter_filiere(request):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        form = FiliereForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Filiere ajoutee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FiliereForm()
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Ajouter une filiere",
+            "page_help": "Creer une nouvelle filiere/departement.",
+            "submit_label": "Ajouter",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+def admin_modifier_filiere(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    filiere = get_object_or_404(Filiere, pk=pk)
+    if request.method == "POST":
+        form = FiliereForm(request.POST, instance=filiere)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Filiere modifiee avec succes.")
+            return redirect("admin_facultes")
+    else:
+        form = FiliereForm(instance=filiere)
+    return render(
+        request,
+        "admin_structure_form.html",
+        {
+            "form": form,
+            "page_title": "Modifier la filiere",
+            "page_help": "Mettez a jour les informations de la filiere.",
+            "submit_label": "Enregistrer",
+            "cancel_url_name": "admin_facultes",
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_supprimer_filiere(request, pk: int):
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    filiere = get_object_or_404(Filiere, pk=pk)
+    try:
+        filiere.delete()
+        messages.success(request, "Filiere supprimee avec succes.")
+    except (ProtectedError, RestrictedError, IntegrityError, DatabaseError):
+        messages.error(
+            request,
+            "Suppression impossible: des elements sont lies a cette filiere.",
+        )
+    return redirect("admin_facultes")
 
 
 @login_required
@@ -1667,7 +2476,7 @@ def admin_parametres(request):
 
 @login_required
 def administration_systeme(request):
-    """Console type « index admin Django » (interface personnalisée Sigaud)."""
+    """Console type « index admin Django » (interface personnalisée Sigaeud)."""
     denied = _redirect_si_pas_admin_sigaud(request)
     if denied:
         return denied
@@ -1717,4 +2526,70 @@ def admin_notifications(request):
         LogEntry.objects.select_related("user", "content_type")
         .order_by("-action_time")[:20]
     )
-    return render(request, "admin_notifications.html", {"notifications": notifications})
+    abonnements_en_attente = (
+        AbonnementEtudiant.objects.filter(statut_demande="en_attente")
+        .select_related("user", "niveau_activation")
+        .order_by("-date_demande")
+    )
+    return render(
+        request,
+        "admin_notifications.html",
+        {
+            "notifications": notifications,
+            "abonnements_en_attente": abonnements_en_attente,
+        },
+    )
+
+
+@login_required
+@require_POST
+def admin_valider_abonnement_etudiant(request, pk: int):
+    """Valide une demande d'abonnement étudiant en attente."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    abonnement = get_object_or_404(AbonnementEtudiant, pk=pk)
+    if abonnement.statut_demande != "en_attente":
+        messages.info(request, "Cette demande a déjà été traitée.")
+        return redirect("admin_notifications")
+    abonnement.actif = True
+    abonnement.statut_demande = "approuvee"
+    abonnement.date_activation = timezone.now()
+    abonnement.date_traitement = timezone.now()
+    abonnement.save(
+        update_fields=[
+            "actif",
+            "statut_demande",
+            "date_activation",
+            "date_traitement",
+            "date_mise_a_jour",
+        ]
+    )
+    messages.success(request, f"Demande validée pour {abonnement.user.username}.")
+    return redirect("admin_notifications")
+
+
+@login_required
+@require_POST
+def admin_rejeter_abonnement_etudiant(request, pk: int):
+    """Rejette une demande d'abonnement étudiant en attente."""
+    denied = _redirect_si_pas_admin_sigaud(request)
+    if denied:
+        return denied
+    abonnement = get_object_or_404(AbonnementEtudiant, pk=pk)
+    if abonnement.statut_demande != "en_attente":
+        messages.info(request, "Cette demande a déjà été traitée.")
+        return redirect("admin_notifications")
+    abonnement.actif = False
+    abonnement.statut_demande = "rejetee"
+    abonnement.date_traitement = timezone.now()
+    abonnement.save(
+        update_fields=[
+            "actif",
+            "statut_demande",
+            "date_traitement",
+            "date_mise_a_jour",
+        ]
+    )
+    messages.warning(request, f"Demande rejetée pour {abonnement.user.username}.")
+    return redirect("admin_notifications")
